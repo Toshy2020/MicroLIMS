@@ -14,7 +14,8 @@ export const MY_WORK_TARGET_TYPES = [
   "document-review",
   "document-approval",
   "training-assignment",
-  "equipment-task"
+  "equipment-task",
+  "competency-qualification"
 ] as const;
 
 export type MyWorkTargetType = (typeof MY_WORK_TARGET_TYPES)[number];

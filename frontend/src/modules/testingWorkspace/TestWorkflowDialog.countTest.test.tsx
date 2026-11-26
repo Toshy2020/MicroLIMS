@@ -454,7 +454,10 @@ describe("TestWorkflowDialog count test", () => {
           statusText: "Forbidden",
           headers: {},
           config: {} as never,
-          data: { code: "Competency.NotQualified", message: "You are not qualified for TAMC." }
+          data: {
+            message: "You are not qualified for TAMC.",
+            errorDetails: [{ code: "Competency.NotQualified", message: "You are not qualified for TAMC." }]
+          }
         } as AxiosResponse)
       );
       renderDialog();

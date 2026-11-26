@@ -112,7 +112,7 @@ public sealed class CompetencySettingsService(
 
             var signature = await signatures.SignAsync(actingUserId, password ?? string.Empty,
                 SignatureMeaning.CompetencyGateChanged, nameof(CompetencySectionSetting), sectionId,
-                reasonText, null);
+                reasonText, null, cancellationToken);
             signature.SignedAt = clock.UtcNow.UtcDateTime;
 
             row.GateEnabled = enabled;
@@ -138,7 +138,60 @@ public sealed class CompetencySettingsService(
                 .SingleOrDefaultAsync(cancellationToken);
             return new CompetencySettingDto(sectionId, row.GateEnabled, row.ReminderDaysBeforeExpiry,
                 row.ChangedAt, changedBy, row.Version);
-        });
+        }, cancellationToken);
+    }
+
+    public async Task<CompetencySettingDto> SetReminderDaysAsync(
+        int sectionId, int? reminderDaysBeforeExpiry, uint? expectedVersion,
+        int actingUserId, CancellationToken cancellationToken = default)
+    {
+        await RequireManageAsync(actingUserId, cancellationToken);
+        await RequireSectionAsync(actingUserId, sectionId, cancellationToken);
+
+        if (reminderDaysBeforeExpiry is < 1 or > 365)
+            throw new BusinessRuleException(MessageCodes.CompetencyReminderDaysInvalid,
+                "Expiry reminder window must be between 1 and 365 days, or empty.");
+
+        var auditReason = reminderDaysBeforeExpiry is int days
+            ? $"Set competency expiry reminder window to {days} days."
+            : "Cleared competency expiry reminder window.";
+
+        return await UnitOfWork.RunAsync(db, async () =>
+        {
+            var row = await db.CompetencySectionSettings
+                .FirstOrDefaultAsync(setting => setting.SectionId == sectionId, cancellationToken);
+            if ((expectedVersion ?? 0u) != (row?.Version ?? 0u))
+                throw StaleVersion();
+            if (row is null)
+            {
+                row = new CompetencySectionSetting { SectionId = sectionId };
+                db.CompetencySectionSettings.Add(row);
+            }
+
+            row.ReminderDaysBeforeExpiry = reminderDaysBeforeExpiry;
+            row.ChangedAt = clock.UtcNow.UtcDateTime;
+            row.ChangedByUserId = actingUserId;
+
+            var previousActor = db.CurrentUserId;
+            var previousReason = db.CurrentReason;
+            db.CurrentUserId = actingUserId;
+            db.CurrentReason = auditReason;
+            try
+            {
+                await db.SaveChangesAsync(cancellationToken);
+            }
+            finally
+            {
+                db.CurrentUserId = previousActor;
+                db.CurrentReason = previousReason;
+            }
+
+            var changedBy = await db.Users.AsNoTracking().Where(user => user.Id == actingUserId)
+                .Select(user => (string?)user.FullName)
+                .SingleOrDefaultAsync(cancellationToken);
+            return new CompetencySettingDto(sectionId, row.GateEnabled, row.ReminderDaysBeforeExpiry,
+                row.ChangedAt, changedBy, row.Version);
+        }, cancellationToken);
     }
 
     private static BusinessRuleException StaleVersion() =>

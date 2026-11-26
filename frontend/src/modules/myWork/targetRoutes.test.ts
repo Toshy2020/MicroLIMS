@@ -89,6 +89,7 @@ describe("routeForGroup", () => {
     expect(routeForGroup("documents")).toBe("/document-control/my-reading-list");
     expect(routeForGroup("equipment")).toBe("/inventory/equipment");
     expect(routeForGroup("materials")).toBe("/laboratory-configuration/media");
+    expect(routeForGroup("competency")).toBe("/competency/my");
   });
 });
 

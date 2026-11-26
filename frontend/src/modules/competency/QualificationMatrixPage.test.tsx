@@ -12,9 +12,11 @@ import { laboratorySectionService } from "../../services/laboratorySectionServic
 vi.mock("../../services/competencyService", () => ({
   competencyService: {
     getMatrix: vi.fn(),
+    exportMatrix: vi.fn(),
     getSettings: vi.fn(),
     getImpact: vi.fn(),
     setGate: vi.fn(),
+    setReminderDays: vi.fn(),
     qualify: vi.fn(),
     withdraw: vi.fn(),
     getMyMatrix: vi.fn()
@@ -54,16 +56,16 @@ const sampleMatrix: CompetencyMatrixDto = {
       userId: 101,
       analystName: "Mona Ali",
       cells: [
-        { userId: 101, testDefinitionId: 10, status: "Qualified", expiresOn: "2027-05-01", qualificationId: 101 },
-        { userId: 101, testDefinitionId: 11, status: "ExpiringSoon", expiresOn: "2026-12-01", qualificationId: 102 }
+        { userId: 101, testDefinitionId: 10, status: "Qualified", expiresOn: "2027-05-01", qualificationId: 101, version: 1 },
+        { userId: 101, testDefinitionId: 11, status: "ExpiringSoon", expiresOn: "2026-12-01", qualificationId: 102, version: 2 }
       ]
     },
     {
       userId: 102,
       analystName: "Omar Saleh",
       cells: [
-        { userId: 102, testDefinitionId: 10, status: "Expired", expiresOn: "2026-01-15", qualificationId: 103 },
-        { userId: 102, testDefinitionId: 11, status: "Withdrawn", expiresOn: null, qualificationId: 104 }
+        { userId: 102, testDefinitionId: 10, status: "Expired", expiresOn: "2026-01-15", qualificationId: 103, version: 3 },
+        { userId: 102, testDefinitionId: 11, status: "Withdrawn", expiresOn: null, qualificationId: 104, version: 4 }
       ]
     }
   ]
@@ -214,10 +216,35 @@ describe("QualificationMatrixPage", () => {
     await user.click(screen.getByRole("button", { name: "Sign" }));
 
     await waitFor(() =>
-      expect(competencyService.withdraw).toHaveBeenCalledWith(101, {
-        reason: "Retraining",
-        password: "Secret123!"
-      })
+      expect(competencyService.withdraw).toHaveBeenCalledWith(
+        101,
+        {
+          reason: "Retraining",
+          password: "Secret123!"
+        },
+        1
+      )
     );
+  });
+
+  it("exports matrix CSV when Export button is clicked", async () => {
+    const user = userEvent.setup();
+    vi.mocked(competencyService.exportMatrix).mockResolvedValue(new Blob(["Analyst\n"], { type: "text/csv" }));
+    const createObjectUrlSpy = vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:mock");
+    const revokeObjectUrlSpy = vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => {});
+
+    renderPage();
+    await screen.findByText("Mona Ali");
+
+    await user.click(screen.getByRole("button", { name: /Export CSV/i }));
+
+    await waitFor(() =>
+      expect(competencyService.exportMatrix).toHaveBeenCalledWith(
+        1,
+        expect.objectContaining({})
+      )
+    );
+    createObjectUrlSpy.mockRestore();
+    revokeObjectUrlSpy.mockRestore();
   });
 });

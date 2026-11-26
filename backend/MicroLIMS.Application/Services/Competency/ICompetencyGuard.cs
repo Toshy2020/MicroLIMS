@@ -1,3 +1,5 @@
+using MicroLIMS.Shared.Responses;
+
 namespace MicroLIMS.Application.Services.Competency;
 
 public sealed record CompetencySubject(string TestCode, int SectionId, int? ItemId = null);
@@ -18,7 +20,11 @@ public sealed record CompetencyDecision(
 
     public ActionCheck ToActionCheck() => Allowed
         ? ActionCheck.Ok
-        : ActionCheck.No(Reasons[0].Code, string.Join(" ", ReasonTexts), Reasons[0].Params);
+        : ActionCheck.No(
+            Reasons[0].Code,
+            string.Join(" ", ReasonTexts),
+            Reasons[0].Params,
+            Reasons.Select(r => new ApiError(r.Code, r.Params.Count > 0 ? r.Params : null, r.Text)).ToArray());
 }
 
 public interface ICompetencyGuard

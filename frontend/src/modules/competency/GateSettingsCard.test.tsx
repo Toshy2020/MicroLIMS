@@ -13,7 +13,8 @@ vi.mock("../../services/competencyService", () => ({
   competencyService: {
     getSettings: vi.fn(),
     getImpact: vi.fn(),
-    setGate: vi.fn()
+    setGate: vi.fn(),
+    setReminderDays: vi.fn()
   }
 }));
 
@@ -64,6 +65,14 @@ describe("GateSettingsCard", () => {
       sectionId: 1,
       gateEnabled: true,
       reminderDaysBeforeExpiry: 30,
+      changedAt: "2026-11-24T12:00:00Z",
+      changedByName: "Hana Head",
+      version: 3
+    });
+    vi.mocked(competencyService.setReminderDays).mockResolvedValue({
+      sectionId: 1,
+      gateEnabled: false,
+      reminderDaysBeforeExpiry: 14,
       changedAt: "2026-11-24T12:00:00Z",
       changedByName: "Hana Head",
       version: 3
@@ -152,5 +161,22 @@ describe("GateSettingsCard", () => {
     expect(await screen.findByText(/Failed to load competency gate settings/i)).toBeTruthy();
     await user.click(screen.getByRole("button", { name: "Retry" }));
     expect(await screen.findByText("Gate Disabled")).toBeTruthy();
+  });
+
+  it("updates ReminderDaysBeforeExpiry with expectedVersion", async () => {
+    const user = userEvent.setup();
+    renderCard();
+
+    const input = await screen.findByLabelText(/Expiry reminder window/i);
+    await user.clear(input);
+    await user.type(input, "14");
+    await user.click(screen.getByRole("button", { name: /Save reminder/i }));
+
+    await waitFor(() =>
+      expect(competencyService.setReminderDays).toHaveBeenCalledWith(1, {
+        reminderDaysBeforeExpiry: 14,
+        expectedVersion: 2
+      })
+    );
   });
 });

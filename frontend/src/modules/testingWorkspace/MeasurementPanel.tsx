@@ -17,6 +17,7 @@ import { DateTimeField24, getLocalIsoString } from "../../components/DateTimeFie
 import { SignatureDialog } from "../../components/SignatureDialog";
 import { Ltr } from "../../components/Ltr";
 import { useTranslation } from "../../i18n";
+import { hasServerErrorCodePrefix } from "../../i18n/serverMessages";
 import { CriteriaCard, ResultSection, VerdictBanner, verdictFromServerStatus } from "../../components/lab";
 import type { CriteriaRow } from "../../components/lab";
 import { UnitEntryGrid, UnitEntryGridColumn } from "../../components/UnitEntryGrid";
@@ -233,9 +234,9 @@ export function MeasurementPanel({
       await onRecorded();
     } catch (err: unknown) {
       setSigning(false);
-      const resp = (err as { response?: { status?: number; data?: { code?: string; message?: string } } })?.response;
+      const resp = (err as { response?: { status?: number; data?: { message?: string } } })?.response;
       const msg = resp?.data?.message ?? t("measurement.recordFailed");
-      setIsCompetencyRefusal(Boolean(resp?.data?.code?.startsWith("Competency.")));
+      setIsCompetencyRefusal(hasServerErrorCodePrefix(err, "Competency."));
       setError(msg);
     }
   };

@@ -7,6 +7,7 @@ import {
   CardContent,
   CircularProgress,
   Stack,
+  TextField,
   Typography
 } from "@mui/material";
 import { toast } from "sonner";
@@ -38,6 +39,9 @@ export function GateSettingsCard({ sectionId, onChanged, onLoadError }: GateSett
   const [impactError, setImpactError] = useState<string | null>(null);
   const [signingOpen, setSigningOpen] = useState(false);
   const [reason, setReason] = useState("");
+  const [reminderInput, setReminderInput] = useState("");
+  const [reminderSaving, setReminderSaving] = useState(false);
+  const [reminderError, setReminderError] = useState<string | null>(null);
 
   const loadData = useCallback(
     async (signal?: AbortSignal) => {
@@ -48,6 +52,8 @@ export function GateSettingsCard({ sectionId, onChanged, onLoadError }: GateSett
         const loaded = await competencyService.getSettings(sectionId, signal);
         if (signal?.aborted) return;
         setSetting(loaded);
+        setReminderInput(loaded.reminderDaysBeforeExpiry != null ? String(loaded.reminderDaysBeforeExpiry) : "");
+        setReminderError(null);
         onLoadError?.(false);
 
         if (!loaded.gateEnabled) {
@@ -101,6 +107,36 @@ export function GateSettingsCard({ sectionId, onChanged, onLoadError }: GateSett
       void loadData();
     } else {
       setImpact(null);
+    }
+  };
+
+  const handleSaveReminder = async () => {
+    if (!setting) return;
+    const trimmed = reminderInput.trim();
+    let parsed: number | null = null;
+    if (trimmed !== "") {
+      const n = Number(trimmed);
+      if (!Number.isInteger(n) || n < 1 || n > 365) {
+        setReminderError(t("gate.reminderDaysInvalid"));
+        return;
+      }
+      parsed = n;
+    }
+    setReminderError(null);
+    setReminderSaving(true);
+    try {
+      const updated = await competencyService.setReminderDays(sectionId, {
+        reminderDaysBeforeExpiry: parsed,
+        expectedVersion: setting.version
+      });
+      setSetting(updated);
+      setReminderInput(updated.reminderDaysBeforeExpiry != null ? String(updated.reminderDaysBeforeExpiry) : "");
+      toast.success(t("gate.reminderSavedToast"));
+      onChanged?.(updated);
+    } catch (err: unknown) {
+      setReminderError(getErrorMessage(err, t("gate.reminderSaveError")));
+    } finally {
+      setReminderSaving(false);
     }
   };
 
@@ -190,6 +226,30 @@ export function GateSettingsCard({ sectionId, onChanged, onLoadError }: GateSett
                 })}
               </Typography>
             )}
+          </Stack>
+
+          <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} sx={{ alignItems: { sm: "flex-start" } }}>
+            <TextField
+              size="small"
+              type="number"
+              label={t("gate.reminderDaysLabel")}
+              placeholder={t("gate.reminderDaysPlaceholder")}
+              value={reminderInput}
+              onChange={(e) => setReminderInput(e.target.value)}
+              error={Boolean(reminderError)}
+              helperText={reminderError ?? undefined}
+              slotProps={{ htmlInput: { min: 1, max: 365 } }}
+              sx={{ minWidth: 240 }}
+            />
+            <Button
+              variant="outlined"
+              size="small"
+              disabled={reminderSaving}
+              onClick={() => void handleSaveReminder()}
+              sx={{ mt: { sm: 0.5 } }}
+            >
+              {t("gate.saveReminderButton")}
+            </Button>
           </Stack>
 
           {!setting.gateEnabled && (

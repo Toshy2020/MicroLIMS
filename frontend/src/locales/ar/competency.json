@@ -21,7 +21,9 @@
     "loadError": "تعذر تحميل مصفوفة التأهيل.",
     "outageSections": "أقسام المختبر",
     "outageSettings": "إعدادات بوابة الكفاءة",
-    "outageMatrix": "مصفوفة التأهيل"
+    "outageMatrix": "مصفوفة التأهيل",
+    "exportCsv": "تصدير CSV",
+    "exportFailed": "تعذر تصدير مصفوفة التأهيل."
   },
   "qualify": {
     "title": "تأهيل محلل",
@@ -78,7 +80,13 @@
     "enabledToast": "تم تفعيل بوابة الكفاءة.",
     "disabledToast": "تم تعطيل بوابة الكفاءة.",
     "loadError": "تعذر تحميل إعدادات بوابة الكفاءة.",
-    "impactError": "تعذر تحميل معاينة الأثر."
+    "impactError": "تعذر تحميل معاينة الأثر.",
+    "reminderDaysLabel": "نافذة التذكير قبل انتهاء الصلاحية (بالأيام)",
+    "reminderDaysPlaceholder": "اتركه فارغًا لعدم التذكير",
+    "reminderDaysInvalid": "أدخل عددًا صحيحًا بين 1 و365، أو اتركه فارغًا.",
+    "saveReminderButton": "حفظ التذكير",
+    "reminderSavedToast": "تم حفظ نافذة التذكير قبل انتهاء الصلاحية.",
+    "reminderSaveError": "تعذر حفظ نافذة التذكير قبل انتهاء الصلاحية."
   },
   "my": {
     "title": "تأهيلاتي",

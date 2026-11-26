@@ -52,7 +52,7 @@ describe("MyQualificationsPage", () => {
         {
           userId: 101,
           analystName: "Mona Ali",
-          cells: [{ userId: 101, testDefinitionId: 10, status: "ExpiringSoon", expiresOn: "2026-12-15", qualificationId: 101 }]
+          cells: [{ userId: 101, testDefinitionId: 10, status: "ExpiringSoon", expiresOn: "2026-12-15", qualificationId: 101, version: 1 }]
         }
       ]
     });

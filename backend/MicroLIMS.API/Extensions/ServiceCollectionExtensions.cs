@@ -440,6 +440,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<MicroLIMS.Application.Services.MyWork.IMyWorkSource, MicroLIMS.Application.Services.MyWork.Sources.UnassignedTestsSource>();
         services.AddScoped<MicroLIMS.Application.Services.MyWork.IMyWorkSource, MicroLIMS.Application.Services.MyWork.Sources.DocumentsSource>();
         services.AddScoped<MicroLIMS.Application.Services.MyWork.IMyWorkSource, MicroLIMS.Application.Services.MyWork.Sources.EquipmentSource>();
+        services.AddScoped<MicroLIMS.Application.Services.MyWork.IMyWorkSource, MicroLIMS.Application.Services.MyWork.Sources.CompetencyMyWorkSource>();
         services.AddScoped<MicroLIMS.Application.Services.SectionSelfAssignmentService>();
         services.AddScoped<MicroLIMS.Application.Services.TestSelfAssignmentService>();
         services.AddScoped<MicroLIMS.Application.Services.ActionAvailabilityService>();

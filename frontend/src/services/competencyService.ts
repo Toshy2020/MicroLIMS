@@ -106,6 +106,11 @@ export interface GateChangePayload {
   expectedVersion: number | null;
 }
 
+export interface ReminderDaysPayload {
+  reminderDaysBeforeExpiry: number | null;
+  expectedVersion: number | null;
+}
+
 export interface GrantOverridePayload {
   analystUserId: number;
   reason: string;
@@ -118,6 +123,7 @@ export interface MatrixCellDto {
   status: MatrixCellStatus;
   expiresOn: string | null;
   qualificationId: number | null;
+  version: number | null;
 }
 
 export interface MatrixSopDto {
@@ -177,9 +183,13 @@ export const competencyService = {
   withdraw: async (
     id: number,
     payload: WithdrawPayload,
+    version?: number | null,
     signal?: AbortSignal
   ): Promise<AnalystQualificationDto> => {
-    const res = await apiClient.post(`/competency/qualifications/${id}/withdraw`, payload, { signal });
+    const res = await apiClient.post(`/competency/qualifications/${id}/withdraw`, payload, {
+      ...(version != null ? { headers: { "If-Match": `"${version}"` } } : {}),
+      signal
+    });
     return res.data.data;
   },
 
@@ -202,6 +212,15 @@ export const competencyService = {
     return res.data.data;
   },
 
+  setReminderDays: async (
+    sectionId: number,
+    payload: ReminderDaysPayload,
+    signal?: AbortSignal
+  ): Promise<CompetencySettingDto> => {
+    const res = await apiClient.put(`/competency/settings/${sectionId}/reminder-days`, payload, { signal });
+    return res.data.data;
+  },
+
   getMatrix: async (
     sectionId: number,
     filters?: MatrixFilters,
@@ -212,6 +231,19 @@ export const competencyService = {
       signal
     });
     return res.data.data;
+  },
+
+  exportMatrix: async (
+    sectionId: number,
+    filters?: MatrixFilters,
+    signal?: AbortSignal
+  ): Promise<Blob> => {
+    const res = await apiClient.get(`/competency/matrix/${sectionId}/export`, {
+      params: filters,
+      responseType: "blob",
+      signal
+    });
+    return res.data;
   },
 
   getMyMatrix: async (signal?: AbortSignal): Promise<CompetencyMatrixDto> => {

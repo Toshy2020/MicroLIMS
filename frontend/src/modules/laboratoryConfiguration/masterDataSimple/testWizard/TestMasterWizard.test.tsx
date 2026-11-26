@@ -453,4 +453,51 @@ describe("TestMasterWizard", () => {
     expect(onUpdateTest.mock.calls[1][3]).toBe(8);
     expect(onSaved).toHaveBeenCalledTimes(1);
   });
+
+  it("loads and updates RequalificationMonths when editing a test definition", async () => {
+    const editingTest: TestDefinitionOption = {
+      id: 71,
+      version: 2,
+      code: "PH",
+      displayName: "pH",
+      sectionId: 1,
+      workflowType: "Measurement",
+      equationType: "Measurement",
+      replicateCount: 2,
+      evaluationBasis: "Mean",
+      physchemArea: "FinishedProduct",
+      requalificationMonths: 6,
+      isActive: true
+    };
+    const user = userEvent.setup();
+    const { onUpdateTest } = renderWizard({
+      lab: "fp",
+      area: "fp",
+      defaultSectionId: 1,
+      sections: [fpSection],
+      mySections: [fpSection],
+      editingTest
+    });
+
+    const dialog = await screen.findByRole("dialog");
+    const reqInput = (await within(dialog).findByLabelText(/Requalification interval/i)) as HTMLInputElement;
+    expect(reqInput.value).toBe("6");
+    await user.clear(reqInput);
+    await user.type(reqInput, "12");
+
+    await user.click(within(dialog).getByRole("button", { name: /^Next$/i }));
+    await user.click(within(dialog).getByRole("button", { name: /^Next$/i }));
+    await user.click(within(dialog).getByRole("button", { name: /^Next$/i }));
+
+    const saveBtn = (await within(dialog).findByRole("button", { name: /^Save$/i })) as HTMLButtonElement;
+    await waitFor(() => expect(saveBtn.disabled).toBe(false));
+    await user.click(saveBtn);
+
+    await waitFor(() => expect(onUpdateTest).toHaveBeenCalledTimes(1));
+    expect(onUpdateTest.mock.calls[0][1]).toEqual(
+      expect.objectContaining({
+        requalificationMonths: 12
+      })
+    );
+  });
 });

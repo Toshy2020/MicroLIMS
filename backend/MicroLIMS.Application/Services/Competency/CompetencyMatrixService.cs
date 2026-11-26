@@ -1,3 +1,6 @@
+using System.Globalization;
+using System.Text;
+using System.Text.Json;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.Helpers;
 using MicroLIMS.Application.Interfaces;
@@ -11,7 +14,7 @@ namespace MicroLIMS.Application.Services.Competency;
 
 public enum MatrixCellStatus { NotQualified, Qualified, ExpiringSoon, Expired, Withdrawn }
 
-public sealed record MatrixCellDto(int UserId, int TestDefinitionId, MatrixCellStatus Status, DateOnly? ExpiresOn, int? QualificationId = null);
+public sealed record MatrixCellDto(int UserId, int TestDefinitionId, MatrixCellStatus Status, DateOnly? ExpiresOn, int? QualificationId = null, uint? Version = null);
 
 public sealed record MatrixSopDto(string DocumentCode, string RevisionNumber);
 
@@ -39,7 +42,8 @@ public sealed class CompetencyMatrixService(
     IUserSectionScopeService scope,
     ILabClock clock,
     PermissionService permissions,
-    ItemSopResolver sopResolver)
+    ItemSopResolver sopResolver,
+    DataExportAuditService exportAudit)
 {
     public const int DefaultPageSize = 50;
 
@@ -53,7 +57,31 @@ public sealed class CompetencyMatrixService(
         // An analyst never sees colleagues' qualifications, even through the laboratory call.
         var isAnalyst = await db.Users.AsNoTracking()
             .AnyAsync(user => user.Id == actingUserId && user.Role != null && user.Role.Type == RoleType.Analyst, cancellationToken);
-        return await BuildAsync([sectionId], filters, onlyUserId: isAnalyst ? actingUserId : null, cancellationToken);
+        return await BuildAsync([sectionId], filters, onlyUserId: isAnalyst ? actingUserId : null, pagedResult: true, cancellationToken);
+    }
+
+    public async Task<(string FileName, byte[] Bytes)> ExportCsvAsync(
+        int sectionId, MatrixFilters filters, int actingUserId, CancellationToken cancellationToken = default)
+    {
+        await RequireViewAsync(actingUserId, cancellationToken);
+        var readable = await scope.GetReadableSectionIdsAsync(actingUserId, cancellationToken);
+        if (readable is not null && !readable.Contains(sectionId))
+            throw SectionScopeDenied();
+        var isAnalyst = await db.Users.AsNoTracking()
+            .AnyAsync(user => user.Id == actingUserId && user.Role != null && user.Role.Type == RoleType.Analyst, cancellationToken);
+
+        var matrix = await BuildAsync([sectionId], filters, onlyUserId: isAnalyst ? actingUserId : null, pagedResult: false, cancellationToken);
+        var csv = BuildCsv(matrix);
+        var filterJson = JsonSerializer.Serialize(new
+        {
+            sectionId,
+            filters.AnalystSearch,
+            filters.TestSearch,
+            status = filters.Status?.ToString()
+        });
+        await exportAudit.LogExportAsync(actingUserId, filterJson, matrix.Analysts.Count, "CompetencyMatrixCsv");
+        var fileName = $"competency-matrix-section-{sectionId}-{clock.LabToday:yyyyMMdd}.csv";
+        return (fileName, Encoding.UTF8.GetBytes(csv));
     }
 
     // The acting user's own cells only: userId IS the caller, never a target chosen by the caller.
@@ -63,11 +91,11 @@ public sealed class CompetencyMatrixService(
         var sections = await scope.GetMemberSectionIdsAsync(userId, cancellationToken);
         if (sections.Count == 0)
             return new CompetencyMatrixDto(0, 1, DefaultPageSize, 0, [], []);
-        return await BuildAsync(sections, new MatrixFilters(), onlyUserId: userId, cancellationToken);
+        return await BuildAsync(sections, new MatrixFilters(), onlyUserId: userId, pagedResult: true, cancellationToken);
     }
 
     private async Task<CompetencyMatrixDto> BuildAsync(
-        IReadOnlyList<int> sectionIds, MatrixFilters filters, int? onlyUserId, CancellationToken cancellationToken)
+        IReadOnlyList<int> sectionIds, MatrixFilters filters, int? onlyUserId, bool pagedResult, CancellationToken cancellationToken)
     {
         var labToday = clock.LabToday;
         var (page, pageSize) = Paging.Normalize(filters.Page, filters.PageSize, DefaultPageSize);
@@ -97,7 +125,7 @@ public sealed class CompetencyMatrixService(
             ? []
             : await db.AnalystQualifications.AsNoTracking()
                 .Where(q => testIds.Contains(q.TestDefinitionId) && (!onlyUserId.HasValue || q.UserId == onlyUserId.Value))
-                .Select(q => new { q.Id, q.UserId, q.TestDefinitionId, q.ExpiresOn, q.WithdrawnOn })
+                .Select(q => new { q.Id, q.UserId, q.TestDefinitionId, q.ExpiresOn, q.WithdrawnOn, q.Version })
                 .ToListAsync(cancellationToken);
         var latest = qualifications
             .GroupBy(q => new { q.UserId, q.TestDefinitionId })
@@ -108,7 +136,10 @@ public sealed class CompetencyMatrixService(
             .Select(section => section.DepartmentId).Distinct().ToArrayAsync(cancellationToken);
         var memberIds = await db.Users.AsNoTracking()
             .Where(user => user.IsActive
-                && user.Role != null && user.Role.Type == RoleType.Analyst
+                && user.Role != null
+                && (user.Role.Type == RoleType.Analyst
+                    || user.Role.Type == RoleType.Reviewer
+                    || user.Role.Type == RoleType.SectionHead)
                 && (!onlyUserId.HasValue || user.Id == onlyUserId.Value)
                 && db.UserOrgMemberships.Any(membership => membership.UserId == user.Id
                     && ((membership.SectionId != null && sectionIds.Contains(membership.SectionId.Value))
@@ -142,7 +173,9 @@ public sealed class CompetencyMatrixService(
                 .ToList();
         }
         var totalCount = ordered.Count;
-        var paged = ordered.Skip((page - 1) * pageSize).Take(pageSize).ToArray();
+        var paged = pagedResult
+            ? ordered.Skip((page - 1) * pageSize).Take(pageSize).ToArray()
+            : ordered.ToArray();
 
         // SOP facts come only from actual test orders' items via the same resolver the guard uses.
         var orderItems = await db.TestOrders.AsNoTracking()
@@ -175,6 +208,7 @@ public sealed class CompetencyMatrixService(
         {
             DateOnly? expiresOn = null;
             int? qualificationId = null;
+            uint? version = null;
             MatrixCellStatus status;
             if (!latest.TryGetValue(new { UserId = userId, TestDefinitionId = testId }, out var qualification))
             {
@@ -183,6 +217,7 @@ public sealed class CompetencyMatrixService(
             else
             {
                 qualificationId = qualification.Id;
+                version = qualification.Version;
                 expiresOn = qualification.ExpiresOn;
                 if (qualification.WithdrawnOn is not null)
                     status = MatrixCellStatus.Withdrawn;
@@ -196,8 +231,50 @@ public sealed class CompetencyMatrixService(
                 else
                     status = MatrixCellStatus.Qualified;
             }
-            return new MatrixCellDto(userId, testId, status, expiresOn, qualificationId);
+            return new MatrixCellDto(userId, testId, status, expiresOn, qualificationId, version);
         }
+    }
+
+    private static string BuildCsv(CompetencyMatrixDto matrix)
+    {
+        var sb = new StringBuilder();
+        var headers = new List<string> { "Analyst" };
+        headers.AddRange(matrix.Tests.Select(t => $"{t.Code} ({t.DisplayName})"));
+        sb.AppendLine(string.Join(",", headers.Select(EscapeCsv)));
+
+        foreach (var row in matrix.Analysts)
+        {
+            var cellsByTest = row.Cells.ToDictionary(c => c.TestDefinitionId);
+            var values = new List<string> { row.AnalystName };
+            foreach (var test in matrix.Tests)
+            {
+                if (!cellsByTest.TryGetValue(test.TestDefinitionId, out var cell))
+                {
+                    values.Add(MatrixCellStatus.NotQualified.ToString());
+                }
+                else if (cell.ExpiresOn is { } expires)
+                {
+                    values.Add($"{cell.Status} ({expires.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)})");
+                }
+                else
+                {
+                    values.Add(cell.Status.ToString());
+                }
+            }
+            sb.AppendLine(string.Join(",", values.Select(EscapeCsv)));
+        }
+
+        return sb.ToString();
+    }
+
+    private static string EscapeCsv(string? value)
+    {
+        var text = value ?? string.Empty;
+        if (text.Length > 0 && text[0] is '=' or '+' or '-' or '@')
+            text = "'" + text;
+        return text.IndexOfAny([',', '"', '\n', '\r']) >= 0
+            ? $"\"{text.Replace("\"", "\"\"")}\""
+            : text;
     }
 
     private async Task RequireViewAsync(int actingUserId, CancellationToken cancellationToken)

@@ -8,6 +8,7 @@ import { MetaBadge, StatusBadge, ToneBadge } from "../../components/StatusBadge"
 import { PartialOutageBanner } from "../../components/lab/PartialOutageBanner";
 import { RegisterTable, type RegisterColumn } from "../../components/lab/RegisterTable";
 import { monospaceFontFamily } from "../../theme/palette";
+import { QualityCreateActions } from "./QualityCreateActions";
 import { statusLabel } from "../../theme/statusTokens";
 import { getErrorMessage } from "../../utils/errorMessage";
 import { formatDateTimeWithTimeZone } from "../../utils/formatDate";
@@ -200,7 +201,9 @@ export function QualityRegisterPage() {
 
   return (
     <Box>
-      <PageHeader title={t("register.title")} subtitle={t("register.subtitle")} />
+      <PageHeader title={t("register.title")} subtitle={t("register.subtitle")}>
+        <QualityCreateActions />
+      </PageHeader>
 
       <Tabs
         value={tab}

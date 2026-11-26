@@ -45,7 +45,10 @@ export function useChecklist(recordId: number, sectionId: number | null) {
   }, [recordId, sectionId]);
 
   const setAnswer = useCallback((key: string, patch: Partial<ChecklistAnswerState>) => {
-    setAnswers((current) => ({ ...current, [key]: { answer: "", comment: "", ...current[key], ...patch } }));
+    setAnswers((current) => {
+      const existing: ChecklistAnswerState = current[key] ?? { answer: "", comment: "" };
+      return { ...current, [key]: { ...existing, ...patch } };
+    });
   }, []);
 
   return { items, answers, status, setAnswer };

@@ -526,6 +526,80 @@
         "unfinished": "Complete every task first. Unfinished: {{description}}",
         "needsReview": "Write the post-change review first."
       }
+    },
+    "complaint": {
+      "receive": {
+        "title": "Receive complaint",
+        "titleField": "Title",
+        "source": "Source",
+        "sourceHelp": "Who raised the complaint, for example a customer or a regulator.",
+        "receivedOn": "Date received",
+        "externalReference": "External reference",
+        "product": "Product",
+        "itemSearch": "Search for the product",
+        "itemChosen": "Product: {{name}}",
+        "itemClear": "Remove product",
+        "lot": "Lot",
+        "lotHelp": "Lot as written in the complaint.",
+        "text": "Complaint text",
+        "section": "Laboratory section",
+        "wholeSite": "Whole site",
+        "submit": "Receive",
+        "failed": "The complaint could not be recorded."
+      },
+      "request": {
+        "title": "Request laboratory investigation",
+        "intro": "Classify the complaint, name the owner and say what the laboratory should test.",
+        "waitingForQa": "Waiting for QA to request the laboratory investigation.",
+        "classification": "Classification",
+        "owner": "Owner",
+        "dueDate": "Due date",
+        "dueDateHelp": "Leave empty to use the due time set for the classification.",
+        "whatToTest": "What to test",
+        "whatToTestHelp": "For example the retained sample.",
+        "submit": "Request investigation",
+        "needsFields": "Choose a classification and an owner, and say what to test.",
+        "failed": "The investigation could not be requested."
+      },
+      "investigation": {
+        "title": "Laboratory investigation",
+        "whatToTest": "To test: {{text}}",
+        "findings": "Findings",
+        "samples": "Samples linked to the complaint",
+        "samplesHelp": "Choose the complaint samples received through the normal receiving process.",
+        "sampleSearch": "Search for a sample",
+        "removeSample": "Remove {{title}}",
+        "save": "Save investigation",
+        "needsFindings": "Write the findings to save.",
+        "saveFailed": "The investigation could not be saved.",
+        "sign": "Sign laboratory report",
+        "ownerCannotSign": "The owner cannot sign the laboratory conclusion.",
+        "saveFirst": "Save the findings before signing the laboratory report.",
+        "withOwner": "The investigation is with the owner."
+      },
+      "conclude": {
+        "title": "Conclusion",
+        "waitingForQa": "Waiting for QA to conclude the complaint.",
+        "outcome": "Outcome",
+        "outcomes": {
+          "Justified": "Justified",
+          "NotJustified": "Not justified",
+          "Inconclusive": "Inconclusive"
+        },
+        "summary": "Summary of the conclusion",
+        "sign": "Conclude and sign",
+        "needsFields": "Choose an outcome and write the summary."
+      },
+      "close": {
+        "title": "Closure",
+        "intro": "Close the complaint once the conclusion is recorded and every action is done.",
+        "close": "Close and sign",
+        "waitingForQa": "Waiting for QA to close the complaint."
+      }
+    },
+    "create": {
+      "proposeChange": "Propose change control",
+      "receiveComplaint": "Receive complaint"
     }
   }
 }

@@ -157,6 +157,23 @@ export interface QualityChangeControlDetailDto {
   rejectionReason: string | null;
   postChangeReview: string | null;
   unchangedJustification: string | null;
+  affected: QualityChangeControlAffectedDto[];
+}
+
+// One affected record of a change control. number is the target number or code (the planned code for a record
+// that does not exist yet); label is null and isRestricted true when the reader may not read the target.
+// unchanged is the server's rule for the closure: a specification or test definition never changed under this
+// change control.
+export interface QualityChangeControlAffectedDto {
+  linkId: number;
+  targetType: QualityLinkTargetType;
+  targetId: number | null;
+  number: string | null;
+  label: string | null;
+  isRestricted: boolean;
+  changedAtUtc: string | null;
+  changeAuditLogId: number | null;
+  unchanged: boolean;
 }
 
 export interface QualityComplaintDetailDto {

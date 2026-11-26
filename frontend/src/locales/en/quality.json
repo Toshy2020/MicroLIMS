@@ -469,7 +469,8 @@
           "Item": "Item",
           "Equipment": "Equipment",
           "DocumentMaster": "Controlled document",
-          "TestDefinition": "Test definition"
+          "TestDefinition": "Test definition",
+          "Specification": "Specification"
         },
         "newKind": "Kind of new record",
         "code": "Planned code or name",
@@ -522,6 +523,10 @@
         "review": "Post-change review",
         "justification": "Why affected specifications or tests were not changed",
         "justificationHelp": "Required when a specification or test listed as affected was not changed.",
+        "unchangedTitle": "These affected specifications or tests were not changed. Give the reason.",
+        "unchangedList": "Affected records not changed",
+        "restricted": "Restricted",
+        "needsJustification": "Explain why the unchanged specifications or tests were not changed first.",
         "close": "Close and sign",
         "unfinished": "Complete every task first. Unfinished: {{description}}",
         "needsReview": "Write the post-change review first."

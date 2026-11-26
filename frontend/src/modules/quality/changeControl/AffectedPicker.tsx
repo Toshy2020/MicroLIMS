@@ -16,6 +16,8 @@ export interface AffectedItem {
 // What the system's search can find, and the link target it stands for.
 const SEARCHABLE: { entityType: string; targetType: QualityLinkTargetType }[] = [
   { entityType: "Item", targetType: "Item" },
+  { entityType: "Specification", targetType: "Specification" },
+  { entityType: "TestDefinition", targetType: "TestDefinition" },
   { entityType: "Equipment", targetType: "Equipment" },
   { entityType: "DocumentMaster", targetType: "DocumentMaster" }
 ];

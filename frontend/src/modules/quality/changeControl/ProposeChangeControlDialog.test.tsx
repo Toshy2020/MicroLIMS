@@ -20,13 +20,23 @@ import { ok, serveLookups } from "../steps/stepTestUtils";
 
 const SEARCH = {
   query: "Incub",
-  totalMatches: 1,
+  totalMatches: 3,
   executionTimeMs: 1,
   categories: [
     {
       categoryName: "Equipment",
       count: 1,
       items: [{ id: 4, entityType: "Equipment", title: "Incubator 3", subtitle: "Room 2", status: "", matchedField: "", matchedValue: "", badgeColor: "", navigationTarget: "" }]
+    },
+    {
+      categoryName: "Specifications",
+      count: 1,
+      items: [{ id: 7, entityType: "Specification", title: "Spec: ITM-1 \u2022 TST-1 \u2022 Incubation limit", subtitle: "Plate item", status: "Active", matchedField: "", matchedValue: "", badgeColor: "", navigationTarget: "" }]
+    },
+    {
+      categoryName: "Test Definitions",
+      count: 1,
+      items: [{ id: 9, entityType: "TestDefinition", title: "Test: TST-1", subtitle: "Incubation count", status: "Active", matchedField: "", matchedValue: "", badgeColor: "", navigationTarget: "" }]
     }
   ]
 };
@@ -91,6 +101,42 @@ describe("ProposeChangeControlDialog", () => {
     });
     await waitFor(() => expect(onCreated).toHaveBeenCalledTimes(1));
     expect(onCreated.mock.calls[0][0].record.number).toBe("CC-2026-0003");
+  });
+
+  it("offers specifications and test definitions from the search and lists them as affected records", async () => {
+    const user = userEvent.setup();
+    renderDialog();
+    const specButton = "Choose Spec: ITM-1 \u2022 TST-1 \u2022 Incubation limit";
+
+    const dialog = await fillBasics(user);
+    await user.click(within(dialog).getByRole("combobox", { name: /^Kind of record/ }));
+    await user.click(await screen.findByRole("option", { name: "Specification" }));
+    await user.type(within(dialog).getByLabelText("Search for the record"), "Incub");
+    expect(await within(dialog).findByRole("button", { name: specButton })).toBeTruthy();
+    expect(within(dialog).queryByRole("button", { name: "Choose Test: TST-1" })).toBeNull();
+    expect(within(dialog).queryByRole("button", { name: "Choose Incubator 3" })).toBeNull();
+    await user.click(within(dialog).getByRole("button", { name: specButton }));
+
+    await user.click(within(dialog).getByRole("combobox", { name: /^Kind of record/ }));
+    await user.click(await screen.findByRole("option", { name: "Test definition" }));
+    await user.type(within(dialog).getByLabelText("Search for the record"), "Incub");
+    await user.click(await within(dialog).findByRole("button", { name: "Choose Test: TST-1" }));
+    expect(within(dialog).queryByRole("button", { name: specButton })).toBeNull();
+    await user.click(within(dialog).getByRole("button", { name: "Propose" }));
+
+    await waitFor(() => {
+      expect(http.post).toHaveBeenCalledWith("/quality/change-controls", {
+        title: "Move incubators",
+        description: "Two incubators move to room 4",
+        reason: "Room 2 is being renovated",
+        sectionId: null,
+        affected: [
+          { targetType: "Specification", targetId: 7, newRecordCode: null },
+          { targetType: "TestDefinition", targetId: 9, newRecordCode: null }
+        ],
+        ownerUserId: null
+      });
+    });
   });
 
   it("proposes for the whole site with no owner chosen (the server uses the proposer) and a new affected record", async () => {

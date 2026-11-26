@@ -16,7 +16,7 @@ vi.mock("../../../services/apiClient", async (importOriginal) => {
 import { ChangeControlActions } from "./ChangeControlActions";
 import { actionDetail, recordDetail, refusal } from "../testFixtures";
 import { QA, SECTION_HEAD, ok, renderStep, serveLookups, versionHeader } from "../steps/stepTestUtils";
-import type { ChangeControlStatus, QualityChangeControlDetailDto, QualityRecordDetailDto } from "../../../services/qualityService";
+import type { ChangeControlStatus, QualityChangeControlAffectedDto, QualityChangeControlDetailDto, QualityRecordDetailDto } from "../../../services/qualityService";
 
 const TEMPLATE = {
   id: 1,
@@ -72,6 +72,7 @@ function changeControl(status: ChangeControlStatus, overrides: Partial<QualityCh
       rejectionReason: null,
       postChangeReview: null,
       unchangedJustification: null,
+      affected: [],
       ...overrides
     },
     ...record
@@ -338,9 +339,64 @@ describe("ChangeControlActions", () => {
       expect(screen.getByText("Write the post-change review first.")).toBeTruthy();
     });
 
+    const affected = (overrides: Partial<QualityChangeControlAffectedDto> = {}): QualityChangeControlAffectedDto => ({
+      linkId: 71,
+      targetType: "Specification",
+      targetId: 5,
+      number: "TAMC",
+      label: "Total aerobic count limit",
+      isRestricted: false,
+      changedAtUtc: null,
+      changeAuditLogId: null,
+      unchanged: true,
+      ...overrides
+    });
+    const approvedWith = (list: QualityChangeControlAffectedDto[]) =>
+      changeControl("ApprovedForImplementation", { impactSummary: "x", affected: list }, { actions: [task({ doneAtUtc: "2026-12-01T09:00:00Z" })] });
+
+    it("asks for the justification only when an affected specification or test was not changed, and names them", async () => {
+      renderStep(
+        ChangeControlActions,
+        approvedWith([
+          affected(),
+          affected({ linkId: 72, targetType: "TestDefinition", targetId: 6, number: "BIOBURDEN", label: "Bioburden test", unchanged: true }),
+          affected({ linkId: 73, targetType: "Specification", targetId: 8, number: "PH", label: "pH limit", unchanged: false, changedAtUtc: "2026-12-01T08:00:00Z", changeAuditLogId: 40 }),
+          affected({ linkId: 74, targetType: "Specification", targetId: 9, number: "SECRET", label: null, isRestricted: true, unchanged: true })
+        ]),
+        { permissions: QA, currentUserId: 9 }
+      );
+
+      const list = screen.getByRole("list", { name: "Affected records not changed" });
+      expect(within(list).getByText(/Specification: TAMC/)).toBeTruthy();
+      expect(within(list).getByText(/Total aerobic count limit/)).toBeTruthy();
+      expect(within(list).getByText(/Test definition: BIOBURDEN/)).toBeTruthy();
+      expect(within(list).getByText(/Bioburden test/)).toBeTruthy();
+      expect(within(list).getByText(/SECRET/)).toBeTruthy();
+      expect(within(list).getByText(/Restricted/)).toBeTruthy();
+      expect(within(list).queryByText(/pH limit/)).toBeNull();
+      expect(screen.getByLabelText(/^Why affected specifications or tests were not changed/)).toBeTruthy();
+    });
+
+    it("shows no justification field when every affected specification and test was changed or none is listed", async () => {
+      renderStep(
+        ChangeControlActions,
+        approvedWith([
+          affected({ unchanged: false, changedAtUtc: "2026-12-01T08:00:00Z", changeAuditLogId: 41 }),
+          affected({ linkId: 75, targetType: "Item", targetId: 3, number: "ITM-3", label: "Plate", unchanged: false })
+        ]),
+        { permissions: QA, currentUserId: 9 }
+      );
+
+      expect(screen.queryByLabelText(/^Why affected specifications or tests were not changed/)).toBeNull();
+      expect(screen.queryByRole("list", { name: "Affected records not changed" })).toBeNull();
+      cleanup();
+      renderStep(ChangeControlActions, approved(), { permissions: QA, currentUserId: 9 });
+      expect(screen.queryByLabelText(/^Why affected specifications or tests were not changed/)).toBeNull();
+    });
+
     it("closes with the review and the unchanged justification, signed with the server's meaning", async () => {
       const user = userEvent.setup();
-      const { onChanged } = renderStep(ChangeControlActions, approved(), { permissions: QA, currentUserId: 9 });
+      const { onChanged } = renderStep(ChangeControlActions, approvedWith([affected()]), { permissions: QA, currentUserId: 9 });
 
       await user.type(screen.getByLabelText(/^Post-change review/), "Both incubators qualified");
       await user.type(screen.getByLabelText(/^Why affected specifications or tests were not changed/), "The limits did not move");

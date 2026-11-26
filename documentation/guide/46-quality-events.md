@@ -334,7 +334,7 @@ Add supporting evidence and notes to a record.
 
 #### Who can use it
 - **Add a link, upload an attachment, add a comment**: *Quality Raise* (`Quality.Raise`).
-- **Remove a link or void an attachment**: the record owner, or a user with *Quality Investigate*. The buttons are shown to every user with *Quality Raise*. If you are not one of those users, the server refuses the request.
+- **Remove a link or void an attachment**: the record owner, or a user with *Quality Investigate*. Other users do not see the **Void** and remove-link buttons.
 
 #### How to use it
 1. **Linked records**: click **Add link**, search for the record to link (type at least 2 characters), and choose it. You can link samples, tests, equipment, media lots, documents and items, among others.
@@ -371,7 +371,7 @@ Four tabs: **Checklist templates**, **Classifications**, **Due rules** and **Sec
 - Changes to classifications, due rules and the gate are recorded in the audit trail.
 
 #### Important rules
-- Saving the site-wide checklist template needs *Quality Approve*. Saving a section template needs *Quality Investigate* and access to that section. On the templates tab, the **Save template** button is enabled for Investigate users even for the site-wide scope. The server refuses that save, and the refusal is shown on the page.
+- Saving the site-wide checklist template needs *Quality Approve*. Saving a section template needs *Quality Investigate* and access to that section. Without the needed permission the template is shown read-only, with the reason, and **Add**, **Save template** and **Remove** are hidden. The server still checks section access and refuses an out-of-scope section.
 - The gate applies only to saves made after it is switched on; it does not change records already saved.
 
 ---
@@ -429,7 +429,3 @@ The permissions below are the defaults for the built-in roles. Administrators ca
 - QA does not investigate or sign the laboratory parts of a record. The server refuses approval or closure of a record that you raised or own (section 46.2).
 
 ---
-
-> **Note for reviewers:** Users with *Quality Raise* see **Propose change control** and the **Void** and remove-link buttons. The server refuses void and remove unless the user is the owner or holds Investigate (section 46.10), but it does not check the role of the person proposing a change control, although the rules say only Section Head, QC Manager or QA may propose one (section 46.5). This is recorded as CONF-242 in `documents/Conflicts.md`. (GAP-912)
->
-> **Note for reviewers:** The Save template button for site-wide checklist templates is enabled for Investigate users, although only Approve users can save that scope (section 46.11). (GAP-913)

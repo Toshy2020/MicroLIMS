@@ -148,7 +148,7 @@ Requires the *Sample Release Approval* permission (by default: Section Head, Sys
 
 > **Note for reviewers:** For New Sample Required, the screen says neither analyst may be anyone who tested the original sample, but the system checks only the assigned analyst of the selected tests. (GAP-302)
 
-> **Note for reviewers:** New Sample Required and the retest decisions are signed with the meanings Rejected and Retest requested; the signature trail and the certificate show a rejection for New Sample Required. (GAP-308)
+> **Note for reviewers:** New Sample Required is signed with the meaning *New sample requested* (`NewSampleRequested`), and Retest Retained Sample with the meaning *Retest requested* (`RetestRequested`). (GAP-308)
 
 #### What you see
 - On the card **Approval & Electronic Signatures**:
@@ -173,7 +173,7 @@ Requires the *Sample Release Approval* permission (by default: Section Head, Sys
 
 #### System behavior
 - The system checks the reviewer and tester rules, the selected tests, that both analysts are given, different, active, not locked and of the Analyst role type, and that neither is the assigned analyst of a selected test.
-- One electronic signature is recorded with the meaning *Rejected*, and a Workflow History event records the decision.
+- One electronic signature is recorded with the meaning *New sample requested*, and a Workflow History event records the decision.
 - The section becomes **Retest requested**, and the original sample receives an OOS group number if it has none.
 - The selected original tests are marked superseded, with the history note "New sample requested by {name}".
 - TWO new samples are created one after the other, each with its own reference number, the details of the original sample, a link to it, the shared OOS group, and copies of the selected tests assigned to its own chosen analyst.

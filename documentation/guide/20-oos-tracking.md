@@ -13,7 +13,7 @@ View open and overdue investigations, concluded investigations, excursion review
 Requires the *OOS View* permission (`Oos.View`). Analysts without *OOS Manage* see only investigations containing a test they performed; users limited to specific laboratory sections see only investigations in their readable sections. The **Legacy** tab requires *OOS Manage* (`Oos.Manage`).
 
 #### What you see
-- In the sidebar group **AUDIT & COMPLIANCE**, the entry **OOS Tracking** (`/oos-tracking`).
+- In the sidebar group **QUALITY & COMPLIANCE**, the entry **OOS Tracking** (`/oos-tracking`).
 - Title **Out-of-Specification Tracking** and subtitle "Out-of-specification investigations, excursion reviews, and legacy retest chains."
 - Five tabs:
   - **Open**: open OOS investigations (`PhaseOne`, `AwaitingRetest`, `PhaseTwo`).

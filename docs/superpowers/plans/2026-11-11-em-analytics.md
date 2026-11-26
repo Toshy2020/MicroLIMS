@@ -94,6 +94,7 @@ These corrections come from reviewing all plans together against the code. Where
 1. Firings open reviews through D1's `OpenExcursionForReadingsAsync(roomId, sampleLocationIds, sourceRef = "trend:{ruleVersionId}:{roomId}", userId: null, ct)`.
 2. E4's plan already reads `SampleLocationTrendFlag`; Task 7 only verifies it.
 3. Migration names: `AddEmGradesAndFloorPlans` (Task 1), `AddEmTrendRules` (Task 4).
+4. **Prerequisite status (user decision 2026-11-26):** `OpenExcursionForReadingsAsync` (D1 Task 9, cross-plan correction 2 of `2026-11-11-oos-investigation.md`) was NOT built in R3. It must be built at the start of F1, together with its first caller (step 1 above).
 
 ## Review corrections (independent review, 2026-11-11)
 

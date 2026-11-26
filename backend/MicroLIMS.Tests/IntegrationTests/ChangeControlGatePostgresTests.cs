@@ -63,6 +63,56 @@ public class ChangeControlGatePostgresTests(PostgresTestFixture fixture)
         ReplicateDelete
     }
 
+    public enum CharacterisationOp
+    {
+        SpecCreate,
+        SpecUpdate,
+        SpecDelete,
+        SpecReinstate,
+        TestDefCreate,
+        TestDefUpdate,
+        TestDefFreeze,
+        TestDefUnfreeze,
+        StepUpdateWorkflowType,
+        StepCreate,
+        StepUpdate,
+        StepMove,
+        StepDelete,
+        ReplicateCreate,
+        ReplicateUpdate,
+        ReplicateDelete,
+        ItemDelete
+    }
+
+    private sealed record AuditLiteral(string EntityName, string Action, string? Reason);
+    private sealed record CharacterisationLiteral(string EntitySnapshot, IReadOnlyList<AuditLiteral> Audits);
+
+    private static readonly IReadOnlyDictionary<CharacterisationOp, CharacterisationLiteral> BaseLiterals =
+        new Dictionary<CharacterisationOp, CharacterisationLiteral>
+        {
+            [CharacterisationOp.SpecCreate] = new("NewParam|Pass|False", [new("Specification", "Create", null)]),
+            [CharacterisationOp.SpecUpdate] = new("UpdatedParam|UpdatedPass|False", [new("Specification", "Update", null)]),
+            [CharacterisationOp.SpecDelete] = new("False", [new("Specification", "Delete", "Deleting unused test specification")]),
+            [CharacterisationOp.SpecReinstate] = new("CharParam|False|True", [new("Specification", "Update", "Reinstating retired test specification")]),
+            [CharacterisationOp.TestDefCreate] = new("New Gate Test|True", [new("TestDefinition", "Create", null)]),
+            [CharacterisationOp.TestDefUpdate] = new("Updated Gate Test|True|Observation", [new("TestDefinition", "Update", null)]),
+            [CharacterisationOp.TestDefFreeze] = new("Gate Char Test|False|Observation", [new("TestDefinition", "Update", "Freezing test definition for char")]),
+            [CharacterisationOp.TestDefUnfreeze] = new("Gate Char Test|True|Observation", [new("TestDefinition", "Update", "Unfreezing test definition for char")]),
+            [CharacterisationOp.StepUpdateWorkflowType] = new("Gate Char Test|True|CountTest", [new("TestDefinition", "Update", null)]),
+            [CharacterisationOp.StepCreate] = new("1:New Step", [new("TestWorkflowStep", "Create", null)]),
+            [CharacterisationOp.StepUpdate] = new("1:Renamed Step 1,2:Step 2", [new("TestWorkflowStep", "Update", null)]),
+            [CharacterisationOp.StepMove] = new("1:Step 2,2:Step 1", [
+                new("TestWorkflowStep", "Update", null),
+                new("TestWorkflowStep", "Update", null),
+                new("TestWorkflowStep", "Update", null)
+            ]),
+            [CharacterisationOp.StepDelete] = new("1:Step 1", [new("TestWorkflowStep", "Delete", null)]),
+            [CharacterisationOp.ReplicateCreate] = new("Finished:3", [new("TestDefinitionStageReplicate", "Create", null)]),
+            [CharacterisationOp.ReplicateUpdate] = new("Bulk:5", [new("TestDefinitionStageReplicate", "Update", null)]),
+            [CharacterisationOp.ReplicateDelete] = new("", [new("TestDefinitionStageReplicate", "Delete", null)]),
+            [CharacterisationOp.ItemDelete] = new("False|False", [new("Item", "Delete", "Deleting unused item for char")])
+        };
+
     public static IEnumerable<object[]> AllGatedMethods()
     {
         foreach (var method in Enum.GetValues<GatedMethod>())
@@ -155,14 +205,19 @@ public class ChangeControlGatePostgresTests(PostgresTestFixture fixture)
             // Normalize random codes/names in JSON if present
             foreach (var key in new[] { "Code", "TestCode" })
             {
-                if (obj[key] is JsonValue v && v.TryGetValue<string>(out var s) && s.StartsWith("TST-", StringComparison.Ordinal))
-                    obj[key] = "TST-<normalized>";
+                if (obj[key] is JsonValue v && v.TryGetValue<string>(out var s))
+                {
+                    if (s.StartsWith("TST-", StringComparison.Ordinal))
+                        obj[key] = "TST-<normalized>";
+                    else if (s.StartsWith("ITM-", StringComparison.Ordinal))
+                        obj[key] = "ITM-<normalized>";
+                }
             }
         }
         return node?.ToJsonString();
     }
 
-    private async Task<CharacterisationSnapshot> RunGateOffScenarioAsync(GatedMethod method, GateOffMode mode)
+    private async Task<CharacterisationSnapshot> RunGateOffScenarioAsync(CharacterisationOp op, GateOffMode mode)
     {
         var clock = new MutableClock(BaseNow);
         int userId;
@@ -244,7 +299,7 @@ public class ChangeControlGatePostgresTests(PostgresTestFixture fixture)
                 SectionId = sectionId,
                 WorkflowType = WorkflowType.Observation,
                 EquationType = EquationType.None,
-                IsActive = method != GatedMethod.TestDefUnfreeze
+                IsActive = op != CharacterisationOp.TestDefUnfreeze
             };
             arrangeDb.TestDefinitions.Add(testDef);
             await arrangeDb.SaveChangesAsync();
@@ -259,7 +314,7 @@ public class ChangeControlGatePostgresTests(PostgresTestFixture fixture)
             });
             await arrangeDb.SaveChangesAsync();
 
-            if (method is GatedMethod.SpecUpdate or GatedMethod.SpecDelete or GatedMethod.SpecReinstate)
+            if (op is CharacterisationOp.SpecUpdate or CharacterisationOp.SpecDelete or CharacterisationOp.SpecReinstate or CharacterisationOp.ItemDelete)
             {
                 var spec = new Specification
                 {
@@ -269,16 +324,16 @@ public class ChangeControlGatePostgresTests(PostgresTestFixture fixture)
                     LimitType = LimitType.Qualitative,
                     ExpectedResultText = "Clear",
                     SpecLimit = "Clear",
-                    IsRetired = method == GatedMethod.SpecReinstate,
-                    RetiredAt = method == GatedMethod.SpecReinstate ? BaseNow.AddDays(-1) : null,
-                    RetiredByUserId = method == GatedMethod.SpecReinstate ? userId : null
+                    IsRetired = op == CharacterisationOp.SpecReinstate,
+                    RetiredAt = op == CharacterisationOp.SpecReinstate ? BaseNow.AddDays(-1) : null,
+                    RetiredByUserId = op == CharacterisationOp.SpecReinstate ? userId : null
                 };
                 arrangeDb.Specifications.Add(spec);
                 await arrangeDb.SaveChangesAsync();
                 specId = spec.Id;
             }
 
-            if (method is GatedMethod.StepUpdate or GatedMethod.StepMove or GatedMethod.StepDelete)
+            if (op is CharacterisationOp.StepUpdate or CharacterisationOp.StepMove or CharacterisationOp.StepDelete)
             {
                 var s1 = new TestWorkflowStep
                 {
@@ -309,7 +364,7 @@ public class ChangeControlGatePostgresTests(PostgresTestFixture fixture)
                 step2Id = s2.Id;
             }
 
-            if (method is GatedMethod.ReplicateUpdate or GatedMethod.ReplicateDelete)
+            if (op is CharacterisationOp.ReplicateUpdate or CharacterisationOp.ReplicateDelete)
             {
                 var rep = new TestDefinitionStageReplicate
                 {
@@ -348,83 +403,88 @@ public class ChangeControlGatePostgresTests(PostgresTestFixture fixture)
             var testDefService = new TestDefinitionMasterDataService(actDb, scope, audit, changeControlGate: gate);
             var stepService = new TestWorkflowStepMasterDataService(actDb, scope, gate);
             var repService = new TestStageReplicateMasterDataService(actDb, scope, gate);
+            var itemService = new ItemService(actDb, scope);
 
-            switch (method)
+            switch (op)
             {
-                case GatedMethod.SpecCreate:
+                case CharacterisationOp.SpecCreate:
                     var createdSpec = await specService.CreateSpecificationAsync(userId, new CreateSpecificationRequest(
                         ItemId: itemId, TestCode: testCode, ParameterName: "NewParam",
                         LimitType: LimitType.Qualitative, ExpectedResultText: "Pass"));
                     createdId = createdSpec.Id;
                     break;
 
-                case GatedMethod.SpecUpdate:
+                case CharacterisationOp.SpecUpdate:
                     await specService.UpdateSpecificationAsync(userId, specId, new UpdateSpecificationRequest(
                         TestCode: testCode, ParameterName: "UpdatedParam",
                         LimitType: LimitType.Qualitative, ExpectedResultText: "UpdatedPass"));
                     break;
 
-                case GatedMethod.SpecDelete:
+                case CharacterisationOp.SpecDelete:
                     await specService.DeleteSpecificationAsync(userId, specId, "Deleting unused test specification");
                     break;
 
-                case GatedMethod.SpecReinstate:
+                case CharacterisationOp.SpecReinstate:
                     await specService.ReinstateSpecificationAsync(userId, specId, "Reinstating retired test specification");
                     break;
 
-                case GatedMethod.TestDefCreate:
+                case CharacterisationOp.TestDefCreate:
                     var createdTd = await testDefService.CreateTestDefinitionAsync(userId, new CreateTestDefinitionRequest(
                         Code: newTestCode, DisplayName: "New Gate Test", SectionId: sectionId));
                     createdId = createdTd.Id;
                     break;
 
-                case GatedMethod.TestDefUpdate:
+                case CharacterisationOp.TestDefUpdate:
                     await testDefService.UpdateTestDefinitionAsync(userId, testDefId, new UpdateTestDefinitionRequest(
                         Code: testCode, DisplayName: "Updated Gate Test"));
                     break;
 
-                case GatedMethod.TestDefFreeze:
+                case CharacterisationOp.TestDefFreeze:
                     await testDefService.FreezeTestDefinitionAsync(userId, testDefId, changeReason: "Freezing test definition for char");
                     break;
 
-                case GatedMethod.TestDefUnfreeze:
+                case CharacterisationOp.TestDefUnfreeze:
                     await testDefService.UnfreezeTestDefinitionAsync(userId, testDefId, changeReason: "Unfreezing test definition for char");
                     break;
 
-                case GatedMethod.StepUpdateWorkflowType:
+                case CharacterisationOp.StepUpdateWorkflowType:
                     await stepService.UpdateWorkflowTypeAsync(userId, testDefId, new UpdateWorkflowTypeRequest(WorkflowType.CountTest));
                     break;
 
-                case GatedMethod.StepCreate:
+                case CharacterisationOp.StepCreate:
                     await stepService.CreateTestWorkflowStepAsync(userId, testDefId, new CreateTestWorkflowStepRequest(
                         "New Step", 12, 24, 30, 35, true, StepType.BiochemicalTest, null, [], false, null, null, PhenotypicTestType.Catalase));
                     break;
 
-                case GatedMethod.StepUpdate:
+                case CharacterisationOp.StepUpdate:
                     await stepService.UpdateTestWorkflowStepAsync(userId, step1Id, new UpdateTestWorkflowStepRequest(
                         "Renamed Step 1", 10, 20, 30, 35, false, StepType.BiochemicalTest, null, [], false, null, null, PhenotypicTestType.Catalase));
                     break;
 
-                case GatedMethod.StepMove:
+                case CharacterisationOp.StepMove:
                     await stepService.MoveTestWorkflowStepAsync(userId, step1Id, new MoveTestWorkflowStepRequest("down"));
                     break;
 
-                case GatedMethod.StepDelete:
+                case CharacterisationOp.StepDelete:
                     await stepService.DeleteTestWorkflowStepAsync(userId, step2Id);
                     break;
 
-                case GatedMethod.ReplicateCreate:
+                case CharacterisationOp.ReplicateCreate:
                     await repService.CreateTestDefinitionStageReplicateAsync(userId, testDefId,
                         new CreateTestDefinitionStageReplicateRequest(ProductionStageRole.Finished, 3));
                     break;
 
-                case GatedMethod.ReplicateUpdate:
+                case CharacterisationOp.ReplicateUpdate:
                     await repService.UpdateTestDefinitionStageReplicateAsync(userId, testDefId, replicateId,
                         new UpdateTestDefinitionStageReplicateRequest(5));
                     break;
 
-                case GatedMethod.ReplicateDelete:
+                case CharacterisationOp.ReplicateDelete:
                     await repService.DeleteTestDefinitionStageReplicateAsync(userId, testDefId, replicateId);
+                    break;
+
+                case CharacterisationOp.ItemDelete:
+                    await itemService.DeleteAsync(itemId, "Deleting unused item for char", userId);
                     break;
             }
         }
@@ -449,49 +509,50 @@ public class ChangeControlGatePostgresTests(PostgresTestFixture fixture)
             Assert.Null(link.ChangeAuditLogId);
         }
 
-        string entitySnapshot = method switch
+        string entitySnapshot = op switch
         {
-            GatedMethod.SpecCreate => await assertDb.Specifications.AsNoTracking()
+            CharacterisationOp.SpecCreate => await assertDb.Specifications.AsNoTracking()
                 .Where(s => s.Id == createdId!.Value)
                 .Select(s => $"{s.ParameterName}|{s.SpecLimit}|{s.IsRetired}")
                 .SingleAsync(),
-            GatedMethod.SpecUpdate => await assertDb.Specifications.AsNoTracking()
+            CharacterisationOp.SpecUpdate => await assertDb.Specifications.AsNoTracking()
                 .Where(s => s.Id == specId)
                 .Select(s => $"{s.ParameterName}|{s.SpecLimit}|{s.IsRetired}")
                 .SingleAsync(),
-            GatedMethod.SpecDelete => (await assertDb.Specifications.AsNoTracking()
+            CharacterisationOp.SpecDelete => (await assertDb.Specifications.AsNoTracking()
                 .AnyAsync(s => s.Id == specId)).ToString(),
-            GatedMethod.SpecReinstate => await assertDb.Specifications.AsNoTracking()
+            CharacterisationOp.SpecReinstate => await assertDb.Specifications.AsNoTracking()
                 .Where(s => s.Id == specId)
                 .Select(s => $"{s.ParameterName}|{s.IsRetired}|{s.RetiredByUserId == null}")
                 .SingleAsync(),
-            GatedMethod.TestDefCreate => await assertDb.TestDefinitions.AsNoTracking()
+            CharacterisationOp.TestDefCreate => await assertDb.TestDefinitions.AsNoTracking()
                 .Where(t => t.Id == createdId!.Value)
                 .Select(t => $"{t.DisplayName}|{t.IsActive}")
                 .SingleAsync(),
-            GatedMethod.TestDefUpdate or GatedMethod.TestDefFreeze or GatedMethod.TestDefUnfreeze or GatedMethod.StepUpdateWorkflowType =>
+            CharacterisationOp.TestDefUpdate or CharacterisationOp.TestDefFreeze or CharacterisationOp.TestDefUnfreeze or CharacterisationOp.StepUpdateWorkflowType =>
                 await assertDb.TestDefinitions.AsNoTracking()
                     .Where(t => t.Id == testDefId)
                     .Select(t => $"{t.DisplayName}|{t.IsActive}|{t.WorkflowType}")
                     .SingleAsync(),
-            GatedMethod.StepCreate => await assertDb.TestWorkflowSteps.AsNoTracking()
+            CharacterisationOp.StepCreate => await assertDb.TestWorkflowSteps.AsNoTracking()
                 .Where(s => s.TestDefinitionId == testDefId)
                 .OrderBy(s => s.StepOrder)
                 .Select(s => $"{s.StepOrder}:{s.StepName}")
                 .SingleAsync(),
-            GatedMethod.StepUpdate or GatedMethod.StepMove or GatedMethod.StepDelete => string.Join(",",
+            CharacterisationOp.StepUpdate or CharacterisationOp.StepMove or CharacterisationOp.StepDelete => string.Join(",",
                 await assertDb.TestWorkflowSteps.AsNoTracking()
                     .Where(s => s.TestDefinitionId == testDefId)
                     .OrderBy(s => s.StepOrder)
                     .Select(s => $"{s.StepOrder}:{s.StepName}")
                     .ToListAsync()),
-            GatedMethod.ReplicateCreate or GatedMethod.ReplicateUpdate or GatedMethod.ReplicateDelete => string.Join(",",
+            CharacterisationOp.ReplicateCreate or CharacterisationOp.ReplicateUpdate or CharacterisationOp.ReplicateDelete => string.Join(",",
                 await assertDb.TestDefinitionStageReplicates.AsNoTracking()
                     .Where(r => r.TestDefinitionId == testDefId)
                     .OrderBy(r => r.Role)
                     .Select(r => $"{r.Role}:{r.SampleReplicates}")
                     .ToListAsync()),
-            _ => throw new ArgumentOutOfRangeException(nameof(method))
+            CharacterisationOp.ItemDelete => $"{await assertDb.Items.AsNoTracking().AnyAsync(i => i.Id == itemId)}|{await assertDb.Specifications.AsNoTracking().AnyAsync(s => s.Id == specId)}",
+            _ => throw new ArgumentOutOfRangeException(nameof(op))
         };
 
         return new CharacterisationSnapshot(entitySnapshot, audits);
@@ -500,11 +561,21 @@ public class ChangeControlGatePostgresTests(PostgresTestFixture fixture)
     [PostgresFact]
     public async Task Gate_off_characterisation_is_identical_with_no_setting_or_setting_false()
     {
-        foreach (var method in Enum.GetValues<GatedMethod>())
+        foreach (var op in Enum.GetValues<CharacterisationOp>())
         {
-            var noRow = await RunGateOffScenarioAsync(method, GateOffMode.NoSettingRow);
-            var settingFalse = await RunGateOffScenarioAsync(method, GateOffMode.SettingFalse);
-            var withHeader = await RunGateOffScenarioAsync(method, GateOffMode.SettingFalseWithHeaderSent);
+            var expected = BaseLiterals[op];
+            var noRow = await RunGateOffScenarioAsync(op, GateOffMode.NoSettingRow);
+            var settingFalse = await RunGateOffScenarioAsync(op, GateOffMode.SettingFalse);
+            var withHeader = await RunGateOffScenarioAsync(op, GateOffMode.SettingFalseWithHeaderSent);
+
+            Assert.Equal(expected.EntitySnapshot, noRow.EntitySnapshot);
+            Assert.Equal(expected.Audits.Count, noRow.Audits.Count);
+            for (var i = 0; i < expected.Audits.Count; i++)
+            {
+                Assert.Equal(expected.Audits[i].EntityName, noRow.Audits[i].EntityName);
+                Assert.Equal(expected.Audits[i].Action, noRow.Audits[i].Action);
+                Assert.Equal(expected.Audits[i].Reason, noRow.Audits[i].Reason);
+            }
 
             foreach (var variant in new[] { settingFalse, withHeader })
             {
@@ -990,6 +1061,66 @@ public class ChangeControlGatePostgresTests(PostgresTestFixture fixture)
             Assert.Equal(MessageCodes.ChangeControlGateWrongLaboratory, ex.Code);
         }
 
+        // Reverse case: CC scoped only to OtherSectionId (target) -> refused
+        var (_, sectionBCc, _) = await SeedChangeControlAsync(
+            clock, w.UserId, w.OtherSectionId, ChangeControlStatus.ApprovedForImplementation, QualityLinkTargetType.TestDefinition, w.TestDefId);
+        await using (var actDb = Context(clock, w.UserId))
+        {
+            var ccCtx = new ChangeControlContext { Number = sectionBCc };
+            var gate = new ChangeControlGate(actDb, ccCtx, clock);
+            var scope = new UserSectionScopeService(actDb);
+            var svc = new TestDefinitionMasterDataService(actDb, scope, new AuditEventService(actDb, fixture.CreateSequenceHelper(actDb), clock), changeControlGate: gate);
+
+            var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
+                svc.UpdateTestDefinitionAsync(w.UserId, w.TestDefId, new UpdateTestDefinitionRequest(w.TestCode, "Moved Test", SectionId: w.OtherSectionId)));
+            Assert.Equal(MessageCodes.ChangeControlGateWrongLaboratory, ex.Code);
+        }
+
+        // Spec update moving TestCode to a test in OtherSectionId checks BOTH sections
+        string otherTestCode = "TST-OTH-" + Guid.NewGuid().ToString("N")[..6].ToUpperInvariant();
+        await using (var seedDb = Context(clock))
+        {
+            seedDb.TestDefinitions.Add(new TestDefinition
+            {
+                Code = otherTestCode,
+                DisplayName = "Other Section Test",
+                SectionId = w.OtherSectionId,
+                WorkflowType = WorkflowType.Observation,
+                EquationType = EquationType.None,
+                IsActive = true
+            });
+            seedDb.SampleTests.Add(new SampleTest { ItemId = w.ItemId, TestCode = otherTestCode });
+            await seedDb.SaveChangesAsync();
+        }
+        var (_, specSectionACc, _) = await SeedChangeControlAsync(
+            clock, w.UserId, w.SectionId, ChangeControlStatus.ApprovedForImplementation, QualityLinkTargetType.Specification, w.SpecId);
+        await using (var actDb = Context(clock, w.UserId))
+        {
+            var gate = new ChangeControlGate(actDb, new ChangeControlContext { Number = specSectionACc }, clock);
+            var specSvc = new SpecificationMasterDataService(actDb, new UserSectionScopeService(actDb), timeProvider: clock, changeControlGate: gate);
+            var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
+                specSvc.UpdateSpecificationAsync(w.UserId, w.SpecId, new UpdateSpecificationRequest(otherTestCode, ParameterName: "MovedSpec", LimitType: LimitType.Qualitative, ExpectedResultText: "Clear")));
+            Assert.Equal(MessageCodes.ChangeControlGateWrongLaboratory, ex.Code);
+        }
+        var (_, specSectionBCc, _) = await SeedChangeControlAsync(
+            clock, w.UserId, w.OtherSectionId, ChangeControlStatus.ApprovedForImplementation, QualityLinkTargetType.Specification, w.SpecId);
+        await using (var actDb = Context(clock, w.UserId))
+        {
+            var gate = new ChangeControlGate(actDb, new ChangeControlContext { Number = specSectionBCc }, clock);
+            var specSvc = new SpecificationMasterDataService(actDb, new UserSectionScopeService(actDb), timeProvider: clock, changeControlGate: gate);
+            var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
+                specSvc.UpdateSpecificationAsync(w.UserId, w.SpecId, new UpdateSpecificationRequest(otherTestCode, ParameterName: "MovedSpec", LimitType: LimitType.Qualitative, ExpectedResultText: "Clear")));
+            Assert.Equal(MessageCodes.ChangeControlGateWrongLaboratory, ex.Code);
+        }
+        var (_, specSiteCc, specSiteLinkId) = await SeedChangeControlAsync(
+            clock, w.UserId, sectionId: null, ChangeControlStatus.ApprovedForImplementation, QualityLinkTargetType.Specification, w.SpecId);
+        await using (var actDb = Context(clock, w.UserId))
+        {
+            var gate = new ChangeControlGate(actDb, new ChangeControlContext { Number = specSiteCc }, clock);
+            var specSvc = new SpecificationMasterDataService(actDb, new UserSectionScopeService(actDb), timeProvider: clock, changeControlGate: gate);
+            await specSvc.UpdateSpecificationAsync(w.UserId, w.SpecId, new UpdateSpecificationRequest(otherTestCode, ParameterName: "MovedSpec", LimitType: LimitType.Qualitative, ExpectedResultText: "Clear"));
+        }
+
         // Site-wide CC allows cross-lab move
         var (_, siteCc, linkId) = await SeedChangeControlAsync(
             clock, w.UserId, sectionId: null, ChangeControlStatus.ApprovedForImplementation, QualityLinkTargetType.TestDefinition, w.TestDefId);
@@ -1007,6 +1138,9 @@ public class ChangeControlGatePostgresTests(PostgresTestFixture fixture)
         var moved = await assertDb.TestDefinitions.AsNoTracking().SingleAsync(t => t.Id == w.TestDefId);
         Assert.Equal(w.OtherSectionId, moved.SectionId);
         Assert.Equal(BaseNow, (await assertDb.QualityRecordLinks.AsNoTracking().SingleAsync(l => l.Id == linkId)).ChangedAtUtc);
+        var movedSpec = await assertDb.Specifications.AsNoTracking().SingleAsync(s => s.Id == w.SpecId);
+        Assert.Equal(otherTestCode, movedSpec.TestCode);
+        Assert.Equal(BaseNow, (await assertDb.QualityRecordLinks.AsNoTracking().SingleAsync(l => l.Id == specSiteLinkId)).ChangedAtUtc);
     }
 
     [PostgresFact]
@@ -1018,6 +1152,10 @@ public class ChangeControlGatePostgresTests(PostgresTestFixture fixture)
             clock, w.UserId, w.SectionId, ChangeControlStatus.ApprovedForImplementation, QualityLinkTargetType.TestDefinition, null, $"  {w.NewTestCode.ToLowerInvariant()}  ");
 
         int createdTestId;
+        long createAuditWatermark;
+        await using (var wmDb = Context(clock))
+            createAuditWatermark = await wmDb.AuditLogs.AsNoTracking().Select(a => (long?)a.Id).MaxAsync() ?? 0L;
+
         await using (var actDb = Context(clock, w.UserId))
         {
             var ccCtx = new ChangeControlContext { Number = ccNum };
@@ -1030,6 +1168,24 @@ public class ChangeControlGatePostgresTests(PostgresTestFixture fixture)
                 [new CreateTestWorkflowStepRequest("Step A", 12, 24, 30, 35, true, StepType.BiochemicalTest, null, [], false, null, null, PhenotypicTestType.Catalase)],
                 [new CreateTestDefinitionStageReplicateRequest(ProductionStageRole.Bulk, 3)]));
             createdTestId = resp.Id;
+        }
+
+        await using (var midAssertDb = Context(clock))
+        {
+            Assert.True(await midAssertDb.TestWorkflowSteps.AsNoTracking().AnyAsync(s => s.TestDefinitionId == createdTestId && s.StepName == "Step A"));
+            Assert.True(await midAssertDb.TestDefinitionStageReplicates.AsNoTracking().AnyAsync(r => r.TestDefinitionId == createdTestId && r.Role == ProductionStageRole.Bulk && r.SampleReplicates == 3));
+            var stepAudit = await midAssertDb.AuditLogs.AsNoTracking()
+                .Where(a => a.Id > createAuditWatermark && a.EntityName == nameof(TestWorkflowStep) && a.Action == "Create")
+                .OrderByDescending(a => a.Id)
+                .FirstAsync();
+            var repAudit = await midAssertDb.AuditLogs.AsNoTracking()
+                .Where(a => a.Id > createAuditWatermark && a.EntityName == nameof(TestDefinitionStageReplicate) && a.Action == "Create")
+                .OrderByDescending(a => a.Id)
+                .FirstAsync();
+            Assert.Contains(ccNum, stepAudit.Reason ?? string.Empty);
+            Assert.Contains(ccNum, repAudit.Reason ?? string.Empty);
+            var midLink = await midAssertDb.QualityRecordLinks.AsNoTracking().SingleAsync(l => l.Id == linkId);
+            Assert.Equal(Math.Max(stepAudit.Id, repAudit.Id), midLink.ChangeAuditLogId);
         }
 
         // Later edit in a DIFFERENT request with a later timestamp still matches by NewRecordCode and updates ChangedAtUtc
@@ -1048,6 +1204,12 @@ public class ChangeControlGatePostgresTests(PostgresTestFixture fixture)
         await using var assertDb = Context(clock);
         var link = await assertDb.QualityRecordLinks.AsNoTracking().SingleAsync(l => l.Id == linkId);
         Assert.Equal(laterTime, link.ChangedAtUtc);
+        var updateAuditId = await assertDb.AuditLogs.AsNoTracking()
+            .Where(a => a.EntityName == nameof(TestDefinition) && a.EntityId == createdTestId.ToString() && a.Action == "Update")
+            .OrderByDescending(a => a.Id)
+            .Select(a => a.Id)
+            .FirstAsync();
+        Assert.Equal(updateAuditId, link.ChangeAuditLogId);
     }
 
     [PostgresFact]
@@ -1113,9 +1275,18 @@ public class ChangeControlGatePostgresTests(PostgresTestFixture fixture)
             Assert.Contains("requires an approved change control", err.Message);
         }
 
-        // 4. With approved CC, workbook & copy succeed
-        var (_, ccNum, _) = await SeedChangeControlAsync(
+        await using (var assertRefusalDb = Context(clock))
+        {
+            Assert.False(await assertRefusalDb.Specifications.AsNoTracking().AnyAsync(s => s.ItemId == w.ItemId && s.ParameterName == "WbParam"));
+        }
+
+        // 4. With approved CC, copy, batch, and workbook all succeed and record the CC number
+        var (_, ccNum, linkId) = await SeedChangeControlAsync(
             clock, w.UserId, w.SectionId, ChangeControlStatus.ApprovedForImplementation, QualityLinkTargetType.TestDefinition, w.TestDefId);
+        long auditWatermark;
+        await using (var wmDb = Context(clock))
+            auditWatermark = await wmDb.AuditLogs.AsNoTracking().Select(a => (long?)a.Id).MaxAsync() ?? 0L;
+
         await using (var actDb = Context(clock, w.UserId))
         {
             var ccCtx = new ChangeControlContext { Number = ccNum };
@@ -1126,6 +1297,49 @@ public class ChangeControlGatePostgresTests(PostgresTestFixture fixture)
             var copied = await copySvc.CopyAsync(new CopySpecificationsRequest(w.ItemId, targetItemId, [w.SpecId]), w.UserId);
             Assert.Equal(1, copied);
         }
+
+        await using (var actDb = Context(clock, w.UserId))
+        {
+            var ccCtx = new ChangeControlContext { Number = ccNum };
+            var gate = new ChangeControlGate(actDb, ccCtx, clock);
+            var specSvc = new SpecificationMasterDataService(actDb, new UserSectionScopeService(actDb), timeProvider: clock, changeControlGate: gate);
+            var batchCreated = await specSvc.CreateSpecificationsBatchAsync(w.UserId, [
+                new CreateSpecificationRequest(w.ItemId, w.TestCode, ParameterName: "BatchOk", LimitType: LimitType.Qualitative, ExpectedResultText: "Ok")
+            ]);
+            Assert.Single(batchCreated);
+        }
+
+        await using (var actDb = Context(clock, w.UserId))
+        {
+            var ccCtx = new ChangeControlContext { Number = ccNum };
+            var gate = new ChangeControlGate(actDb, ccCtx, clock);
+            var specSvc = new SpecificationMasterDataService(actDb, new UserSectionScopeService(actDb), timeProvider: clock, changeControlGate: gate);
+            var runner = new MasterDataWorkbookRunner(actDb, [new SpecificationsSheet(specSvc)]);
+            var sheet = new WorkbookSheet(SpecificationsSheet.SheetName,
+                ["ItemCode", "TestCode", "ParameterName", "LimitType", "ExpectedResultText"],
+                [new WorkbookRow(2, new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                {
+                    ["ItemCode"] = itemCode,
+                    ["TestCode"] = w.TestCode,
+                    ["ParameterName"] = "WbOk",
+                    ["LimitType"] = nameof(LimitType.Qualitative),
+                    ["ExpectedResultText"] = "Pass"
+                })]);
+
+            var (report, created) = await UnitOfWork.RunAsync(actDb, () => runner.RunAsync([sheet], w.UserId));
+            Assert.Empty(report.Errors);
+            Assert.Single(created);
+        }
+
+        await using var assertDb = Context(clock);
+        var link = await assertDb.QualityRecordLinks.AsNoTracking().SingleAsync(l => l.Id == linkId);
+        Assert.Equal(BaseNow, link.ChangedAtUtc);
+        var specCreateAudits = await assertDb.AuditLogs.AsNoTracking()
+            .Where(a => a.Id > auditWatermark && a.EntityName == nameof(Specification) && a.Action == "Create")
+            .OrderBy(a => a.Id)
+            .ToListAsync();
+        Assert.Equal(3, specCreateAudits.Count);
+        Assert.All(specCreateAudits, a => Assert.Contains(ccNum, a.Reason ?? string.Empty));
     }
 
     [PostgresFact]
@@ -1159,8 +1373,12 @@ public class ChangeControlGatePostgresTests(PostgresTestFixture fixture)
                 cfg.SetSectionSettingAsync(w.SectionId, true, "Enable gate", QaPassword, 0u, w.UserId));
         }
 
-        // QA enables gate with reason + signature; blank reason & stale version refused
+        // QA enables gate with reason + signature; blank reason, >4000 reason, unknown section, wrong password, missing version & stale version refused
         uint version;
+        long auditWatermark;
+        await using (var wmDb = Context(clock))
+            auditWatermark = await wmDb.AuditLogs.AsNoTracking().Select(a => (long?)a.Id).MaxAsync() ?? 0L;
+
         await using (var actDb = Context(clock, w.QaUserId))
         {
             var cfg = BuildConfigService(actDb, clock);
@@ -1168,10 +1386,25 @@ public class ChangeControlGatePostgresTests(PostgresTestFixture fixture)
                 cfg.SetSectionSettingAsync(w.SectionId, true, "   ", QaPassword, 0u, w.QaUserId));
             Assert.Equal(MessageCodes.ChangeControlGateReasonRequired, reasonEx.Code);
 
+            var tooLongEx = await Assert.ThrowsAsync<BusinessRuleException>(() =>
+                cfg.SetSectionSettingAsync(w.SectionId, true, new string('a', 4001), QaPassword, 0u, w.QaUserId));
+            Assert.Equal(MessageCodes.QualityInvalidText, tooLongEx.Code);
+
+            var unknownEx = await Assert.ThrowsAsync<NotFoundException>(() =>
+                cfg.SetSectionSettingAsync(999_999_999, true, "Unknown section", QaPassword, 0u, w.QaUserId));
+            Assert.Equal(MessageCodes.QualityNotFound, unknownEx.Code);
+
+            await Assert.ThrowsAsync<SignatureVerificationException>(() =>
+                cfg.SetSectionSettingAsync(w.SectionId, true, "Wrong password", "wrong-pw", 0u, w.QaUserId));
+
             var updated = await cfg.SetSectionSettingAsync(w.SectionId, true, "Enable change control", QaPassword, 0u, w.QaUserId);
             Assert.True(updated.ChangeControlRequired);
             Assert.True(updated.Version > 0);
             version = updated.Version;
+
+            var missingVerEx = await Assert.ThrowsAsync<BusinessRuleException>(() =>
+                cfg.SetSectionSettingAsync(w.SectionId, false, "Missing version", QaPassword, null, w.QaUserId));
+            Assert.Equal(MessageCodes.QualityVersionRequired, missingVerEx.Code);
 
             await Assert.ThrowsAnyAsync<DbUpdateConcurrencyException>(() =>
                 cfg.SetSectionSettingAsync(w.SectionId, false, "Stale", QaPassword, 0u, w.QaUserId));
@@ -1181,10 +1414,24 @@ public class ChangeControlGatePostgresTests(PostgresTestFixture fixture)
         var persisted = await assertDb.QualitySectionSettings.AsNoTracking().SingleAsync(s => s.SectionId == w.SectionId);
         Assert.True(persisted.ChangeControlRequired);
         Assert.Equal(version, persisted.Version);
-        Assert.True(await assertDb.ElectronicSignatures.AsNoTracking().AnyAsync(s =>
+
+        var sig = await assertDb.ElectronicSignatures.AsNoTracking().SingleAsync(s =>
             s.EntityType == nameof(QualitySectionSetting) &&
             s.EntityId == w.SectionId &&
-            s.MeaningOfSignature == SignatureMeaning.ChangeControlGateChanged));
+            s.MeaningOfSignature == SignatureMeaning.ChangeControlGateChanged);
+        Assert.Equal(w.QaUserId, sig.UserId);
+        Assert.Equal(BaseNow, sig.SignedAt);
+
+        var settingAudit = await assertDb.AuditLogs.AsNoTracking()
+            .SingleAsync(a => a.Id > auditWatermark && a.EntityName == nameof(QualitySectionSetting));
+        Assert.Equal(w.QaUserId, settingAudit.UserId);
+        Assert.Equal("Create", settingAudit.Action);
+        Assert.Equal("Enable change control", settingAudit.Reason);
+        Assert.Null(settingAudit.PreviousValue);
+        Assert.Contains("\"ChangeControlRequired\":true", settingAudit.NewValue);
+
+        Assert.True(await assertDb.AuditLogs.AsNoTracking().AnyAsync(a =>
+            a.Id > auditWatermark && a.EntityName == nameof(ElectronicSignature) && a.Action == "SignatureFailed" && a.UserId == w.QaUserId));
     }
 
     [PostgresFact]

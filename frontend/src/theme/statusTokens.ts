@@ -182,7 +182,21 @@ const STATUS_TONE: Record<string, StatusTone> = {
   Excursion: "action",
   Addressed: "notDetected",
   LaboratoryErrorConfirmed: "action",
-  NoLaboratoryErrorFound: "info"
+  NoLaboratoryErrorFound: "info",
+
+  // Quality events (deviation, CAPA, change control, complaint). Closed, Cancelled, Rejected, Approved,
+  // Received and Concluded keep the tones above. Open steps are blue or purple, a signed hand-over waiting for
+  // the next person is orange, and a state that releases work (approved for implementation) is green.
+  Raised: "info",
+  Investigation: "purple",
+  LabConcluded: "action",
+  Plan: "info",
+  PlanApproved: "purple",
+  CompletionVerified: "action",
+  Proposed: "info",
+  Assessed: "action",
+  ApprovedForImplementation: "notDetected",
+  LabReported: "action"
 };
 
 export function statusTone(status: string): StatusTone {
@@ -326,7 +340,17 @@ const STATUS_LABEL_KEYS: Record<string, string> = {
   Excursion: "statuses.Excursion",
   Addressed: "statuses.Addressed",
   LaboratoryErrorConfirmed: "statuses.LaboratoryErrorConfirmed",
-  NoLaboratoryErrorFound: "statuses.NoLaboratoryErrorFound"
+  NoLaboratoryErrorFound: "statuses.NoLaboratoryErrorFound",
+  Raised: "statuses.Raised",
+  Investigation: "statuses.Investigation",
+  LabConcluded: "statuses.LabConcluded",
+  Plan: "statuses.Plan",
+  PlanApproved: "statuses.PlanApproved",
+  CompletionVerified: "statuses.CompletionVerified",
+  Proposed: "statuses.Proposed",
+  Assessed: "statuses.Assessed",
+  ApprovedForImplementation: "statuses.ApprovedForImplementation",
+  LabReported: "statuses.LabReported"
 };
 
 export function statusLabel(status: string, t?: TFunction): string {

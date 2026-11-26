@@ -639,5 +639,22 @@
       { "key": "conclusion", "label": "Conclusion", "defaultVisible": true }
     ],
     "filters": ["sectionId", "status", "from", "to"]
+  },
+  {
+    "key": "quality.register",
+    "title": "Quality Events Register",
+    "idColumn": "number",
+    "columns": [
+      { "key": "number", "label": "Number", "defaultVisible": true },
+      { "key": "type", "label": "Type", "defaultVisible": true },
+      { "key": "title", "label": "Title", "defaultVisible": true },
+      { "key": "status", "label": "Status", "defaultVisible": true },
+      { "key": "classification", "label": "Classification", "defaultVisible": true },
+      { "key": "section", "label": "Section", "defaultVisible": true },
+      { "key": "owner", "label": "Owner", "defaultVisible": true },
+      { "key": "dueDate", "label": "Due date", "defaultVisible": true },
+      { "key": "raised", "label": "Raised", "defaultVisible": false }
+    ],
+    "filters": ["type", "status", "classificationId", "sectionId", "ownerUserId", "overdue", "from", "to"]
   }
 ]

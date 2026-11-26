@@ -599,6 +599,11 @@
     "fieldHint": {
       "aboutAria": "About {{label}}",
       "readMore": "Read more"
+    },
+    "signedTimeline": {
+      "title": "Signed Timeline",
+      "empty": "No electronic signatures recorded yet.",
+      "entryMeta": "{{name}} ({{role}}) · {{date}}"
     }
   },
   "statuses": {
@@ -723,7 +728,17 @@
     "Excursion": "Excursion",
     "Addressed": "Addressed",
     "LaboratoryErrorConfirmed": "Laboratory Error Confirmed",
-    "NoLaboratoryErrorFound": "No Laboratory Error Found"
+    "NoLaboratoryErrorFound": "No Laboratory Error Found",
+    "Raised": "Raised",
+    "Investigation": "Investigation",
+    "LabConcluded": "Lab Concluded",
+    "Plan": "Plan",
+    "PlanApproved": "Plan Approved",
+    "CompletionVerified": "Completion Verified",
+    "Proposed": "Proposed",
+    "Assessed": "Assessed",
+    "ApprovedForImplementation": "Approved for Implementation",
+    "LabReported": "Lab Reported"
   },
   "workflowEvents": {
     "SubmittedForReview": "Submitted for Review",

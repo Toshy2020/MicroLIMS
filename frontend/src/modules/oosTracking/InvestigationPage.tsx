@@ -43,7 +43,7 @@ import { RetestPlanSection } from "./components/RetestPlanSection";
 import { PhaseTwoSection } from "./components/PhaseTwoSection";
 import { ConclusionSection } from "./components/ConclusionSection";
 import { DeviationRequestsPanel } from "./components/DeviationRequestsPanel";
-import { SignedTimeline } from "./components/SignedTimeline";
+import { SignedTimeline } from "../../components/SignedTimeline";
 
 export function InvestigationPage() {
   const { id } = useParams<{ id: string }>();

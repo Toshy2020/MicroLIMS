@@ -90,6 +90,8 @@ const DatabaseOverviewPage = lazy(() => import("../modules/admin/DatabaseOvervie
 const ErrorMonitoringPage = lazy(() => import("../modules/errorMonitoring/ErrorMonitoringPage").then((m) => ({ default: m.ErrorMonitoringPage })));
 const OosTrackingPage = lazy(() => import("../modules/oosTracking/OosTrackingPage").then((m) => ({ default: m.OosTrackingPage })));
 const InvestigationPage = lazy(() => import("../modules/oosTracking/InvestigationPage").then((m) => ({ default: m.InvestigationPage })));
+const QualityRegisterPage = lazy(() => import("../modules/quality/QualityRegisterPage").then((m) => ({ default: m.QualityRegisterPage })));
+const QualityRecordPage = lazy(() => import("../modules/quality/QualityRecordPage").then((m) => ({ default: m.QualityRecordPage })));
 const OosTemplatesPage = lazy(() => import("../modules/oosTracking/OosTemplatesPage").then((m) => ({ default: m.OosTemplatesPage })));
 const MaterialsPage = lazy(() => import("../modules/inventory/materials/MaterialsPage").then((m) => ({ default: m.MaterialsPage })));
 const EquipmentInventoryPage = lazy(() => import("../modules/inventory/equipment/EquipmentInventoryPage").then((m) => ({ default: m.EquipmentInventoryPage })));
@@ -269,6 +271,10 @@ export function AppRoutes() {
             <Route element={<PermissionRoute code={PERMISSIONS.OOS_VIEW} />}>
               <Route path="/oos-tracking" element={<OosTrackingPage />} />
               <Route path="/oos-tracking/:id" element={<InvestigationPage />} />
+            </Route>
+            <Route element={<PermissionRoute code={PERMISSIONS.QUALITY_VIEW} />}>
+              <Route path="/quality" element={<QualityRegisterPage />} />
+              <Route path="/quality/:id" element={<QualityRecordPage />} />
             </Route>
             <Route element={<PermissionRoute code={PERMISSIONS.AUDIT_VIEW} />}>
               <Route path="/audit-trail-reviews" element={<AuditTrailReviewsPage />} />

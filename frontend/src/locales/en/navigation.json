@@ -68,7 +68,8 @@
     "messages": "Messages",
     "discussions": "Discussions",
     "notifications": "Notifications",
-    "receivingTestingWorkspace": "Receiving & Testing Workspace"
+    "receivingTestingWorkspace": "Receiving & Testing Workspace",
+    "qualityEvents": "Quality Events"
   },
   "group": {
     "overview": "OVERVIEW",

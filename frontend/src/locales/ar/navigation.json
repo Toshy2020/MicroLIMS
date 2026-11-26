@@ -68,7 +68,8 @@
     "messages": "الرسائل",
     "discussions": "النقاشات",
     "notifications": "الإشعارات",
-    "receivingTestingWorkspace": "مساحة عمل الاستلام والاختبار"
+    "receivingTestingWorkspace": "مساحة عمل الاستلام والاختبار",
+    "qualityEvents": "أحداث الجودة"
   },
   "group": {
     "overview": "نظرة عامة",

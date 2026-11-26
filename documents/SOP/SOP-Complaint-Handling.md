@@ -6,7 +6,7 @@
 |---|---|
 | Document number | [SITE: document number] |
 | Title | Complaint handling (template) |
-| Version | 0.1 |
+| Version | 0.2 |
 | Status | Draft — pending approval |
 | Author | Claude (AI agent), draft from code |
 | Reviewer | [SITE: reviewer] |
@@ -55,7 +55,7 @@
 1. QA concludes the complaint only after the laboratory report is signed. QA cannot conclude a complaint the QA user received or owns.
 2. QA selects the outcome: **Justified**, **Not justified** or **Inconclusive**. QA enters a summary (1 to 4000 characters).
 3. QA signs **Complaint concluded**. The status becomes Concluded.
-4. The system does not record whether a deviation or CAPA is raised from the complaint (CONF-234). [SITE: state how the follow-up deviation or CAPA is raised and linked, and who decides it.]
+4. A conclusion of **Justified** needs a linked, non-cancelled deviation or CAPA (CONF-234). QA can name an existing deviation or CAPA when concluding; it is then linked to the complaint. Other outcomes do not need one. [SITE: state how the follow-up deviation or CAPA is raised, and who decides it.]
 
 ## 8. Closure (QA)
 
@@ -66,10 +66,11 @@
 
 1. QA may cancel a complaint that is Received, Investigation, LabReported or Concluded. QA gives a reason and signs **Quality record cancelled**. The complaint stays visible with status Cancelled.
 2. A closed complaint cannot be cancelled.
+3. The user who received the complaint and its owner cannot cancel it (CONF-229).
 
 ## 10. Due dates and extensions
 
-1. The owner may ask for an extension of the complaint's due date with a reason and a later date. QA approves or refuses it and signs **Due-date extension decided**. A request cannot be decided by the person who requested it.
+1. The owner may ask for an extension of the complaint's due date with a reason and a later date. QA approves or refuses it and signs **Due-date extension decided**. A request cannot be decided by the person who requested it, or by the complaint's raiser (the user who received it) or owner (CONF-228).
 2. On approval the new date replaces the due date. Every request stays in the history.
 
 ## 11. Records and evidence
@@ -81,5 +82,4 @@
 ## 12. Open points for the site
 
 - How the lot is identified (section 3; CONF-233).
-- Follow-up deviation or CAPA after the conclusion (section 7; CONF-234).
 - Due rule and classification names (sections 4 and 10).

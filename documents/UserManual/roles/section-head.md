@@ -5,7 +5,7 @@
 | Field | Value |
 |---|---|
 | Title | Section Head Role Guide |
-| Version | 0.1 |
+| Version | 0.2 |
 | Status | Draft — pending approval |
 | Author | AI coding agent, draft from code |
 | Reviewer | |
@@ -14,7 +14,7 @@
 
 ## 1. What a Section Head can see and do
 
-- **Dashboard (`Section Head Command Center`):** *(Draft — pending approval)* With `Quality.View`, the dashboard also shows **Lab open records & actions** (open quality records and actions in your laboratory sections), **My open records & actions** and **Overdue quality items**. The tiles open the **Quality Events** register; the register does not yet apply the filters the tiles name, so set them yourself.
+- **Dashboard (`Section Head Command Center`):** *(Draft — pending approval)* With `Quality.View`, the dashboard also shows **Lab open records & actions** (open quality records and actions in your laboratory sections), **My open records & actions** and **Overdue quality items**. **Lab open records & actions** opens the **Quality Events** register without a filter; **My open records & actions** opens it filtered to records you own (`owner=me`), and **Overdue quality items** to overdue records (`overdue=true`).
 - **Laboratory work:** Your laboratory's samples, tests, results, reviews and approvals, as described in the other chapters of the user guide.
 - **Quality events (`Quality.Raise`, `Quality.Investigate`, `Quality.LabConclude`):** *(Draft — pending approval)* Raise deviations and propose change controls, investigate, sign laboratory conclusions and laboratory reports, plan and carry out CAPAs, and enter the impact assessment of a change control. See section 3.
 
@@ -37,9 +37,10 @@
 2. Enter **Title**, **What changes**, **Why** and the **Laboratory section** (or **Whole site**). The owner must be an active Section Head or QC Manager of the section; leave **Owner** empty to own it yourself. Click **Propose**.
 
 ### 3.3 Record the impact assessment of a change control
-1. While the change is **Proposed**, use the **Affected records** panel to add the items, equipment, controlled documents, test definitions or specifications the change affects, or a new record by its planned code or name.
+1. While the change is **Proposed**, use the **Affected records** panel to add the items, equipment, controlled documents or test definitions the change affects, or a record that does not exist yet by its planned record code. A new specification is not added by code: list the item or test it belongs to. Existing specifications are chosen from the system's records.
 2. In the **Impact assessment** step, write the **Impact summary**, answer every checklist item (**Yes**, **No** or **Not applicable**, with an optional comment), and add the implementation tasks (description, responsible person, due date).
 3. Click **Save assessment**. Then click **Sign impact assessment**. The list of affected records is fixed once you sign.
+4. If you are the named owner of the change control, you can save and sign the assessment without the *Quality Investigate* permission (CONF-236). QA still approves or rejects it.
 
 ### 3.4 Investigate a deviation
 1. When the deviation is at the **Investigation** step, the owner or a Section Head with *Quality Investigate* fills in **Impact assessment**, **Root cause category**, **Root cause** and **Proposed actions**.
@@ -63,8 +64,24 @@
 
 ### 3.8 Tasks, extensions, attachments and comments
 - **Tasks:** Complete change-control tasks you are responsible for in the **Actions** panel, with evidence.
-- **Extensions:** You can request a later due date for a record you own, or for an action you are responsible for. QA decides the request.
+- **Extensions:** You can request a later due date for a record you own, for an action you are responsible for, or for an action of a record you own (CONF-237). QA decides the request.
 - **Attachments, links and comments:** Add links (while the record is open), upload attachments and post comments on any record you can read, if you hold *Quality Raise*. On a closed, rejected or cancelled record, links are blocked while comments and attachments remain allowed as a dated addendum (**Added after closure**). You can remove a link (before the first signed step) or void an attachment only on a record you own, or with *Quality Investigate*, which a Section Head holds by default.
+
+### 3.9 Out-of-specification investigations *(Draft — pending approval)*
+Your permissions for OOS work come from the seeded Section Head grants: `Oos.View`, `Oos.Contribute` and `Oos.Manage`. You do not hold `Oos.RequestDeviation`; QA requests deviations on an investigation.
+1. Open **OOS Tracking** from the **QUALITY & COMPLIANCE** group in the sidebar (`/oos-tracking`). You see investigations in the laboratory sections you can read.
+2. Phase I: record statements and checklist answers (`Oos.Contribute`), then sign Phase I (`Oos.Manage`).
+3. Retest plans are drafted and signed with `Oos.Manage`.
+4. Address a deviation request that QA has raised on an investigation (`Oos.Manage`).
+5. Conclude an investigation, or reopen it (`Oos.Manage`).
+6. Excursion reviews: open one with `Oos.Contribute` or `Oos.Manage`; close one with `Oos.Manage`.
+7. Section OOS checklist templates are edited with `Oos.Manage` for the sections you configure. Shared cause categories need `Oos.Manage` and `MasterData.Manage` plus a reason (CONF-213).
+
+### 3.10 Analyst competency *(Draft — pending approval)*
+1. **Qualification Matrix:** view the qualifications of analysts in your laboratory (`Competency.View`). Qualify an analyst for a test, or withdraw a qualification (`Competency.Manage`).
+2. **Competency Gate:** switch the gate on or off for your laboratory (`Competency.Manage`). While the gate is on, recording and assignment are refused for an analyst who is not qualified for the test or who has not acknowledged the current SOP, unless a valid override exists.
+3. **Requalification interval:** set on the test in the Test Master (`MasterData.Manage`), not in the competency screens (CONF-210).
+4. **Competency override:** grant a signed override for one test order to one analyst (`Competency.Override`). Only one active override can exist for a test order. If you grant an override, you cannot review or approve that sample (whole-sample separation). The override ends when the test order is reviewed, cancelled, voided, superseded, or reassigned to another analyst.
 
 ## 4. Quality Configuration *(Draft — pending approval)*
 

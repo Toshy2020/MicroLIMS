@@ -99,6 +99,7 @@ public static partial class MessageCodes
     public const string ComplaintUnfinishedActions = "Complaint.UnfinishedActions";
     public const string ComplaintWrongState = "Complaint.WrongState";
     public const string ComplaintFinalCancellation = "Complaint.FinalCancellation";
+    public const string ComplaintFollowUpRequired = "Complaint.FollowUpRequired";
 
     private static Dictionary<string, string[]> QualityParameters() => new()
     {
@@ -112,6 +113,7 @@ public static partial class MessageCodes
         [ComplaintUnfinishedActions] = ["action"],
         [ComplaintWrongState] = [],
         [ComplaintFinalCancellation] = [],
+        [ComplaintFollowUpRequired] = [],
         [ChangeControlInvalidOwner] = [],
         [ChangeControlAssessmentAlreadySigned] = [],
         [ChangeControlHeaderInvalid] = [],

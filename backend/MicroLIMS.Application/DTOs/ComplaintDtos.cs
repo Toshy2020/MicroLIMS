@@ -11,7 +11,8 @@ public sealed record RequestComplaintInvestigationRequest(int ClassificationId, 
 
 public sealed record SaveComplaintInvestigationRequest(string Findings, IReadOnlyList<int>? SampleIds = null);
 
-public sealed record ConcludeComplaintRequest(ComplaintOutcome Outcome, string Summary, string Password);
+public sealed record ConcludeComplaintRequest(ComplaintOutcome Outcome, string Summary, string Password,
+    int? FollowUpRecordId = null);
 
 public sealed record ComplaintPasswordRequest(string Password);
 

@@ -53,7 +53,8 @@ public sealed class QaWriteRefusalPostgresTests
         string ServiceDescription,
         RefusalMechanism Mechanism,
         Func<MicroLimsDbContext, World, Task>? AssertRefusalAndNoSideEffects,
-        Func<IUserSectionScopeService, World, Task>? AssertControllerWriteScopeRefusal = null);
+        Func<IUserSectionScopeService, World, Task>? AssertControllerWriteScopeRefusal = null,
+        bool ServiceEnforcesPolicyAlone = false);
 
     [PostgresFact]
     public async Task Qa_is_refused_every_write_endpoint_group()
@@ -97,11 +98,18 @@ public sealed class QaWriteRefusalPostgresTests
                     .Select(a => a.Policy)
                     .Where(p => !string.IsNullOrEmpty(p))
                     .ToList();
-                Assert.Contains(d.PermissionCode, authPolicies);
+                if (d.ServiceEnforcesPolicyAlone)
+                {
+                    Assert.Contains(PermissionConstants.QualityView, authPolicies);
+                }
+                else
+                {
+                    Assert.Contains(d.PermissionCode, authPolicies);
 
-                var allowedRoles = AuthorizationMatrixTests.AllowedRoles(d.ControllerType, action);
-                Assert.NotNull(allowedRoles);
-                Assert.DoesNotContain(RoleType.Qa, allowedRoles);
+                    var allowedRoles = AuthorizationMatrixTests.AllowedRoles(d.ControllerType, action);
+                    Assert.NotNull(allowedRoles);
+                    Assert.DoesNotContain(RoleType.Qa, allowedRoles);
+                }
 
                 switch (d.Mechanism)
                 {
@@ -525,7 +533,8 @@ public sealed class QaWriteRefusalPostgresTests
                     NewChangeControlService(actDb).SaveAssessmentAsync(recordId, request, before.Version, w.QaUserId));
                 Assert.Equal(MessageCodes.QualityAccessDenied, denied.Code);
                 await AssertQualityUnchangedAsync(w, recordId, before, beforeAuditId);
-            }),
+            },
+            ServiceEnforcesPolicyAlone: true),
 
         new(
             PermissionConstants.QualityInvestigate,
@@ -542,7 +551,8 @@ public sealed class QaWriteRefusalPostgresTests
                     NewChangeControlService(actDb).SignAssessmentAsync(recordId, Password, before.Version, w.QaUserId));
                 Assert.Equal(MessageCodes.QualityAccessDenied, denied.Code);
                 await AssertQualityUnchangedAsync(w, recordId, before, beforeAuditId);
-            }),
+            },
+            ServiceEnforcesPolicyAlone: true),
 
         new(
             PermissionConstants.QualityLabConclude,

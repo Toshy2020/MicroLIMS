@@ -11,9 +11,12 @@ public sealed class QualityDueDateService(IMicroLimsDbContext db)
     public async Task<DateOnly?> ComputeDueAsync(QualityRecordType type, int? classificationId, DateOnly start,
         CancellationToken ct = default)
     {
-        var days = await db.QualityDueRules.AsNoTracking().Where(r => r.Type == type
+        var days = await db.QualityDueRules.AsNoTracking()
+            .Where(r => r.Type == type && r.WorkingDays != null
                 && (r.ClassificationId == classificationId || r.ClassificationId == null))
-            .OrderByDescending(r => r.ClassificationId == classificationId).Select(r => r.WorkingDays).FirstOrDefaultAsync(ct);
+            .OrderByDescending(r => r.ClassificationId == classificationId)
+            .Select(r => r.WorkingDays)
+            .FirstOrDefaultAsync(ct);
         if (days is null) return null;
 
         var weekdays = await db.MonitoringSettings.AsNoTracking().Select(r => (int?)r.WorkingWeekdays).FirstOrDefaultAsync(ct)

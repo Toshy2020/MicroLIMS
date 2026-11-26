@@ -32,8 +32,9 @@ public class QualityAttachmentService(IMicroLimsDbContext db, QualityRecordCore 
         };
         db.QualityAttachments.Add(attachment);
         await db.SaveChangesAsync(ct);
+        var terminalAt = await core.GetTerminalAtUtcAsync(recordId, ct);
         var uploadedByName = await UserNameAsync(userId, ct);
-        return ToDto(attachment, uploadedByName, null);
+        return ToDto(attachment, uploadedByName, null, terminalAt is DateTime t && attachment.UploadedAtUtc > t);
     }, ct);
 
     public async Task<QualityAttachmentContent> GetContentAsync(int recordId, int attachmentId, int userId,
@@ -95,9 +96,10 @@ public class QualityAttachmentService(IMicroLimsDbContext db, QualityRecordCore 
         attachment.VoidedByUserId = userId;
         db.SetNextAuditReason(attachment, attachment.VoidReason);
         await db.SaveChangesAsync(ct);
+        var terminalAt = await core.GetTerminalAtUtcAsync(recordId, ct);
         var uploadedByName = await UserNameAsync(attachment.UploadedByUserId, ct);
         var voidedByName = await UserNameAsync(userId, ct);
-        return ToDto(attachment, uploadedByName, voidedByName);
+        return ToDto(attachment, uploadedByName, voidedByName, terminalAt is DateTime t && attachment.UploadedAtUtc > t);
     }, ct);
 
     public static BusinessRuleException InvalidAttachment() => new(MessageCodes.QualityInvalidAttachment,
@@ -107,7 +109,8 @@ public class QualityAttachmentService(IMicroLimsDbContext db, QualityRecordCore 
         db.Users.AsNoTracking().Where(u => u.Id == id).Select(u => u.FullName).FirstOrDefaultAsync(ct)
         .ContinueWith(t => t.Result ?? string.Empty, ct, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
 
-    private static QualityAttachmentDto ToDto(QualityAttachment a, string uploadedByName, string? voidedByName) =>
+    private static QualityAttachmentDto ToDto(QualityAttachment a, string uploadedByName, string? voidedByName,
+        bool isAddendum = false) =>
         new(a.Id, a.OriginalFileName, a.ContentType, a.FileSizeBytes, a.UploadedByUserId, a.UploadedAtUtc,
-            a.VoidedAtUtc, a.VoidedByUserId, a.VoidReason, uploadedByName, voidedByName);
+            a.VoidedAtUtc, a.VoidedByUserId, a.VoidReason, uploadedByName, voidedByName, isAddendum);
 }

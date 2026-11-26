@@ -145,7 +145,7 @@ public sealed class QualityConfigPostgresTests(PostgresTestFixture fixture)
             Assert.Equal(start.AddDays(2), await new QualityDueDateService(act).ComputeDueAsync(type, 1, start));
         await ActAsync(qa, s => s.SaveDueRuleAsync(type, 1, null, 0, qa));
         await using var check = Context();
-        Assert.Null(await new QualityDueDateService(check).ComputeDueAsync(type, 1, start));
+        Assert.Equal(start.AddDays(2), await new QualityDueDateService(check).ComputeDueAsync(type, 1, start));
         Assert.Null(await new QualityDueDateService(check).ComputeDueAsync(QualityRecordType.Capa, null, start));
         var audit = await check.AuditLogs.AsNoTracking().SingleAsync(a => a.EntityName == nameof(QualityDueRule)
             && a.EntityId == rule.Id.ToString() && a.Action == "Create");
@@ -237,11 +237,11 @@ public sealed class QualityConfigPostgresTests(PostgresTestFixture fixture)
         }
 
         var date = Today.AddDays(4);
+        var ownerRequest = await ActAsync(owner, s => s.RequestAsync(record.Id, actionId, date, "Owner reason", record.Version, owner));
+        Assert.Equal(actionId, ownerRequest.ActionId);
         await Assert.ThrowsAsync<CodedAccessDeniedException>(() =>
-            ActAsync(owner, s => s.RequestAsync(record.Id, actionId, date, "Reason", record.Version, owner)));
-        await Assert.ThrowsAsync<CodedAccessDeniedException>(() =>
-            ActAsync(responsible, s => s.RequestAsync(record.Id, null, date, "Reason", record.Version, responsible)));
-        var pending = await ActAsync(responsible, s => s.RequestAsync(record.Id, actionId, date, "Reason", record.Version, responsible));
+            ActAsync(responsible, s => s.RequestAsync(record.Id, null, date, "Reason", ownerRequest.RecordVersion, responsible)));
+        var pending = await ActAsync(responsible, s => s.RequestAsync(record.Id, actionId, date, "Reason", ownerRequest.RecordVersion, responsible));
         var decided = await ActAsync(qa, s => s.DecideAsync(pending.Id, true, null, Password, pending.Version, qa));
         await Assert.ThrowsAnyAsync<DbUpdateConcurrencyException>(() =>
             ActAsync(qa, s => s.DecideAsync(pending.Id, false, null, Password, pending.Version, qa)));

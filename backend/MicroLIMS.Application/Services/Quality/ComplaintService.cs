@@ -172,6 +172,43 @@ public sealed class ComplaintService(
                 throw new BusinessRuleException(MessageCodes.ComplaintOutcomeInvalid,
                     "Select a valid complaint outcome.");
 
+            var hasValidFollowUp = false;
+            if (request.FollowUpRecordId is int followUpId)
+            {
+                if (followUpId == id)
+                    throw new BusinessRuleException(MessageCodes.QualitySelfLink, "A quality record cannot link to itself.");
+                var readable = await core.ReadableRecordsAsync(userId, ct);
+                var validTarget = await readable.AnyAsync(r => r.Id == followUpId && !r.IsCancelled
+                    && (r.Type == QualityRecordType.Deviation || r.Type == QualityRecordType.Capa), ct);
+                if (!validTarget)
+                    throw new BusinessRuleException(MessageCodes.ComplaintFollowUpRequired,
+                        "A justified complaint needs a linked deviation or CAPA.");
+                if (!await db.QualityRecordLinks.AsNoTracking().AnyAsync(l =>
+                        l.RecordId == id && l.TargetType == QualityLinkTargetType.QualityRecord && l.TargetId == followUpId, ct))
+                {
+                    db.QualityRecordLinks.Add(new QualityRecordLink
+                    {
+                        RecordId = id,
+                        TargetType = QualityLinkTargetType.QualityRecord,
+                        TargetId = followUpId,
+                        AddedByUserId = userId,
+                        AddedAtUtc = clock.UtcNow.UtcDateTime
+                    });
+                }
+                hasValidFollowUp = true;
+            }
+
+            if (request.Outcome == ComplaintOutcome.Justified && !hasValidFollowUp)
+            {
+                hasValidFollowUp = await db.QualityRecordLinks.AsNoTracking()
+                    .Where(l => l.RecordId == id && l.TargetType == QualityLinkTargetType.QualityRecord && l.TargetId != null)
+                    .AnyAsync(l => db.QualityRecords.Any(r => r.Id == l.TargetId && !r.IsCancelled
+                        && (r.Type == QualityRecordType.Deviation || r.Type == QualityRecordType.Capa)), ct);
+                if (!hasValidFollowUp)
+                    throw new BusinessRuleException(MessageCodes.ComplaintFollowUpRequired,
+                        "A justified complaint needs a linked deviation or CAPA.");
+            }
+
             var summary = QualityRecordCore.RequiredText(request.Summary, 4000);
             detail.Outcome = request.Outcome;
             detail.ConclusionSummary = summary;

@@ -12,14 +12,18 @@ public sealed class QualityReportBuilder(
     QualityLinkService links,
     IPdfGenerator pdfGenerator,
     DataExportAuditService exportAudit,
-    IMicroLimsDbContext db)
+    IMicroLimsDbContext db,
+    QualityCommentService? comments = null)
 {
     public async Task<(string FileName, byte[] Bytes)> GeneratePdfAsync(int recordId, int userId,
         CancellationToken ct = default)
     {
         var detail = await queries.GetDetailAsync(recordId, userId, ct);
         var resolvedLinks = await links.ResolveAsync(recordId, userId, 0, 100, ct);
-        var document = Build(detail, resolvedLinks);
+        var commentList = comments is not null
+            ? await comments.ListAsync(recordId, userId, 0, 100, ct)
+            : [];
+        var document = Build(detail, resolvedLinks, commentList);
         var bytes = await pdfGenerator.GenerateReportAsync(document);
 
         var actor = db.CurrentUserId ?? userId;
@@ -29,7 +33,8 @@ public sealed class QualityReportBuilder(
         return ($"{detail.Number}.pdf", bytes);
     }
 
-    public static ReportDocument Build(QualityRecordDetailDto d, IReadOnlyList<QualityLinkDto> resolvedLinks)
+    public static ReportDocument Build(QualityRecordDetailDto d, IReadOnlyList<QualityLinkDto> resolvedLinks,
+        IReadOnlyList<QualityCommentDto>? comments = null)
     {
         var tone = d.IsCancelled ? ReportTone.Danger
             : d.Status is "Closed" or "Approved" or "ApprovedForImplementation" ? ReportTone.Positive
@@ -159,6 +164,32 @@ public sealed class QualityReportBuilder(
                 Comment = t.Comment
             }).ToList()
         });
+
+        var addenda = new List<(string, string)>();
+        foreach (var att in d.Attachments.Where(a => a.IsAddendum))
+        {
+            var voidNote = att.IsVoided ? $" (Voided by {att.VoidedByName ?? "Unknown"})" : string.Empty;
+            addenda.Add((
+                att.FileName,
+                $"Added after closure · {att.UploadedByName} · {QualityQueryService.FormatUtcWithZone(att.UploadedAtUtc)}{voidNote}"
+            ));
+        }
+        foreach (var c in (comments ?? []).Where(c => c.IsAddendum))
+        {
+            addenda.Add((
+                $"Comment by {c.AuthorName}",
+                $"Added after closure · {QualityQueryService.FormatUtcWithZone(c.CreatedAtUtc)} — {c.Text}"
+            ));
+        }
+        if (addenda.Count > 0)
+        {
+            doc.Blocks.Add(new HeadingBlock { Text = "addenda" });
+            doc.Blocks.Add(new ListBlock
+            {
+                Label = "addenda",
+                Rows = addenda
+            });
+        }
 
         return doc;
     }

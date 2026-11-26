@@ -99,10 +99,15 @@ public sealed class ChangeControlService(
             await db.SaveChangesAsync(ct);
         }, ct);
 
-    public Task<ChangeControlDto> SaveAssessmentAsync(int id, SaveChangeControlAssessmentRequest request,
-        uint expectedVersion, int userId, string? ip = null, CancellationToken ct = default) =>
-        ChangeAsync(id, expectedVersion, userId, PermissionConstants.QualityInvestigate, async (record, detail) =>
+    public async Task<ChangeControlDto> SaveAssessmentAsync(int id, SaveChangeControlAssessmentRequest request,
+        uint expectedVersion, int userId, string? ip = null, CancellationToken ct = default)
+    {
+        if (await HoldsAsync(userId, PermissionConstants.QualityApprove, ct))
+            throw QualityRecordCore.Denied();
+        return await ChangeAsync(id, expectedVersion, userId, null, async (record, detail) =>
         {
+            if (record.OwnerUserId != userId && !await HoldsAsync(userId, PermissionConstants.QualityInvestigate, ct))
+                throw QualityRecordCore.Denied();
             RequireStatus(detail, ChangeControlStatus.Proposed);
             var impactSummary = QualityRecordCore.RequiredText(request.ImpactSummary, 4000);
             var today = clock.LabToday;
@@ -152,12 +157,17 @@ public sealed class ChangeControlService(
             core.AdvanceVersion(record);
             await db.SaveChangesAsync(ct);
         }, ct);
+    }
 
     public async Task<ChangeControlDto> SignAssessmentAsync(int id, string password, uint expectedVersion, int userId,
         string? ip = null, CancellationToken ct = default)
     {
-        var dto = await ChangeAsync(id, expectedVersion, userId, PermissionConstants.QualityInvestigate, async (record, detail) =>
+        if (await HoldsAsync(userId, PermissionConstants.QualityApprove, ct))
+            throw QualityRecordCore.Denied();
+        var dto = await ChangeAsync(id, expectedVersion, userId, null, async (record, detail) =>
         {
+            if (record.OwnerUserId != userId && !await HoldsAsync(userId, PermissionConstants.QualityInvestigate, ct))
+                throw QualityRecordCore.Denied();
             RequireStatus(detail, ChangeControlStatus.Proposed);
             if (string.IsNullOrWhiteSpace(detail.ImpactSummary))
                 throw new BusinessRuleException(MessageCodes.ChangeControlAssessmentIncomplete,

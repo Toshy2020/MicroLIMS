@@ -19,7 +19,10 @@ public sealed partial class QualityConfigService
         await EnsureMemberAsync(record, userId, ct);
         await EnsureOpenAsync(recordId, ct);
         var action = await LockActionAsync(recordId, actionId, ct);
-        if ((action is null ? record.OwnerUserId : action.ResponsibleUserId) != userId)
+        var allowedActionRequest = action is null
+            ? record.OwnerUserId == userId
+            : action.ResponsibleUserId == userId || record.OwnerUserId == userId;
+        if (!allowedActionRequest)
             throw QualityRecordCore.Denied();
         EnsureLater(requestedDueDate, action?.DueDate ?? record.DueDate);
 
@@ -58,6 +61,7 @@ public sealed partial class QualityConfigService
             throw new BusinessRuleException(MessageCodes.QualityExtensionAlreadyDecided, "This extension request has already been decided.");
         if (request.RequestedByUserId == userId)
             throw new BusinessRuleException(MessageCodes.QualityExtensionSelfDecision, "You cannot decide your own extension request.");
+        core.EnsureNotRaiserOrOwner(record, userId);
 
         var action = await LockActionAsync(recordId, request.ActionId, ct);
         var previousDueDate = action?.DueDate ?? record.DueDate;

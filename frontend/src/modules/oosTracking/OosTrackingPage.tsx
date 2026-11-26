@@ -14,7 +14,7 @@ import {
   TextField,
   Typography
 } from "@mui/material";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "../../i18n";
 import { useAuth } from "../../contexts/AuthContext";
 import { PERMISSIONS } from "../../routes/routes";
@@ -224,7 +224,11 @@ export function OosTrackingPage() {
 
   return (
     <Box>
-      <PageHeader title={t("page.title")} subtitle={t("page.subtitle")} />
+      <PageHeader title={t("page.title")} subtitle={t("page.subtitle")}>
+        <Button component={Link} to="/oos-tracking/trends" variant="outlined">
+          {t("trends.openTrends")}
+        </Button>
+      </PageHeader>
 
       <Tabs
         value={tab}

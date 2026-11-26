@@ -5,6 +5,7 @@
     "notRecorded": "إجراء التشغيل القياسي غير مسجل",
     "unresolved": "إجراء التشغيل القياسي غير مسجل: {{reason}}",
     "newer": "أصبحت مراجعة أحدث (المراجعة {{revision}}) سارية في {{date}} أثناء إجراء هذا الاختبار.",
+    "newerForTests": "أصبحت مراجعة أحدث (المراجعة {{revision}}) سارية في {{date}} أثناء إجراء هذا الاختبار. تنطبق على: {{tests}}.",
     "reportableRetestLine": "إعادة الاختبار القابلة للإبلاغ {{referenceNumber}} (إعادة الاختبار {{retestNumber}}، مراجعة الخطة {{planRevision}}) · {{meaningText}} بواسطة {{signerFullName}} · {{signedAt}}",
     "reasons": {
       "NoSopNumber": "لا يوجد رقم لإجراء التشغيل القياسي لهذا الصنف",

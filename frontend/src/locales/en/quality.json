@@ -614,5 +614,48 @@
       "proposeChange": "Propose change control",
       "receiveComplaint": "Receive complaint"
     }
+  },
+  "trends": {
+    "title": "Quality Event Trends",
+    "subtitle": "Deviations, CAPAs, change controls and complaints grouped by record type, classification, cause category, section, item or source, with time to close, on-time rate, CAPA effectiveness and repeat causes.",
+    "openTrends": "Trends",
+    "back": "Back to Quality Events",
+    "loadError": "Failed to load the trend report.",
+    "retry": "Retry",
+    "empty": "No quality records match these filters.",
+    "period": "Period: {{from}} to {{to}}",
+    "filters": {
+      "groupBy": "Group by",
+      "repeatWindow": "Repeat window (days)"
+    },
+    "groupBy": {
+      "type": "Record type",
+      "classification": "Classification",
+      "cause": "Cause category",
+      "section": "Section",
+      "item": "Item",
+      "source": "Source"
+    },
+    "columns": {
+      "total": "Total",
+      "open": "Open",
+      "closed": "Closed",
+      "cancelled": "Cancelled",
+      "rejected": "Rejected",
+      "averageDaysToClose": "Average days to close",
+      "onTimeRate": "On-time rate",
+      "capaEffectiveness": "CAPA effectiveness rate"
+    },
+    "repeat": {
+      "title": "Repeat causes",
+      "intro": "The same cause category recurring on the same product or equipment within {{days}} days.",
+      "empty": "No repeat causes in the selected window.",
+      "cause": "Cause category",
+      "target": "Product or equipment",
+      "occurrences": "Occurrences",
+      "first": "First raised",
+      "last": "Last raised",
+      "records": "Records"
+    }
   }
 }

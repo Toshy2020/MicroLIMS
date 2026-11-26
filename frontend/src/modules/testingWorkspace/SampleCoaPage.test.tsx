@@ -113,6 +113,26 @@ it("prints the stored method revisions and changes the header with the certifica
   expect(screen.queryByText(/A newer revision \(rev\. 04\)/)).toBeNull();
 });
 
+it("prints one newer-revision notice per revision and names the tests it affects", async () => {
+  const date = "2026-10-01T00:00:00Z";
+  const newer = { revisionNumber: "04", effectiveDateUtc: date };
+  mockGetSummary.mockResolvedValue({
+    ...base,
+    sections: [section(1, "Microbiology")],
+    testOrders: [
+      { ...testOrder(1, 1, "Assay"), newerSopRevision: newer },
+      { ...testOrder(2, 1, "Dissolution"), newerSopRevision: newer },
+      { ...testOrder(3, 1, "Appearance"), newerSopRevision: { revisionNumber: "02", effectiveDateUtc: date } }
+    ],
+    certificate: { sample: scope("Assay", []), sections: [{ sectionId: 1, scope: scope("Assay", []) }] }
+  });
+  renderPage();
+
+  expect(await screen.findByText(/A newer revision \(rev\. 04\).*Assay, Dissolution/)).toBeTruthy();
+  expect(screen.getAllByText(/A newer revision \(rev\. 04\)/)).toHaveLength(1);
+  expect(screen.getByText(/A newer revision \(rev\. 02\).*Appearance/)).toBeTruthy();
+});
+
 describe("SampleCoaPage supporting rows", () => {
   it("prints not-applicable and supplier-stated rows below the tested results", async () => {
     mockGetSummary.mockResolvedValue({

@@ -23,15 +23,24 @@ export function SopMethodLine({ document, timeZone = "UTC" }: { document: Method
   );
 }
 
-export function SopRevisionNotice({ newerSopRevision, timeZone = "UTC" }: Pick<TestOrderSop, "newerSopRevision"> & { timeZone?: string }) {
+interface SopRevisionNoticeProps extends Pick<TestOrderSop, "newerSopRevision"> {
+  timeZone?: string;
+  // When one notice stands for several tests (the certificate), the tests it applies to.
+  testNames?: string[];
+}
+
+export function SopRevisionNotice({ newerSopRevision, timeZone = "UTC", testNames }: SopRevisionNoticeProps) {
   const { t } = useTranslation("testingWorkspace");
   if (!newerSopRevision) return null;
+  const values = {
+    revision: newerSopRevision.revisionNumber,
+    date: formatDateTimeWithTimeZone(newerSopRevision.effectiveDateUtc, { timeZone })
+  };
   return (
     <Typography component="p" variant="body2" role="status">
-      {t("sopCapture.newer", {
-        revision: newerSopRevision.revisionNumber,
-        date: formatDateTimeWithTimeZone(newerSopRevision.effectiveDateUtc, { timeZone })
-      })}
+      {testNames && testNames.length > 0
+        ? t("sopCapture.newerForTests", { ...values, tests: testNames.join(", ") })
+        : t("sopCapture.newer", values)}
     </Typography>
   );
 }

@@ -10,6 +10,17 @@ import {
   type OosInvestigationDetailDto
 } from "../../services/oosInvestigationService";
 import { UserService } from "../users/services/UserService";
+import { OosTrackingService } from "./services/OosTrackingService";
+
+vi.mock("./services/OosTrackingService", () => ({
+  OosTrackingService: {
+    getDocuments: vi.fn(),
+    uploadDocument: vi.fn(),
+    downloadDocument: vi.fn(),
+    supersedeDocument: vi.fn(),
+    voidDocument: vi.fn()
+  }
+}));
 
 vi.mock("../../services/oosInvestigationService", () => ({
   oosInvestigationService: {
@@ -115,6 +126,7 @@ describe("InvestigationPage", () => {
       pageSize: 100
     });
     vi.mocked(UserService.getEligibleAnalysts).mockResolvedValue([]);
+    vi.mocked(OosTrackingService.getDocuments).mockResolvedValue([]);
   });
 
   afterEach(() => {
@@ -129,6 +141,19 @@ describe("InvestigationPage", () => {
     expect(await screen.findByText("OOS1126042")).toBeTruthy();
     expect(await screen.findByText(/Some data could not be loaded: Laboratory Facts/i)).toBeTruthy();
     expect(screen.getByRole("button", { name: "Retry" })).toBeTruthy();
+  });
+
+  it("files the attachments under the investigation number and lets only Oos.Manage upload", async () => {
+    vi.mocked(oosInvestigationService.getFacts).mockResolvedValue({ version: 3, orders: [] });
+    renderInvestigation(["Oos.View"], "Reviewer");
+
+    expect(await screen.findByRole("heading", { name: "Attachments" })).toBeTruthy();
+    expect(OosTrackingService.getDocuments).toHaveBeenCalledWith("OOS1126042", expect.anything());
+    expect(screen.queryByLabelText(/^Upload file\. Accepted formats/)).toBeNull();
+
+    cleanup();
+    renderInvestigation(["Oos.View", "Oos.Manage"], "SectionHead");
+    expect(await screen.findAllByLabelText(/^Upload file\. Accepted formats/)).toHaveLength(1);
   });
 
   it("is read-only when user only has Oos.View", async () => {

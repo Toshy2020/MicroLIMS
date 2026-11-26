@@ -111,6 +111,13 @@ describe("OosTrackingPage register", () => {
     await resetLanguage();
   });
 
+  it("links to the trends report", async () => {
+    renderPage();
+
+    expect(await screen.findByText("OOS1126001")).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Trends" }).getAttribute("href")).toBe("/oos-tracking/trends");
+  });
+
   it("renders register tabs and queries the selected tab and section filter", async () => {
     const user = userEvent.setup();
     renderPage();

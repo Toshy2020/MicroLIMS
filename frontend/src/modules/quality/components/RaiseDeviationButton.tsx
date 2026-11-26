@@ -13,7 +13,7 @@ import {
 import type { QualityLinkTargetType } from "../../../services/qualityService";
 import { serverMessage } from "../../../utils/errorMessage";
 
-export type DeviationSourceKind = "oosRequest" | "monitoringDeviation";
+export type DeviationSourceKind = "oosRequest" | "monitoringDeviation" | "auditFinding";
 
 export interface RaiseDeviationButtonProps {
   targetType?: QualityLinkTargetType;
@@ -25,6 +25,8 @@ export interface RaiseDeviationButtonProps {
   initialTitle?: string;
   initialDescription?: string;
   label?: string;
+  // Names the button for assistive technology when the visible label alone does not say which record it acts on.
+  ariaLabel?: string;
   size?: "small" | "medium";
   variant?: "text" | "outlined" | "contained";
   onRaised?: (deviation: DeviationDto) => void;
@@ -52,6 +54,7 @@ export function RaiseDeviationButton({
   initialTitle = "",
   initialDescription = "",
   label,
+  ariaLabel,
   size = "small",
   variant = "outlined",
   onRaised
@@ -66,6 +69,8 @@ export function RaiseDeviationButton({
       ? [PERMISSIONS.QUALITY_APPROVE]
       : sourceKind === "monitoringDeviation"
       ? [PERMISSIONS.QUALITY_APPROVE, PERMISSIONS.QUALITY_INVESTIGATE]
+      : sourceKind === "auditFinding"
+      ? [PERMISSIONS.QUALITY_APPROVE]
       : [PERMISSIONS.QUALITY_RAISE];
 
   const allowed = requiredPermissions.some((p) => permissions.includes(p));
@@ -81,7 +86,7 @@ export function RaiseDeviationButton({
 
   if (!allowed) return null;
 
-  const isFromSource = sourceKind === "oosRequest" || sourceKind === "monitoringDeviation";
+  const isFromSource = sourceKind !== undefined;
 
   const handleOpen = () => {
     setTitle(initialTitle);
@@ -112,6 +117,16 @@ export function RaiseDeviationButton({
       let created: DeviationDto;
       if (sourceKind === "oosRequest" && sourceId != null && sourceVersion != null) {
         created = await qualityEntryService.raiseFromOosRequest(
+          sourceId,
+          {
+            title: title.trim(),
+            occurredAtUtc: toUtcIso(occurredAt),
+            immediateAction: immediateAction.trim()
+          },
+          sourceVersion
+        );
+      } else if (sourceKind === "auditFinding" && sourceId != null && sourceVersion != null) {
+        created = await qualityEntryService.raiseFromAuditFinding(
           sourceId,
           {
             title: title.trim(),
@@ -157,6 +172,7 @@ export function RaiseDeviationButton({
       <Button
         size={size}
         variant={variant}
+        aria-label={ariaLabel}
         startIcon={<ReportProblemOutlinedIcon fontSize="small" />}
         onClick={handleOpen}
       >

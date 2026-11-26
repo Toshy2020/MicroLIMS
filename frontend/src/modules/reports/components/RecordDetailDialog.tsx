@@ -27,6 +27,8 @@ import { PERMISSIONS } from "../../../routes/routes";
 import { oosInvestigationService } from "../../../services/oosInvestigationService";
 import { serverMessage } from "../../../utils/errorMessage";
 
+const EXCURSION_CLOSED_SAMPLE_STATUSES: ReadonlySet<string> = new Set(["Approved", "Rejected", "Cancelled", "Voided"]);
+
 interface RecordDetailDialogProps {
   open: boolean;
   onClose: () => void;
@@ -42,6 +44,9 @@ export function RecordDetailDialog({ open, onClose, record }: RecordDetailDialog
       (auth.permissions.includes(PERMISSIONS.OOS_CONTRIBUTE) ||
         auth.permissions.includes(PERMISSIONS.OOS_MANAGE))
   );
+  // The server refuses an excursion review for a sample that is already decided or withdrawn
+  // (Oos.ExcursionSampleClosed); the gate here only explains that up front.
+  const sampleClosed = record !== null && EXCURSION_CLOSED_SAMPLE_STATUSES.has(record.sampleStatus);
   const [auditOpen, setAuditOpen] = useState(false);
   const [excursionOpen, setExcursionOpen] = useState(false);
   const [excursionReason, setExcursionReason] = useState("");
@@ -103,6 +108,8 @@ export function RecordDetailDialog({ open, onClose, record }: RecordDetailDialog
                   variant="outlined"
                   color="warning"
                   size="small"
+                  disabled={sampleClosed}
+                  aria-describedby={sampleClosed ? "excursion-gate-reason" : undefined}
                   onClick={() => {
                     setExcursionReason("");
                     setExcursionError(null);
@@ -111,6 +118,11 @@ export function RecordDetailDialog({ open, onClose, record }: RecordDetailDialog
                 >
                   {t("recordDetail.openExcursionReview", { defaultValue: "Open excursion review" })}
                 </Button>
+              )}
+              {canOpenExcursion && sampleClosed && (
+                <Typography id="excursion-gate-reason" variant="caption" color="text.secondary" sx={{ alignSelf: "center" }}>
+                  {t("recordDetail.excursionSampleClosed")}
+                </Typography>
               )}
             </Box>
             <Button variant="contained" size="small" onClick={onClose}>

@@ -10,6 +10,7 @@ import {
   type AuditTrailReviewDto,
   type AuditTrailReviewFindingDto
 } from "../../services/auditTrailReviewService";
+import { qualityEntryService, type DeviationDto } from "../../services/qualityEntryService";
 import type { AuditLogItem } from "../auditSearch/types/auditTypes";
 
 vi.mock("../../services/auditTrailReviewService", () => ({
@@ -22,6 +23,16 @@ vi.mock("../../services/auditTrailReviewService", () => ({
     sign: vi.fn(),
     closeFinding: vi.fn(),
     exportPdf: vi.fn()
+  }
+}));
+
+vi.mock("../../services/qualityEntryService", () => ({
+  qualityEntryService: {
+    forTarget: vi.fn(),
+    raiseDeviation: vi.fn(),
+    raiseFromOosRequest: vi.fn(),
+    escalateMonitoringDeviation: vi.fn(),
+    raiseFromAuditFinding: vi.fn()
   }
 }));
 
@@ -75,6 +86,7 @@ const makeFinding = (over: Partial<AuditTrailReviewFindingDto> = {}): AuditTrail
   recordedByUserId: 10,
   recordedByName: "Quinn QA",
   recordedAtUtc: "2026-10-16T09:00:00Z",
+  version: 0,
   ...over
 });
 
@@ -113,6 +125,7 @@ function renderPage(id = 7) {
           <Routes>
             <Route path="/audit-trail-reviews/:id" element={<AuditTrailReviewDetailPage />} />
             <Route path="/audit-trail-reviews" element={<div>Reviews list</div>} />
+            <Route path="/quality/:id" element={<div>Deviation page opened</div>} />
           </Routes>
         </MemoryRouter>
       </AuthProvider>
@@ -312,5 +325,76 @@ describe("AuditTrailReviewDetailPage", () => {
     expect(await screen.findByText("Q4 Sample Audit Review")).toBeTruthy();
     expect(await screen.findByRole("alert")).toBeTruthy();
     expect(screen.getByText(/Could not load audit trail entries/i)).toBeTruthy();
+  });
+
+  describe("raising a deviation from a finding", () => {
+    const raised = { id: 91, record: { number: "DEV-2026-0091" } } as DeviationDto;
+
+    function serveFinding(finding: AuditTrailReviewFindingDto) {
+      vi.mocked(auditTrailReviewService.get).mockResolvedValue(makeReview({ findings: [finding] }));
+      vi.mocked(auditTrailReviewService.getEntries).mockResolvedValue({
+        items: [makeEntry(101)],
+        page: 1,
+        pageSize: 25,
+        totalCount: 1,
+        totalPages: 1
+      });
+    }
+
+    it("sends the finding and its version to the server, then opens the new deviation", async () => {
+      const user = userEvent.setup();
+      seedAuth(["Audit.View", "Quality.View", "Quality.Approve"], "Qa", 10);
+      serveFinding(makeFinding({ id: 301, version: 0 }));
+      vi.mocked(qualityEntryService.raiseFromAuditFinding).mockResolvedValue(raised);
+      renderPage();
+
+      await user.click(await screen.findByRole("button", { name: /Raise deviation from finding 301/i }));
+      const title = screen.getByLabelText(/Title/i) as HTMLInputElement;
+      expect(title.value).toBe("Deviation for audit finding 301");
+      await user.clear(title);
+      await user.type(title, "Correction without comment");
+      await user.type(screen.getByLabelText(/Immediate action/i), "Author asked to add the comment");
+      await user.click(screen.getByRole("button", { name: /^Raise deviation$/i }));
+
+      await waitFor(() =>
+        expect(qualityEntryService.raiseFromAuditFinding).toHaveBeenCalledWith(
+          301,
+          expect.objectContaining({
+            title: "Correction without comment",
+            immediateAction: "Author asked to add the comment"
+          }),
+          0
+        )
+      );
+      expect(await screen.findByText("Deviation page opened")).toBeTruthy();
+    });
+
+    it("stays on the review and shows the server's refusal", async () => {
+      const user = userEvent.setup();
+      seedAuth(["Audit.View", "Quality.View", "Quality.Approve"], "Qa", 10);
+      serveFinding(makeFinding({ id: 301, version: 1, status: "Closed" }));
+      vi.mocked(qualityEntryService.raiseFromAuditFinding).mockRejectedValue({
+        response: { data: { message: "Deviation DEV-2026-0090 already links this source." } }
+      });
+      renderPage();
+
+      await user.click(await screen.findByRole("button", { name: /Raise deviation from finding 301/i }));
+      await user.type(screen.getByLabelText(/Title/i), "Again");
+      await user.type(screen.getByLabelText(/Immediate action/i), "None");
+      await user.click(screen.getByRole("button", { name: /^Raise deviation$/i }));
+
+      expect(await screen.findByText("Deviation DEV-2026-0090 already links this source.")).toBeTruthy();
+      expect(qualityEntryService.raiseFromAuditFinding).toHaveBeenCalledWith(301, expect.anything(), 1);
+      expect(screen.queryByText("Deviation page opened")).toBeNull();
+    });
+
+    it("is not offered without Quality.Approve", async () => {
+      seedAuth(["Audit.View", "Audit.Review", "Quality.View", "Quality.Raise"], "Qa", 10);
+      serveFinding(makeFinding({ id: 301 }));
+      renderPage();
+
+      expect(await screen.findByText("Missing comment on correction")).toBeTruthy();
+      expect(screen.queryByRole("button", { name: /Raise deviation from finding/i })).toBeNull();
+    });
   });
 });

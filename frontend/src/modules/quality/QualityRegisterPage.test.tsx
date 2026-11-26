@@ -137,6 +137,12 @@ describe("QualityRegisterPage URL filters", () => {
     vi.clearAllMocks();
   });
 
+  it("links to the trends report", async () => {
+    renderAt("/quality");
+    await waitFor(() => expect(recordCalls()).toHaveLength(1));
+    expect(screen.getByRole("link", { name: "Trends" }).getAttribute("href")).toBe("/quality/trends");
+  });
+
   it("pre-applies the type tab from the URL and sends it on the first request", async () => {
     renderAt("/quality?type=Capa");
     await waitFor(() => expect(recordCalls()).toHaveLength(1));

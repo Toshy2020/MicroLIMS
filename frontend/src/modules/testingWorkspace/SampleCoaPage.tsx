@@ -438,6 +438,24 @@ export function SampleCoaPage() {
   }
 
   const s = summary;
+  // One notice per newer revision, naming the tests it applies to (D5 CONF-222: the certificate screen
+  // carries the notice; repeating it per test order would print the same sentence over and over).
+  const newerRevisionNotices: { newerSopRevision: NonNullable<(typeof s.testOrders)[number]["newerSopRevision"]>; testNames: string[] }[] = [];
+  for (const order of s.testOrders) {
+    if (order.isSuperseded || order.isOosInvalidated || !order.newerSopRevision) continue;
+    if (activeSection && order.sectionId !== activeSection.sectionId) continue;
+    const found = newerRevisionNotices.find(
+      (n) =>
+        n.newerSopRevision.revisionNumber === order.newerSopRevision?.revisionNumber &&
+        n.newerSopRevision.effectiveDateUtc === order.newerSopRevision?.effectiveDateUtc
+    );
+    const name = order.testDisplayName || order.testCode;
+    if (found) {
+      if (!found.testNames.includes(name)) found.testNames.push(name);
+    } else {
+      newerRevisionNotices.push({ newerSopRevision: order.newerSopRevision, testNames: [name] });
+    }
+  }
   // Every verdict on this page - per result, per test and overall - comes
   // from the server (summary.certificate); the page only lays it out.
   const certificate = s.certificate.sample;
@@ -578,9 +596,13 @@ export function SampleCoaPage() {
           {(activeSection ? sectionScope(s.certificate, activeSection.sectionId) : certificate)?.methodDocuments?.map((document, index) => (
             <SopMethodLine key={index} document={document} timeZone={s.labTimeZoneId} />
           ))}
-          {s.testOrders.filter((order) => !order.isSuperseded && !order.isOosInvalidated &&
-            (!activeSection || order.sectionId === activeSection.sectionId) && order.newerSopRevision).map((order) => (
-              <SopRevisionNotice key={order.testOrderId} newerSopRevision={order.newerSopRevision} timeZone={s.labTimeZoneId} />
+          {newerRevisionNotices.map((notice) => (
+            <SopRevisionNotice
+              key={`${notice.newerSopRevision.revisionNumber}|${notice.newerSopRevision.effectiveDateUtc}`}
+              newerSopRevision={notice.newerSopRevision}
+              testNames={notice.testNames}
+              timeZone={s.labTimeZoneId}
+            />
           ))}
 
           {!isMultiSection ? (

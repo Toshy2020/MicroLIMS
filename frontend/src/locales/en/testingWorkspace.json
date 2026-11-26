@@ -5,6 +5,7 @@
     "notRecorded": "SOP not recorded",
     "unresolved": "SOP not recorded: {{reason}}",
     "newer": "A newer revision (rev. {{revision}}) became effective on {{date}} while this test was running.",
+    "newerForTests": "A newer revision (rev. {{revision}}) became effective on {{date}} while this test was running. Applies to: {{tests}}.",
     "reportableRetestLine": "Reportable retest {{referenceNumber}} (retest {{retestNumber}}, plan revision {{planRevision}}) · {{meaningText}} by {{signerFullName}} · {{signedAt}}",
     "reasons": {
       "NoSopNumber": "No SOP number on this item",

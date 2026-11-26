@@ -332,5 +332,76 @@
       "loadCategories": "Failed to load cause categories.",
       "saveCategory": "Failed to save category."
     }
+  },
+  "trends": {
+    "title": "OOS Investigation Trends",
+    "subtitle": "Investigations grouped by product, test, analyst, instrument, cause category or conclusion, with the median working days to conclude.",
+    "openTrends": "Trends",
+    "loadError": "Failed to load the trend report.",
+    "retry": "Retry",
+    "empty": "No investigations match these filters.",
+    "sectionsSource": "Sections",
+    "period": "Period: {{from}} to {{to}}",
+    "filters": {
+      "groupBy": "Group by",
+      "kind": "Kind",
+      "allKinds": "All kinds"
+    },
+    "kinds": {
+      "Oos": "OOS",
+      "Excursion": "Excursion"
+    },
+    "groupBy": {
+      "product": "Product",
+      "test": "Test",
+      "analyst": "Analyst",
+      "instrument": "Instrument",
+      "cause": "Cause category",
+      "conclusion": "Conclusion"
+    },
+    "groupLabel": {
+      "product": "Product",
+      "test": "Test",
+      "analyst": "Analyst",
+      "instrument": "Instrument",
+      "cause": "Cause category",
+      "conclusion": "Conclusion"
+    },
+    "columns": {
+      "total": "Total",
+      "open": "Open",
+      "concluded": "Concluded",
+      "confirmed": "Confirmed",
+      "invalidated": "Invalidated",
+      "excursionClosed": "Excursion closed",
+      "median": "Median working days to conclude"
+    }
+  },
+  "attachments": {
+    "title": "Attachments",
+    "loading": "Loading attachments",
+    "retry": "Retry",
+    "empty": "No documents are attached to this investigation yet.",
+    "loadFailed": "Failed to load the attachments.",
+    "uploadFailed": "Failed to upload the document.",
+    "downloadFailed": "Failed to download the document.",
+    "supersedeFailed": "Failed to supersede the document.",
+    "voidFailed": "Failed to void the document.",
+    "readOnly": "Uploading, replacing or voiding documents needs the Oos.Manage permission.",
+    "upload": "Upload",
+    "uploading": "Uploading...",
+    "download": "Download",
+    "downloadAria": "Download {{name}}",
+    "supersede": "Supersede",
+    "supersedeAria": "Supersede {{name}}",
+    "supersedeTitle": "Supersede document",
+    "supersedeIntro": "The current document stays in the list as Superseded. The replacement becomes the current document and the reason is recorded in the audit trail.",
+    "supersedeReason": "Reason for supersession",
+    "void": "Void",
+    "voidAria": "Void {{name}}",
+    "voidTitle": "Void document",
+    "voidSubmit": "Void document",
+    "voidIntro": "A voided document stays in the list with its file and your reason, marked Voided. This cannot be undone.",
+    "voidReason": "Reason for voiding"
   }
 }

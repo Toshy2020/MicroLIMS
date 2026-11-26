@@ -89,8 +89,10 @@ const MonitoringPlanPage = lazy(() => import("../modules/monitoringPlan/Monitori
 const DatabaseOverviewPage = lazy(() => import("../modules/admin/DatabaseOverviewPage").then((m) => ({ default: m.DatabaseOverviewPage })));
 const ErrorMonitoringPage = lazy(() => import("../modules/errorMonitoring/ErrorMonitoringPage").then((m) => ({ default: m.ErrorMonitoringPage })));
 const OosTrackingPage = lazy(() => import("../modules/oosTracking/OosTrackingPage").then((m) => ({ default: m.OosTrackingPage })));
+const OosTrendsPage = lazy(() => import("../modules/oosTracking/OosTrendsPage").then((m) => ({ default: m.OosTrendsPage })));
 const InvestigationPage = lazy(() => import("../modules/oosTracking/InvestigationPage").then((m) => ({ default: m.InvestigationPage })));
 const QualityRegisterPage = lazy(() => import("../modules/quality/QualityRegisterPage").then((m) => ({ default: m.QualityRegisterPage })));
+const QualityTrendsPage = lazy(() => import("../modules/quality/QualityTrendsPage").then((m) => ({ default: m.QualityTrendsPage })));
 const QualityRecordPage = lazy(() => import("../modules/quality/QualityRecordRoute").then((m) => ({ default: m.QualityRecordPage })));
 const QualityConfigPage = lazy(() => import("../modules/quality/QualityConfigPage").then((m) => ({ default: m.QualityConfigPage })));
 const OosTemplatesPage = lazy(() => import("../modules/oosTracking/OosTemplatesPage").then((m) => ({ default: m.OosTemplatesPage })));
@@ -271,10 +273,12 @@ export function AppRoutes() {
 
             <Route element={<PermissionRoute code={PERMISSIONS.OOS_VIEW} />}>
               <Route path="/oos-tracking" element={<OosTrackingPage />} />
+              <Route path="/oos-tracking/trends" element={<OosTrendsPage />} />
               <Route path="/oos-tracking/:id" element={<InvestigationPage />} />
             </Route>
             <Route element={<PermissionRoute code={PERMISSIONS.QUALITY_VIEW} />}>
               <Route path="/quality" element={<QualityRegisterPage />} />
+              <Route path="/quality/trends" element={<QualityTrendsPage />} />
               <Route path="/quality/:id" element={<QualityRecordPage />} />
             </Route>
             <Route element={<PermissionRoute code={[PERMISSIONS.QUALITY_APPROVE, PERMISSIONS.QUALITY_INVESTIGATE]} />}>

@@ -201,18 +201,26 @@ interface DestructiveSignActionProps {
   confirmMessage: string;
   reasonLabel: string;
   meaning: QualitySignatureMeaning;
+  // When set the action is locked and this is why.
+  lockedReason?: string | null;
   onSign: (password: string, reason: string) => Promise<void>;
 }
 
 // A step that ends or voids the record (reject, cancel): a confirmation that starts on Cancel, then the signature
 // with a required reason.
-export function DestructiveSignAction({ label, confirmTitle, confirmMessage, reasonLabel, meaning, onSign }: DestructiveSignActionProps) {
+export function DestructiveSignAction({
+  label,
+  confirmTitle,
+  confirmMessage,
+  reasonLabel,
+  meaning,
+  lockedReason,
+  onSign
+}: DestructiveSignActionProps) {
   const [stage, setStage] = useState<"idle" | "confirm" | "sign">("idle");
   return (
     <>
-      <Button variant="outlined" color="error" onClick={() => setStage("confirm")}>
-        {label}
-      </Button>
+      <GatedButton label={label} variant="outlined" color="error" lockedReason={lockedReason} onClick={() => setStage("confirm")} />
       <ConfirmationDialog
         open={stage === "confirm"}
         destructive

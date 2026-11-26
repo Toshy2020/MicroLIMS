@@ -32,12 +32,15 @@ public class QualityCorePostgresTests(PostgresTestFixture fixture)
         public override DateTimeOffset GetUtcNow() => new(Now);
     }
 
-    private sealed class Storage : IFileStorageService
+    private sealed class Storage : IFileStorageService, IStorageDiagnostics
     {
         private readonly Dictionary<string, byte[]> _files = new();
+        public int FileCount => _files.Count;
+        public int SavedCount { get; private set; }
         public Task<string> SaveAsync(string key, byte[] content)
         {
             _files.Add(key, content);
+            SavedCount++;
             return Task.FromResult(key);
         }
         public byte[]? Replacement { get; set; }
@@ -45,6 +48,12 @@ public class QualityCorePostgresTests(PostgresTestFixture fixture)
         public Task<byte[]> ReadAsync(string key) => Missing
             ? throw new StoredFileNotFoundException(key)
             : Task.FromResult(Replacement ?? _files[key]);
+        public StorageDescription Describe() => new("Test", "memory", null, null);
+        public Task DeleteAsync(string key)
+        {
+            _files.Remove(key);
+            return Task.CompletedTask;
+        }
     }
 
     private sealed class QueryCounter : DbCommandInterceptor
@@ -689,4 +698,104 @@ public class QualityCorePostgresTests(PostgresTestFixture fixture)
     private static Task<AuditLog> AuditAsync<T>(MicroLimsDbContext db, int id, string action) =>
         db.AuditLogs.AsNoTracking().SingleAsync(a => a.EntityName == typeof(T).Name &&
             a.EntityId == id.ToString() && a.Action == action);
+
+    private sealed class FailQualityAttachmentSaveInterceptor : SaveChangesInterceptor
+    {
+        public override ValueTask<InterceptionResult<int>> SavingChangesAsync(
+            DbContextEventData eventData, InterceptionResult<int> result, CancellationToken cancellationToken = default)
+        {
+            if (eventData.Context is not null && eventData.Context.ChangeTracker.Entries<QualityAttachment>().Any(e => e.State == EntityState.Added))
+                throw new InvalidOperationException("Simulated DB failure after file save.");
+            return base.SavingChangesAsync(eventData, result, cancellationToken);
+        }
+    }
+
+    [PostgresFact]
+    public async Task UploadAsync_deletes_stored_file_when_database_step_fails()
+    {
+        int actor;
+        QualityRecord record;
+        await using (var arrange = Context())
+        {
+            actor = await ActorAsync(arrange, RoleType.Analyst);
+            record = Record(actor);
+            arrange.Add(record);
+            await arrange.SaveChangesAsync();
+        }
+
+        var storage = new Storage();
+        var bytes = "%PDF-1.4\n%%EOF"u8.ToArray();
+        await using (var act = fixture.CreateDbContext(new FailQualityAttachmentSaveInterceptor()))
+        {
+            act.CurrentUserId = actor;
+            await Assert.ThrowsAsync<InvalidOperationException>(() =>
+                Attachments(act, storage).UploadAsync(record.Id, record.Version, "fail.pdf", bytes, actor));
+        }
+
+        Assert.Equal(1, storage.SavedCount);
+        Assert.Equal(0, storage.FileCount);
+        await using var check = Context();
+        Assert.False(await check.QualityAttachments.AsNoTracking().AnyAsync(a => a.RecordId == record.Id));
+    }
+
+    [PostgresFact]
+    public async Task ReadDtoAsync_computes_IsAddendum_for_attachments_after_terminal_step()
+    {
+        int actor, qa;
+        QualityRecord record;
+        await using (var arrange = Context())
+        {
+            actor = await ActorAsync(arrange, RoleType.Analyst);
+            qa = await ActorAsync(arrange, RoleType.Qa, investigate: true);
+            record = Record(actor);
+            arrange.Add(record);
+            await arrange.SaveChangesAsync();
+        }
+
+        var storage = new Storage();
+        var bytes = "%PDF-1.4\n%%EOF"u8.ToArray();
+        await using (var act = Context(actor))
+            await Attachments(act, storage).UploadAsync(record.Id, record.Version, "before.pdf", bytes, actor);
+
+        uint currentVersion;
+        await using (var check = Context())
+            currentVersion = await check.QualityRecords.AsNoTracking().Where(r => r.Id == record.Id).Select(r => r.Version).SingleAsync();
+
+        await using (var act = Context(qa))
+        {
+            var core = Core(act);
+            await UnitOfWork.RunAsync(act, async () =>
+            {
+                var r = await core.LoadForWriteAsync(record.Id, currentVersion, qa);
+                await core.CancelAsync(r, "Cancelled for test", Password, qa, null, CancellationToken.None);
+            });
+        }
+
+        await using (var check = Context())
+            currentVersion = await check.QualityRecords.AsNoTracking().Where(r => r.Id == record.Id).Select(r => r.Version).SingleAsync();
+
+        var laterClock = new MutableClock(Now.AddHours(1));
+        await using (var act = fixture.CreateDbContext(laterClock))
+        {
+            act.CurrentUserId = actor;
+            var svc = new QualityAttachmentService(act, new QualityRecordCore(act, new PermissionService(act),
+                new UserSectionScopeService(act), new ReferenceNumberGenerator(act, laterClock),
+                new ElectronicSignatureService(act, laterClock), laterClock),
+                storage, new AuditEventService(act, fixture.CreateSequenceHelper(act), laterClock), laterClock);
+            await svc.UploadAsync(record.Id, currentVersion, "after.pdf", bytes, actor);
+        }
+
+        await using (var assertDb = Context(actor))
+        {
+            var dto = await Core(assertDb).ReadDtoAsync(record.Id, actor);
+            Assert.Equal(2, dto.Attachments.Count);
+            Assert.False(dto.Attachments[0].IsAddendum);
+            Assert.True(dto.Attachments[1].IsAddendum);
+        }
+    }
+
+    private sealed class MutableClock(DateTime utcNow) : TimeProvider
+    {
+        public override DateTimeOffset GetUtcNow() => new(utcNow);
+    }
 }

@@ -50,7 +50,9 @@
       "saved": "Checklist template saved.",
       "loadError": "Failed to load checklist template.",
       "saveError": "Failed to save checklist template.",
-      "empty": "No checklist items configured for this scope."
+      "empty": "No checklist items configured for this scope.",
+      "readOnlySiteWide": "Only QA can change the site-wide checklist template.",
+      "readOnlySection": "Changing a section checklist template needs the Quality.Investigate permission."
     },
     "classifications": {
       "nameLabel": "Name",

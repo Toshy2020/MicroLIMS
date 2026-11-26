@@ -18,7 +18,7 @@ import { AttachmentsPanel } from "./AttachmentsPanel";
 import { attachment, networkFailure, refusal } from "../testFixtures";
 import type { QualityAttachmentDto } from "../../../services/qualityService";
 
-function renderPanel(options: { attachments?: QualityAttachmentDto[]; canEdit?: boolean; onChanged?: () => Promise<void> } = {}) {
+function renderPanel(options: { attachments?: QualityAttachmentDto[]; canEdit?: boolean; canRemove?: boolean; onChanged?: () => Promise<void> } = {}) {
   const onChanged = options.onChanged ?? vi.fn().mockResolvedValue(undefined);
   render(
     <PinnedLightTheme>
@@ -27,6 +27,7 @@ function renderPanel(options: { attachments?: QualityAttachmentDto[]; canEdit?: 
         recordVersion={6}
         attachments={options.attachments ?? [attachment()]}
         canEdit={options.canEdit ?? true}
+        canRemove={options.canRemove ?? true}
         onChanged={onChanged}
       />
     </PinnedLightTheme>
@@ -195,12 +196,26 @@ describe("AttachmentsPanel", () => {
   });
 
   it("is read-only without edit permission: files can be downloaded but not added or voided", () => {
-    renderPanel({ canEdit: false });
+    renderPanel({ canEdit: false, canRemove: false });
 
     expect(screen.queryByRole("button", { name: "Upload" })).toBeNull();
     expect(screen.queryByLabelText(/^Upload file\. Accepted formats/)).toBeNull();
     expect(screen.queryByRole("button", { name: /^Void / })).toBeNull();
     expect(screen.getByRole("button", { name: "Download temperature-log.pdf" })).toBeTruthy();
+  });
+
+  it("offers Void only to someone who may void: a person who can add files but not void sees no Void control", () => {
+    renderPanel({ canEdit: true, canRemove: false });
+
+    expect(screen.getByRole("button", { name: "Upload" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /^Void / })).toBeNull();
+    expect(screen.getByRole("button", { name: "Download temperature-log.pdf" })).toBeTruthy();
+  });
+
+  it("offers Void to someone who may void", () => {
+    renderPanel({ canRemove: true });
+
+    expect(screen.getByRole("button", { name: "Void temperature-log.pdf" })).toBeTruthy();
   });
 
   it("shows the empty state", () => {

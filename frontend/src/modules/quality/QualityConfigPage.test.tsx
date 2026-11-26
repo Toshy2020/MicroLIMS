@@ -131,6 +131,48 @@ describe("QualityConfigPage", () => {
     );
   });
 
+  it("lets Quality.Investigate without Quality.Approve save a section template but not the site-wide one", async () => {
+    seedAuth("SectionHead", [PERMISSIONS.QUALITY_VIEW, PERMISSIONS.QUALITY_INVESTIGATE]);
+    const user = userEvent.setup();
+    renderConfigPage();
+
+    // Site-wide scope is the default: read-only, with the reason.
+    const textbox = (await screen.findByDisplayValue("Verify batch impact")) as HTMLInputElement;
+    expect(textbox.disabled).toBe(true);
+    expect(screen.queryByRole("button", { name: /save template/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: /add item/i })).toBeNull();
+    expect(screen.getByText("Only QA can change the site-wide checklist template.")).toBeTruthy();
+
+    await user.click(screen.getByRole("combobox", { name: /scope/i }));
+    await user.click(await screen.findByRole("option", { name: "Microbiology" }));
+
+    expect(await screen.findByRole("button", { name: /save template/i })).toBeTruthy();
+    expect(screen.queryByText("Only QA can change the site-wide checklist template.")).toBeNull();
+  });
+
+  it("lets Quality.Approve without Quality.Investigate save the site-wide template but not a section one", async () => {
+    seedAuth("Qa", [PERMISSIONS.QUALITY_VIEW, PERMISSIONS.QUALITY_APPROVE]);
+    const user = userEvent.setup();
+    renderConfigPage();
+
+    expect(await screen.findByRole("button", { name: /save template/i })).toBeTruthy();
+
+    await user.click(screen.getByRole("combobox", { name: /scope/i }));
+    await user.click(await screen.findByRole("option", { name: "Microbiology" }));
+
+    await waitFor(() => expect(screen.queryByRole("button", { name: /save template/i })).toBeNull());
+    expect(screen.getByText("Changing a section checklist template needs the Quality.Investigate permission.")).toBeTruthy();
+  });
+
+  it("gives a view-only user a read-only template with the reason", async () => {
+    seedAuth("Analyst", [PERMISSIONS.QUALITY_VIEW]);
+    renderConfigPage();
+
+    expect(await screen.findByDisplayValue("Verify batch impact")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /save template/i })).toBeNull();
+    expect(screen.getByText("Only QA can change the site-wide checklist template.")).toBeTruthy();
+  });
+
   it("toggles section change-control gate with reason, signature dialog, wrong-password retry, and stale-version error", async () => {
     seedAuth("Qa", [PERMISSIONS.QUALITY_VIEW, PERMISSIONS.QUALITY_APPROVE]);
     const wrongPasswordErr = { response: { data: { message: "Invalid password." } } };

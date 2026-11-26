@@ -82,7 +82,7 @@ const searchResult = {
   }
 };
 
-function renderPanel(props: { links?: QualityLinkDto[] | null; totalCount?: number | null; canEdit?: boolean; onChanged?: () => Promise<void> } = {}) {
+function renderPanel(props: { links?: QualityLinkDto[] | null; totalCount?: number | null; canEdit?: boolean; canRemove?: boolean; onChanged?: () => Promise<void> } = {}) {
   const onChanged = props.onChanged ?? vi.fn().mockResolvedValue(undefined);
   render(
     <PinnedLightTheme>
@@ -93,6 +93,7 @@ function renderPanel(props: { links?: QualityLinkDto[] | null; totalCount?: numb
           links={props.links === undefined ? [] : props.links}
           totalCount={props.totalCount}
           canEdit={props.canEdit ?? true}
+          canRemove={props.canRemove ?? true}
           onChanged={onChanged}
         />
       </MemoryRouter>
@@ -215,11 +216,24 @@ describe("LinksPanel", () => {
   });
 
   it("is read-only without edit permission: no add or remove controls", () => {
-    renderPanel({ links: [link()], canEdit: false });
+    renderPanel({ links: [link()], canEdit: false, canRemove: false });
 
     expect(screen.queryByRole("button", { name: "Add link" })).toBeNull();
     expect(screen.queryByRole("button", { name: /Remove link/ })).toBeNull();
     expect(screen.getByText("Amoxicillin 500mg")).toBeTruthy();
+  });
+
+  it("shows Remove only to someone who may remove: a person who can add links but not remove sees no Remove control", () => {
+    renderPanel({ links: [link()], canEdit: true, canRemove: false });
+
+    expect(screen.getByRole("button", { name: "Add link" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /Remove link/ })).toBeNull();
+  });
+
+  it("shows Remove to someone who may remove", () => {
+    renderPanel({ links: [link()], canRemove: true });
+
+    expect(screen.getByRole("button", { name: "Remove link S-2026-0010" })).toBeTruthy();
   });
 
   it("shows the empty state and the unavailable state", () => {

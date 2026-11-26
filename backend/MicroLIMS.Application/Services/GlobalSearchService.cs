@@ -120,6 +120,26 @@ public class GlobalSearchService : IGlobalSearchService
             }
         }
 
+        // 9. SPECIFICATIONS (readable through the laboratory section of their test)
+        if (!hasNoAccessibleSections && (searchAll || targetCategory == "specifications" || targetCategory == "specification"))
+        {
+            var specResults = await SearchSpecificationsAsync(q, rawQuery, scope, limit, ct);
+            if (specResults.Count > 0)
+            {
+                categories.Add(new GlobalSearchCategoryDto("Specifications", specResults.Count, specResults));
+            }
+        }
+
+        // 10. TEST DEFINITIONS (Test Master)
+        if (!hasNoAccessibleSections && (searchAll || targetCategory == "testdefinitions" || targetCategory == "testdefinition"))
+        {
+            var definitionResults = await SearchTestDefinitionsAsync(q, rawQuery, scope, limit, ct);
+            if (definitionResults.Count > 0)
+            {
+                categories.Add(new GlobalSearchCategoryDto("Test Definitions", definitionResults.Count, definitionResults));
+            }
+        }
+
         sw.Stop();
         var totalMatches = categories.Sum(c => c.Count);
         return new GlobalSearchResultDto(rawQuery, totalMatches, sw.ElapsedMilliseconds, categories);
@@ -494,6 +514,93 @@ public class GlobalSearchService : IGlobalSearchService
                 }
             ))
             .ToList();
+    }
+
+    private async Task<List<GlobalSearchItemDto>> SearchSpecificationsAsync(string q, string rawQuery, IReadOnlyList<int>? scope, int limit, CancellationToken ct)
+    {
+        var query = _db.Specifications.AsNoTracking();
+
+        // A specification is as readable as the Test Master entry of its test code.
+        if (scope != null)
+        {
+            query = query.Where(s => _db.TestDefinitions.Any(t => t.Code == s.TestCode && scope.Contains(t.SectionId)));
+        }
+
+        query = query.Where(s =>
+            s.TestCode.ToLower().Contains(q) ||
+            s.ParameterName.ToLower().Contains(q) ||
+            (s.Item != null && (s.Item.Code.ToLower().Contains(q) || s.Item.Name.ToLower().Contains(q))));
+
+        var matches = await query
+            .OrderByDescending(s => s.TestCode.ToLower() == q)
+            .ThenBy(s => s.IsRetired)
+            .ThenByDescending(s => s.Id)
+            .Take(limit)
+            .Select(s => new
+            {
+                s.Id,
+                s.TestCode,
+                s.ParameterName,
+                s.IsRetired,
+                ItemCode = s.Item != null ? s.Item.Code : string.Empty,
+                ItemName = s.Item != null ? s.Item.Name : string.Empty
+            })
+            .ToListAsync(ct);
+
+        return matches.Select(s =>
+        {
+            var parameter = string.IsNullOrWhiteSpace(s.ParameterName) ? "-" : s.ParameterName;
+            var retiredMark = s.IsRetired ? " (Retired)" : string.Empty;
+            return new GlobalSearchItemDto(
+                s.Id,
+                "Specification",
+                $"Spec: {s.ItemCode} • {s.TestCode} • {parameter}{retiredMark}",
+                s.ItemName,
+                s.IsRetired ? "Retired" : "Active",
+                s.TestCode.Contains(rawQuery, StringComparison.OrdinalIgnoreCase) ? "TestCode"
+                    : s.ParameterName.Contains(rawQuery, StringComparison.OrdinalIgnoreCase) ? "ParameterName" : "Item",
+                s.TestCode,
+                s.IsRetired ? "error" : "success",
+                RecordNavigationTargets.Specification(s.Id),
+                new Dictionary<string, string>
+                {
+                    ["ItemCode"] = s.ItemCode,
+                    ["TestCode"] = s.TestCode,
+                    ["ParameterName"] = s.ParameterName
+                });
+        }).ToList();
+    }
+
+    private async Task<List<GlobalSearchItemDto>> SearchTestDefinitionsAsync(string q, string rawQuery, IReadOnlyList<int>? scope, int limit, CancellationToken ct)
+    {
+        var query = _db.TestDefinitions.AsNoTracking();
+
+        if (scope != null)
+        {
+            query = query.Where(t => scope.Contains(t.SectionId));
+        }
+
+        query = query.Where(t => t.Code.ToLower().Contains(q) || t.DisplayName.ToLower().Contains(q));
+
+        var matches = await query
+            .OrderByDescending(t => t.Code.ToLower() == q)
+            .ThenByDescending(t => t.IsActive)
+            .ThenBy(t => t.Code)
+            .Take(limit)
+            .Select(t => new { t.Id, t.Code, t.DisplayName, t.IsActive, t.PhyschemArea })
+            .ToListAsync(ct);
+
+        return matches.Select(t => new GlobalSearchItemDto(
+            t.Id,
+            "TestDefinition",
+            $"Test: {t.Code}",
+            t.DisplayName,
+            t.IsActive ? "Active" : "Frozen",
+            t.Code.Contains(rawQuery, StringComparison.OrdinalIgnoreCase) ? "Code" : "DisplayName",
+            t.Code,
+            t.IsActive ? "success" : "warning",
+            RecordNavigationTargets.TestDefinition(t.PhyschemArea, t.Id),
+            new Dictionary<string, string> { ["Code"] = t.Code })).ToList();
     }
 
     private static string GetBadgeColor(string status) => status switch

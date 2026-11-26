@@ -24,6 +24,19 @@ public static class RecordNavigationTargets
 
     public static string Item() => "/laboratory-configuration/items";
 
+    public static string Specification(int id) => $"/laboratory-configuration/specifications?id={id}";
+
+    public static string TestDefinition(PhyschemArea? area, int id)
+    {
+        var path = area switch
+        {
+            PhyschemArea.RawPackaging => "rm-pm-test-master",
+            PhyschemArea.FinishedProduct or PhyschemArea.Both => "fp-test-master",
+            _ => "test-master"
+        };
+        return $"/laboratory-configuration/{path}?id={id}";
+    }
+
     public static string Cryovial(int id) => $"/cryovials/{id}/report";
 
     public static string ForLabelEntity(LabelEntityType type, int id) => type switch

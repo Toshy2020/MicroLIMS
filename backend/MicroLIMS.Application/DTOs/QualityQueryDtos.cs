@@ -100,7 +100,23 @@ public sealed record QualityChangeControlDetailDto(
     string? ImpactSummary,
     string? RejectionReason,
     string? PostChangeReview,
-    string? UnchangedJustification);
+    string? UnchangedJustification,
+    IReadOnlyList<QualityChangeControlAffectedDto> Affected);
+
+// One affected record of a change control. Number is the target number or code (the planned code for a
+// record that does not exist yet); Label is withheld and IsRestricted set when the reader may not read the
+// target. Unchanged is the rule the closure applies: a specification or test definition never changed
+// under this change control.
+public sealed record QualityChangeControlAffectedDto(
+    int LinkId,
+    QualityLinkTargetType TargetType,
+    int? TargetId,
+    string? Number,
+    string? Label,
+    bool IsRestricted,
+    DateTime? ChangedAtUtc,
+    int? ChangeAuditLogId,
+    bool Unchanged);
 
 public sealed record QualityComplaintDetailDto(
     ComplaintStatus Status,

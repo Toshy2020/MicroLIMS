@@ -85,7 +85,7 @@ public sealed class QualityFollowUpDtosPostgresTests(PostgresTestFixture fixture
         Clock);
 
     private static QualityQueryService Queries(MicroLimsDbContext db) =>
-        new(db, Core(db), new LabClock(Clock, TimeZoneInfo.Utc));
+        new(db, Core(db), Links(db), new LabClock(Clock, TimeZoneInfo.Utc));
 
     private async Task<int> CreateUserAsync(MicroLimsDbContext db, string fullName, RoleType roleType,
         int departmentId, int sectionId, params string[] permissions)

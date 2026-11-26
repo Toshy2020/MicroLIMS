@@ -80,7 +80,8 @@ describe("TypeDetails", () => {
           impactSummary: null,
           rejectionReason: null,
           postChangeReview: null,
-          unchangedJustification: null
+          unchangedJustification: null,
+          affected: []
         }
       })
     );

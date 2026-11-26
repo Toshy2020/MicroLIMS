@@ -45,7 +45,7 @@ public sealed class QualityTrendsAndDashboardPostgresTests(PostgresTestFixture f
     }
 
     private static QualityQueryService QueryService(MicroLimsDbContext db, TimeProvider clock) =>
-        new(db, Core(db, clock), new LabClock(clock, TimeZoneInfo.Utc));
+        new(db, Core(db, clock), new QualityLinkService(db, Core(db, clock), new PermissionService(db), new UserSectionScopeService(db), clock), new LabClock(clock, TimeZoneInfo.Utc));
 
     private async Task<int> CreateUserAsync(MicroLimsDbContext db, RoleType role, int sectionId,
         string fullName, params string[] extraPermissions)

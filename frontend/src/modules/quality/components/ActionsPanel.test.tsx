@@ -59,8 +59,8 @@ describe("ActionsPanel", () => {
   it("lists each action with its kind, responsible person, due date and state in words", () => {
     renderPanel({
       actions: [
-        actionDetail({ id: 11, kind: "Corrective", description: "Recalibrate the incubator probe", responsibleName: "Ann Analyst", dueDate: "2026-12-05" }),
-        actionDetail({ id: 12, kind: "Preventive", description: "Add a daily temperature check", responsibleName: "Bob Bench" })
+        actionDetail({ id: 11, kind: "Corrective", description: "Recalibrate the incubator probe", responsibleName: "Ann Analyst", dueDate: "2026-12-05", isOverdue: true }),
+        actionDetail({ id: 12, kind: "Preventive", description: "Add a daily temperature check", responsibleName: "Bob Bench", isOverdue: false })
       ],
       currentUserId: 99
     });
@@ -72,7 +72,9 @@ describe("ActionsPanel", () => {
     expect(within(items[0]).getByText(/Ann Analyst/)).toBeTruthy();
     expect(within(items[0]).getByText("Due 2026-12-05")).toBeTruthy();
     expect(within(items[0]).getByText("Open")).toBeTruthy();
+    expect(within(items[0]).getByText("Overdue")).toBeTruthy();
     expect(within(items[1]).getByText("Preventive")).toBeTruthy();
+    expect(within(items[1]).queryByText("Overdue")).toBeNull();
   });
 
   it("shows who completed an action, when (with the time zone) and the evidence", () => {

@@ -69,14 +69,23 @@ export function ExtensionsPanel({ extensions, actions, canRequest, canDecide, on
                 </Stack>
                 <Typography variant="body2">{extension.reason}</Typography>
                 <Typography variant="caption" color="text.secondary" sx={{ display: "block", fontVariantNumeric: "tabular-nums" }}>
-                  {t("extensions.requestedAt", { date: formatDateTimeWithTimeZone(extension.requestedAtUtc) })}
+                  {t("extensions.requestedAt", {
+                    name: extension.requestedByName,
+                    date: formatDateTimeWithTimeZone(extension.requestedAtUtc)
+                  })}
                 </Typography>
                 {decided && extension.decidedAtUtc && (
                   <Typography variant="caption" color="text.secondary" sx={{ display: "block", fontVariantNumeric: "tabular-nums" }}>
-                    {t("extensions.decidedLine", {
-                      decision: t(`extensions.${extension.decision as "Approved" | "Refused"}`),
-                      date: formatDateTimeWithTimeZone(extension.decidedAtUtc)
-                    })}
+                    {extension.decidedByName
+                      ? t("extensions.decidedLine", {
+                          decision: t(`extensions.${extension.decision as "Approved" | "Refused"}`),
+                          name: extension.decidedByName,
+                          date: formatDateTimeWithTimeZone(extension.decidedAtUtc)
+                        })
+                      : t("extensions.decidedLineNoName", {
+                          decision: t(`extensions.${extension.decision as "Approved" | "Refused"}`),
+                          date: formatDateTimeWithTimeZone(extension.decidedAtUtc)
+                        })}
                   </Typography>
                 )}
                 {extension.decisionComment && (

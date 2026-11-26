@@ -80,6 +80,7 @@ export function actionDetail(overrides: Partial<QualityActionDetailDto> = {}): Q
     evidence: null,
     evidenceLinkId: null,
     version: 1,
+    isOverdue: false,
     ...overrides
   };
 }
@@ -91,9 +92,11 @@ export function attachment(overrides: Partial<QualityAttachmentDto> = {}): Quali
     contentType: "application/pdf",
     size: 2048,
     uploadedByUserId: 7,
+    uploadedByName: "Ann Analyst",
     uploadedAtUtc: "2026-11-21T09:00:00Z",
     voidedAtUtc: null,
     voidedByUserId: null,
+    voidedByName: null,
     voidReason: null,
     isVoided: false,
     ...overrides
@@ -105,7 +108,14 @@ export function link(overrides: Partial<QualityLinkDto> = {}): QualityLinkDto {
 }
 
 export function comment(overrides: Partial<QualityCommentDto> = {}): QualityCommentDto {
-  return { id: 41, text: "Probe replaced on the night shift.", authorUserId: 7, createdAtUtc: "2026-11-21T11:00:00Z", ...overrides };
+  return {
+    id: 41,
+    text: "Probe replaced on the night shift.",
+    authorUserId: 7,
+    authorName: "Ann Analyst",
+    createdAtUtc: "2026-11-21T11:00:00Z",
+    ...overrides
+  };
 }
 
 export function extension(overrides: Partial<QualityExtensionDto> = {}): QualityExtensionDto {
@@ -116,9 +126,11 @@ export function extension(overrides: Partial<QualityExtensionDto> = {}): Quality
     requestedDueDate: "2026-12-20",
     reason: "Supplier delivers the probe late",
     requestedByUserId: 8,
+    requestedByName: "Sam Head",
     requestedAtUtc: "2026-11-22T08:00:00Z",
     decision: null,
     decidedByUserId: null,
+    decidedByName: null,
     decidedAtUtc: null,
     decisionComment: null,
     signatureId: null,

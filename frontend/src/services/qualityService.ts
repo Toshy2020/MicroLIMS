@@ -105,6 +105,7 @@ export interface QualityActionDetailDto {
   evidence: string | null;
   evidenceLinkId: number | null;
   version: number;
+  isOverdue: boolean;
 }
 
 export interface QualityAttachmentDto {
@@ -113,9 +114,11 @@ export interface QualityAttachmentDto {
   contentType: string;
   size: number;
   uploadedByUserId: number;
+  uploadedByName: string;
   uploadedAtUtc: string;
   voidedAtUtc: string | null;
   voidedByUserId: number | null;
+  voidedByName: string | null;
   voidReason: string | null;
   isVoided: boolean;
 }
@@ -221,6 +224,7 @@ export interface QualityCommentDto {
   id: number;
   text: string;
   authorUserId: number;
+  authorName: string;
   createdAtUtc: string;
 }
 
@@ -251,9 +255,11 @@ export interface QualityExtensionDto {
   requestedDueDate: string;
   reason: string;
   requestedByUserId: number;
+  requestedByName: string;
   requestedAtUtc: string;
   decision: QualityExtensionDecision | null;
   decidedByUserId: number | null;
+  decidedByName: string | null;
   decidedAtUtc: string | null;
   decisionComment: string | null;
   signatureId: number | null;
@@ -284,7 +290,7 @@ export const qualityService = {
     return (await apiClient.get("/quality/config/classifications", { params: { page, pageSize }, signal })).data.data;
   },
 
-  async listLinks(recordId: number, offset: number, pageSize: number, signal?: AbortSignal): Promise<QualityLinkDto[]> {
+  async listLinks(recordId: number, offset: number, pageSize: number, signal?: AbortSignal): Promise<PagedResult<QualityLinkDto>> {
     return (await apiClient.get(`/quality/${recordId}/links`, { params: { offset, pageSize }, signal })).data.data;
   },
 

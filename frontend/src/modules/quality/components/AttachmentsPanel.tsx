@@ -105,15 +105,22 @@ export function AttachmentsPanel({ recordId, recordVersion, attachments, canEdit
                 <Typography variant="caption" color="text.secondary" sx={{ display: "block", fontVariantNumeric: "tabular-nums" }}>
                   {t("attachments.uploadedLine", {
                     size: formatFileSize(attachment.size),
+                    name: attachment.uploadedByName,
                     date: formatDateTimeWithTimeZone(attachment.uploadedAtUtc)
                   })}
                 </Typography>
                 {attachment.isVoided && attachment.voidedAtUtc && (
                   <Typography variant="caption" color="text.secondary" sx={{ display: "block", fontVariantNumeric: "tabular-nums" }}>
-                    {t("attachments.voidedLine", {
-                      date: formatDateTimeWithTimeZone(attachment.voidedAtUtc),
-                      reason: attachment.voidReason ?? ""
-                    })}
+                    {attachment.voidedByName
+                      ? t("attachments.voidedLineWithName", {
+                          name: attachment.voidedByName,
+                          date: formatDateTimeWithTimeZone(attachment.voidedAtUtc),
+                          reason: attachment.voidReason ?? ""
+                        })
+                      : t("attachments.voidedLine", {
+                          date: formatDateTimeWithTimeZone(attachment.voidedAtUtc),
+                          reason: attachment.voidReason ?? ""
+                        })}
                   </Typography>
                 )}
                 <Stack direction="row" spacing={1} sx={{ mt: 0.75 }}>

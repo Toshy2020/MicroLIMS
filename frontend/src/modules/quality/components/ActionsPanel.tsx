@@ -79,6 +79,7 @@ export function ActionsPanel({ record, actions, links, currentUserId, onChanged,
                 <Stack direction="row" spacing={1} sx={{ alignItems: "center", flexWrap: "wrap", mb: 0.5 }}>
                   <MetaBadge label={t(`actionKinds.${action.kind}`)} />
                   <ToneBadge tone={done ? "notDetected" : "info"} label={done ? t("actions.done") : t("actions.pending")} />
+                  {action.isOverdue && <ToneBadge tone="detected" label={t("actions.overdue")} />}
                   <Typography variant="caption" color="text.secondary" sx={{ fontVariantNumeric: "tabular-nums" }}>
                     {t("actions.dueDate", { date: action.dueDate })}
                   </Typography>

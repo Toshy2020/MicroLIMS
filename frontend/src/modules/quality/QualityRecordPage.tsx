@@ -73,6 +73,7 @@ export function QualityRecordPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [links, setLinks] = useState<QualityLinkDto[] | null>(null);
+  const [linksTotalCount, setLinksTotalCount] = useState<number | null>(null);
   const [comments, setComments] = useState<QualityCommentDto[] | null>(null);
   const [extensions, setExtensions] = useState<QualityExtensionDto[] | null>(null);
   const [secondary, setSecondary] = useState<Record<SecondaryKey, SecondaryState>>({
@@ -115,7 +116,10 @@ export function QualityRecordPage() {
       try {
         if (key === "links") {
           const result = await qualityService.listLinks(recordId, 0, SECONDARY_PAGE_SIZE, signal);
-          if (!signal.aborted) setLinks(result);
+          if (!signal.aborted) {
+            setLinks(result.items);
+            setLinksTotalCount(result.totalCount);
+          }
         } else if (key === "comments") {
           const result = await qualityService.listComments(recordId, 0, SECONDARY_PAGE_SIZE, signal);
           if (!signal.aborted) setComments(result);
@@ -126,8 +130,10 @@ export function QualityRecordPage() {
         if (!signal.aborted) setSecondary((state) => ({ ...state, [key]: "ready" }));
       } catch {
         if (signal.aborted) return;
-        if (key === "links") setLinks(null);
-        else if (key === "comments") setComments(null);
+        if (key === "links") {
+          setLinks(null);
+          setLinksTotalCount(null);
+        } else if (key === "comments") setComments(null);
         else setExtensions(null);
         setSecondary((state) => ({ ...state, [key]: "failed" }));
       }
@@ -314,7 +320,14 @@ export function QualityRecordPage() {
       {secondary.links === "loading" ? (
         placeholder
       ) : (
-        <LinksPanel recordId={detail.id} recordVersion={detail.version} links={links} canEdit={can.raise} onChanged={reload} />
+        <LinksPanel
+          recordId={detail.id}
+          recordVersion={detail.version}
+          links={links}
+          totalCount={linksTotalCount}
+          canEdit={can.raise}
+          onChanged={reload}
+        />
       )}
 
       <AttachmentsPanel

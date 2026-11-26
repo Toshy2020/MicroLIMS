@@ -196,3 +196,24 @@
 **Function:** Master-data writes that quality records depend on (the Task 8 fix, merged as commit 9ed6ced). `TestWorkflowStepMasterDataService` takes the caller's user ID on the workflow-type update and on the create, update, move and delete of a step, and checks `TestConfigurationScope.EnsureCanConfigureAsync` for the test's section. The update, move and delete of a step, and the workflow-type update, call `RecordVersion.EnsureCurrent` on the stored row. `TestDefinitionMasterDataService.FreezeTestDefinitionAsync` and `UnfreezeTestDefinitionAsync` take the user ID, check the same scope and version, and then run the change-reason guard (`_reasonGuard.EnsureAsync`) before saving.
 **Code:** `backend/MicroLIMS.Application/Services/MasterData/TestWorkflowStepMasterDataService.cs` — `UpdateWorkflowTypeAsync`, `UpdateTestWorkflowStepAsync`, `MoveTestWorkflowStepAsync`, `DeleteTestWorkflowStepAsync`; `backend/MicroLIMS.Application/Services/MasterData/TestDefinitionMasterDataService.cs` — `FreezeTestDefinitionAsync`, `UnfreezeTestDefinitionAsync`
 **Verified by:** reading (not run). The Task 8 tests (`MasterDataWriteScopePostgresTests`) were not run for this document.
+
+### FS-QLT-019
+*(Draft — pending approval)*
+**Satisfies:** URS-QLT-008, URS-QLT-013
+**Function:** Queries, full detail, PDF report and dashboard (D2 Task 10). `QualityQueryService.ListAsync` (`GET api/quality/records`) filters readable records by type, status, classification, section, owner, overdue flag and raised date range, using `AsNoTracking`, SQL projections and `Paging.Normalize` (page size capped at 100). `GetDetailAsync` (`GET api/quality/records/{id}`) projects the header, type detail, path steps, signed timeline (signer full name, UTC time with `UTC` zone, `ReportVocabulary` meaning text), actions, attachments and links count, refusing out-of-scope records with `Quality.NotFound`. `QualityReportBuilder.GeneratePdfAsync` (`GET api/quality/records/{id}/pdf`) renders the PDF via `IPdfGenerator.GenerateReportAsync` with restricted links shown as number only and logs the export via `DataExportAuditService` (`QualityRecordPdf`). `GetDashboardAsync` (`GET api/quality/dashboard`) returns role-scoped waiting-for-decision records, open records/actions, overdue records/actions and due CAPA effectiveness checks.
+**Code:** `backend/MicroLIMS.Application/Services/Quality/QualityQueryService.cs`; `backend/MicroLIMS.Application/Services/Quality/QualityReportBuilder.cs`; `backend/MicroLIMS.API/Controllers/QualityRecordsController.cs`
+**Verified by:** `QualityQueriesPostgresTests`
+
+### FS-QLT-020
+*(Draft — pending approval)*
+**Satisfies:** URS-QLT-013
+**Function:** Quality trending (D2 Task 10). `QualityQueryService.GetTrendsAsync` (`GET api/quality/trends`) groups readable records by `type`, `classification`, `cause`, `section`, `item` or `source` (refusing unknown values with `Quality.TrendGroupByInvalid`), computing total, open and closed counts, average time to close, on-time rate and CAPA effectiveness rate, plus repeat-cause detection (same root cause category and linked item or equipment within `repeatWindowDays`).
+**Code:** `backend/MicroLIMS.Application/Services/Quality/QualityQueryService.cs` — `GetTrendsAsync`
+**Verified by:** `QualityQueriesPostgresTests`
+
+### FS-QLT-021
+*(Draft — pending approval)*
+**Satisfies:** URS-QLT-011
+**Function:** Quality notifications and overdue background job (D2 Task 10). `OosRecipientResolver` implements `IPermissionRecipientResolver` (`ResolveAsync(int? sectionId, string permissionCode, CancellationToken)`), preserving existing OOS behaviour while supporting site-wide quality records. `QualityNotifier` sends post-commit notifications (`QualityRecordRaised`, `QualityRecordAssigned`, `QualityRecordReturned`, `QualityAwaitingQa`, `QualityActionAssigned`, `QualityRecordClosed`) from `DeviationService`, `CapaService`, `ChangeControlService` and `ComplaintService` after transaction commit; failures are logged and never roll back committed steps. `QualityOverdueWorker` (`BackgroundJobClassification.Gxp`, `QualityOverdue:Enabled`, `QualityOverdue:IntervalMinutes` default 60) runs `QualityNotifier.NotifyOverdueAsync` using `ILabClock.LabToday` and `NotificationLog.DedupeKey` (`quality:overdue:record:{id}:{date}` / `quality:overdue:action:{id}:{date}`) to emit at most one overdue notification per open item per laboratory day.
+**Code:** `backend/MicroLIMS.Application/Services/Notifications/IPermissionRecipientResolver.cs`; `backend/MicroLIMS.Application/Services/Oos/OosRecipientResolver.cs`; `backend/MicroLIMS.Application/Services/Quality/QualityNotifier.cs`; `backend/MicroLIMS.API/BackgroundServices/QualityOverdueWorker.cs`; `backend/MicroLIMS.Application/Services/BackgroundJobs/BackgroundJobCatalog.cs`
+**Verified by:** `QualityQueriesPostgresTests`

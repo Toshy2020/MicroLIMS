@@ -65,6 +65,7 @@ public class CoaColumnDto
     public bool IsQuantitative { get; set; }
     public string? Unit { get; set; }
     public string? OosInvestigationNumber { get; set; }
+    public ReportableRetestDto? ReportableRetest { get; set; }
 }
 
 public class CoaRowDto
@@ -118,6 +119,7 @@ public class CoaSimpleRowDto
     public string TestDisplayName { get; set; } = string.Empty;
     public string? Specification { get; set; }
     public string? OosInvestigationNumber { get; set; }
+    public ReportableRetestDto? ReportableRetest { get; set; }
     public string Result { get; set; } = string.Empty;
     public string? AnalystName { get; set; }
     public DateTime? AnalystAt { get; set; }

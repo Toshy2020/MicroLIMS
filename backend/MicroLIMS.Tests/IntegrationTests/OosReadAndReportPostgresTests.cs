@@ -996,6 +996,10 @@ public sealed class OosReadAndReportPostgresTests(PostgresTestFixture fixture) :
 
             var originOrder = await arrange.TestOrders.SingleAsync(o => o.Id == sOrigin.Orders[0].Id);
             originOrder.IsSuperseded = true;
+            var r1Order = await arrange.TestOrders.SingleAsync(o => o.Id == sRetest1.Orders[0].Id);
+            var r2Order = await arrange.TestOrders.SingleAsync(o => o.Id == sRetest2.Orders[0].Id);
+            r1Order.TestCode = originOrder.TestCode;
+            r2Order.TestCode = originOrder.TestCode;
 
             arrange.CountTestReadings.AddRange(
                 new CountTestReading { TestOrderId = originOrder.Id, PlateReadings = "999", DilutionFactor = 1, ReportedResult = "999 CFU/g", Status = ResultStatus.OutOfSpecification, EnteredByUserId = head.Id, EnteredAt = t0 },
@@ -1025,7 +1029,7 @@ public sealed class OosReadAndReportPostgresTests(PostgresTestFixture fixture) :
                 UserId = head.Id,
                 UserFullNameSnapshot = head.FullName,
                 UsernameSnapshot = head.Username,
-                RoleSnapshot = head.Role.Name,
+                RoleSnapshot = "SectionHead",
                 EntityType = nameof(OosRetestPlan),
                 EntityId = 0,
                 MeaningOfSignature = SignatureMeaning.OosRetestPlanApproved,
@@ -1150,6 +1154,7 @@ public sealed class OosReadAndReportPostgresTests(PostgresTestFixture fixture) :
         }
 
         await using var read = fixture.CreateDbContext();
+        read.CurrentUserId = head.Id;
         var detail = await TestServiceFactory.OosInvestigation(read).GetByIdAsync(invId);
         var planDetail = Assert.Single(detail.RetestPlans);
         Assert.Equal(2, planDetail.Samples.Count);
@@ -1164,7 +1169,7 @@ public sealed class OosReadAndReportPostgresTests(PostgresTestFixture fixture) :
         Assert.Contains(r2Ref, text);
         Assert.Contains("500 CFU/g", text);
         Assert.Contains("10 CFU/g", text);
-        Assert.Equal(1, text.Split("Reportable", StringSplitOptions.Ordinal).Length - 1);
+        Assert.Equal(1, text.Split("Reportable", StringSplitOptions.None).Length - 1);
     }
 
     private static OosTrendService Trends(MicroLimsDbContext db) =>

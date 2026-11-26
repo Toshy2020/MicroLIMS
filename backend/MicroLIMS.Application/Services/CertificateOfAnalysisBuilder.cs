@@ -118,7 +118,8 @@ public static class CertificateOfAnalysisBuilder
             TestDisplayName = t.TestDisplayName,
             IsQuantitative = IsQuantitative(t),
             Unit = IsQuantitative(t) ? t.Locations.FirstOrDefault(l => !string.IsNullOrEmpty(l.Unit))?.Unit : null,
-            OosInvestigationNumber = t.OosInvestigationNumber
+            OosInvestigationNumber = t.OosInvestigationNumber,
+            ReportableRetest = t.ReportableRetest
         }).ToList();
 
         // Rows = distinct physical locations, first seen across tests.
@@ -296,6 +297,7 @@ public static class CertificateOfAnalysisBuilder
         TestDisplayName = displayName,
         Specification = specification,
         OosInvestigationNumber = t.OosInvestigationNumber,
+        ReportableRetest = t.ReportableRetest,
         Result = result,
         AnalystName = !string.IsNullOrEmpty(t.OutsourcedToLab) ? $"External lab: {t.OutsourcedToLab}" : (string.IsNullOrEmpty(analystName) ? null : analystName),
         AnalystAt = analystAt,

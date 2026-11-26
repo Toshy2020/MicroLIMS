@@ -9068,6 +9068,12 @@ namespace MicroLIMS.Persistence.Migrations
                         .HasMaxLength(4000)
                         .HasColumnType("character varying(4000)");
 
+                    b.Property<int?>("ReportableRetestNumber")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("ReportableSampleId")
+                        .HasColumnType("integer");
+
                     b.Property<int>("RetestCount")
                         .HasColumnType("integer");
 
@@ -9105,6 +9111,8 @@ namespace MicroLIMS.Persistence.Migrations
                         .IsUnique()
                         .HasFilter("\"SignedAtUtc\" IS NULL");
 
+                    b.HasIndex("ReportableSampleId");
+
                     b.HasIndex("SignatureId");
 
                     b.HasIndex("SignedByUserId");
@@ -9112,7 +9120,10 @@ namespace MicroLIMS.Persistence.Migrations
                     b.HasIndex("InvestigationId", "Revision")
                         .IsUnique();
 
-                    b.ToTable("OosRetestPlans");
+                    b.ToTable("OosRetestPlans", t =>
+                        {
+                            t.HasCheckConstraint("CK_OosRetestPlans_ReportableRetest", "(\"ReportableRetestNumber\" IS NULL OR (\"ReportableRetestNumber\" BETWEEN 1 AND \"RetestCount\")) AND (\"SignedAtUtc\" IS NULL OR (\"ReportableRetestNumber\" IS NULL) = (\"ReportableSampleId\" IS NULL))");
+                        });
                 });
 
             modelBuilder.Entity("MicroLIMS.Domain.Entities.OosRetestPlanSample", b =>

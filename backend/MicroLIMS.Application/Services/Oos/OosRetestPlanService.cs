@@ -13,10 +13,11 @@ using MicroLIMS.Shared.Messages;
 namespace MicroLIMS.Application.Services.Oos;
 
 public sealed record SaveRetestPlanRequest(OosRetestSource Source, int RetestCount, IReadOnlyList<int> TestOrderIds,
-    IReadOnlyList<int> AnalystUserIds, string JudgingRule, string? AmendmentReason);
+    IReadOnlyList<int> AnalystUserIds, string JudgingRule, string? AmendmentReason, int? ReportableRetestNumber = null);
 
 public sealed record OosRetestPlanDto(int Id, int Revision, uint InvestigationVersion, OosRetestSource Source, int RetestCount,
-    IReadOnlyList<int> TestOrderIds, IReadOnlyList<int> AnalystUserIds, string JudgingRule, string? AmendmentReason);
+    IReadOnlyList<int> TestOrderIds, IReadOnlyList<int> AnalystUserIds, string JudgingRule, string? AmendmentReason,
+    int? ReportableRetestNumber = null);
 
 public sealed class OosRetestPlanService(IMicroLimsDbContext db, OosInvestigationService investigations,
     IUserSectionScopeService scope, SegregationOfDutiesGuard duties, IElectronicSignatureService signatures,
@@ -46,11 +47,12 @@ public sealed class OosRetestPlanService(IMicroLimsDbContext db, OosInvestigatio
             plan.TestOrderIdsJson = JsonSerializer.Serialize(r.TestOrderIds);
             plan.AnalystUserIdsJson = JsonSerializer.Serialize(r.AnalystUserIds);
             plan.JudgingRule = r.JudgingRule.Trim();
+            plan.ReportableRetestNumber = r.RetestCount == 1 && r.ReportableRetestNumber is null ? 1 : r.ReportableRetestNumber;
             plan.AmendmentReason = string.IsNullOrWhiteSpace(r.AmendmentReason) ? null : r.AmendmentReason.Trim();
             BumpVersion(investigation);
             await db.SaveChangesAsync(ct);
             return new OosRetestPlanDto(plan.Id, plan.Revision, investigation.Version, plan.Source, plan.RetestCount,
-                r.TestOrderIds, r.AnalystUserIds, plan.JudgingRule, plan.AmendmentReason);
+                r.TestOrderIds, r.AnalystUserIds, plan.JudgingRule, plan.AmendmentReason, plan.ReportableRetestNumber);
         }, ct);
 
     public Task SignAndCreateAsync(int planId, string password, uint expectedVersion, int userId, string? ip,
@@ -70,7 +72,8 @@ public sealed class OosRetestPlanService(IMicroLimsDbContext db, OosInvestigatio
 
             var request = new SaveRetestPlanRequest(plan.Source, plan.RetestCount,
                 JsonSerializer.Deserialize<int[]>(plan.TestOrderIdsJson) ?? [],
-                JsonSerializer.Deserialize<int[]>(plan.AnalystUserIdsJson) ?? [], plan.JudgingRule, plan.AmendmentReason);
+                JsonSerializer.Deserialize<int[]>(plan.AnalystUserIdsJson) ?? [], plan.JudgingRule, plan.AmendmentReason,
+                plan.ReportableRetestNumber);
             if (request.AnalystUserIds.Contains(userId))
                 throw new BusinessRuleException(MessageCodes.OosRetestPlanSignerIsAnalyst, "You are assigned to a retest in this plan, so you cannot sign it.");
             var investigationOrderIds = await investigations.InvestigationOrderIdsAsync(investigationId, ct);
@@ -97,14 +100,25 @@ public sealed class OosRetestPlanService(IMicroLimsDbContext db, OosInvestigatio
             signature.SignedAt = now;
             await db.SaveChangesAsync(ct);
 
+            var reportableNumber = request.RetestCount == 1 && request.ReportableRetestNumber is null
+                ? 1
+                : request.ReportableRetestNumber;
+            int? reportableSampleId = null;
+            var retestNumber = 0;
             foreach (var analyst in request.AnalystUserIds)
             {
+                retestNumber++;
                 var sample = await samples.AddRetestSampleAsync(origin, orders, _ => analyst, investigation.Number, causeId, userId, ct);
                 // ReferenceNumberGenerator counts persisted rows before allocating the next number.
                 await db.SaveChangesAsync(ct);
                 db.OosRetestPlanSamples.Add(new OosRetestPlanSample { PlanId = plan.Id, SampleId = sample.Id });
+                if (retestNumber == reportableNumber)
+                    reportableSampleId = sample.Id;
             }
+            await db.SaveChangesAsync(ct);
 
+            plan.ReportableRetestNumber = reportableNumber;
+            plan.ReportableSampleId = reportableSampleId;
             plan.SignedAtUtc = now;
             plan.SignedByUserId = userId;
             plan.SignatureId = signature.Id;
@@ -119,6 +133,12 @@ public sealed class OosRetestPlanService(IMicroLimsDbContext db, OosInvestigatio
         if (!Enum.IsDefined(r.Source) || r.RetestCount is < 1 or > 10 || r.AnalystUserIds?.Count != r.RetestCount)
             throw new BusinessRuleException(MessageCodes.OosRetestPlanAssignmentInvalid,
                 "Choose a retest source and a count from 1 to 10, with one analyst per sample.");
+        if (r.RetestCount > 1 && r.ReportableRetestNumber is null)
+            throw new BusinessRuleException(MessageCodes.OosRetestPlanReportableRetestRequired,
+                "Choose which retest gives the reportable result.");
+        if (r.ReportableRetestNumber is int reportableNumber && (reportableNumber < 1 || reportableNumber > r.RetestCount))
+            throw new BusinessRuleException(MessageCodes.OosRetestPlanReportableRetestInvalid,
+                "The reportable retest must be one of the planned retests.");
         if (string.IsNullOrWhiteSpace(r.JudgingRule) || r.JudgingRule.Length > 4000)
             throw new BusinessRuleException(MessageCodes.OosRetestPlanJudgingRuleInvalid, "Enter a judging rule of 1 to 4000 characters.");
         if ((revision > 1 && string.IsNullOrWhiteSpace(r.AmendmentReason)) || r.AmendmentReason?.Length > 4000)

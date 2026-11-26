@@ -60,7 +60,12 @@ public sealed record OosInvestigationEntryDto(
     string RecordedByName,
     DateTime RecordedAtUtc);
 
-public sealed record OosRetestPlanSampleDto(int SampleId, string ReferenceNumber, SampleStatus Status);
+public sealed record OosRetestPlanSampleDto(
+    int SampleId,
+    string ReferenceNumber,
+    SampleStatus Status,
+    bool IsReportable = false,
+    IReadOnlyList<string>? ResultSummaries = null);
 
 public sealed record OosRetestPlanDetailDto(
     int Id,
@@ -75,7 +80,9 @@ public sealed record OosRetestPlanDetailDto(
     int? SignedByUserId,
     string? SignedByName,
     DateTime? SamplesCreatedAtUtc,
-    IReadOnlyList<OosRetestPlanSampleDto> Samples);
+    IReadOnlyList<OosRetestPlanSampleDto> Samples,
+    int? ReportableRetestNumber = null,
+    int? ReportableSampleId = null);
 
 public sealed record OosInvestigationReopeningDto(
     int Id,

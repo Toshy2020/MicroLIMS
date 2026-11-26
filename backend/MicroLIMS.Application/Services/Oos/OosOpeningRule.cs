@@ -30,6 +30,21 @@ public sealed class OosOpeningRule(IMicroLimsDbContext db)
         IReadOnlyCollection<int> orderIds, CancellationToken ct = default) =>
         (await ReadReviewOutcomesAsync(orderIds, ct)).Failing;
 
+    internal async Task<Dictionary<int, string>> ReadResultSummariesAsync(
+        IReadOnlyCollection<int> orderIds, CancellationToken ct = default)
+    {
+        var summaries = new Dictionary<int, string>();
+        if (orderIds.Count == 0) return summaries;
+
+        foreach (var (orderId, allOutcomes) in await LoadOrderOutcomesAsync(orderIds, ct))
+        {
+            if (allOutcomes.Count > 0)
+                summaries[orderId] = FormatSummary(allOutcomes);
+        }
+
+        return summaries;
+    }
+
     internal async Task<(Dictionary<int, OosOpeningResult> Failing, Dictionary<int, OosOpeningResult> Excursions)> ReadReviewOutcomesAsync(
         IReadOnlyCollection<int> orderIds, CancellationToken ct = default)
     {
@@ -37,6 +52,37 @@ public sealed class OosOpeningRule(IMicroLimsDbContext db)
         var excursions = new Dictionary<int, OosOpeningResult>();
         if (orderIds.Count == 0) return (failing, excursions);
 
+        foreach (var (orderId, allOutcomes) in await LoadOrderOutcomesAsync(orderIds, ct))
+        {
+            var failures = allOutcomes.Where(r => Opens(r.Status)).ToList();
+            if (failures.Count > 0)
+            {
+                failing.Add(orderId, new OosOpeningResult(new TestOrderOutcome(true, failures[0].Status), FormatSummary(failures)));
+                continue;
+            }
+
+            var actionExceedances = allOutcomes.Where(r => r.Status == ResultStatus.ActionLimitExceeded).ToList();
+            if (actionExceedances.Count > 0)
+            {
+                excursions.Add(orderId, new OosOpeningResult(
+                    new TestOrderOutcome(true, ResultStatus.ActionLimitExceeded), FormatSummary(actionExceedances)));
+                continue;
+            }
+
+            var alertExceedances = allOutcomes.Where(r => r.Status == ResultStatus.AlertLimitExceeded).ToList();
+            if (alertExceedances.Count > 0)
+            {
+                excursions.Add(orderId, new OosOpeningResult(
+                    new TestOrderOutcome(true, ResultStatus.AlertLimitExceeded), FormatSummary(alertExceedances)));
+            }
+        }
+
+        return (failing, excursions);
+    }
+
+    private async Task<List<(int OrderId, List<(ResultStatus? Status, string? Value, string? Unit)> Outcomes)>> LoadOrderOutcomesAsync(
+        IReadOnlyCollection<int> orderIds, CancellationToken ct)
+    {
         var orders = await db.TestOrders.AsNoTracking().Where(o => orderIds.Contains(o.Id))
             .AsSplitQuery()
             .Select(o => new
@@ -77,6 +123,7 @@ public sealed class OosOpeningRule(IMicroLimsDbContext db)
                     .Select(r => new ResultDetailDto { InterpretedValue = r.InterpretedValue, RawValue = r.RawValue }).ToList()
             }).ToListAsync(ct);
 
+        var list = new List<(int OrderId, List<(ResultStatus? Status, string? Value, string? Unit)> Outcomes)>(orders.Count);
         foreach (var order in orders)
         {
             var summary = new TestOrderSummaryDetailDto
@@ -96,31 +143,10 @@ public sealed class OosOpeningRule(IMicroLimsDbContext db)
                     summary, (status, value, unit) => (Status: status, Value: value, Unit: unit),
                     (conformance, value) => (QualitativeStatus(conformance, value, interpretation), value, null))
                 .ToList();
-
-            var failures = allOutcomes.Where(r => Opens(r.Status)).ToList();
-            if (failures.Count > 0)
-            {
-                failing.Add(order.Id, new OosOpeningResult(new TestOrderOutcome(true, failures[0].Status), FormatSummary(failures)));
-                continue;
-            }
-
-            var actionExceedances = allOutcomes.Where(r => r.Status == ResultStatus.ActionLimitExceeded).ToList();
-            if (actionExceedances.Count > 0)
-            {
-                excursions.Add(order.Id, new OosOpeningResult(
-                    new TestOrderOutcome(true, ResultStatus.ActionLimitExceeded), FormatSummary(actionExceedances)));
-                continue;
-            }
-
-            var alertExceedances = allOutcomes.Where(r => r.Status == ResultStatus.AlertLimitExceeded).ToList();
-            if (alertExceedances.Count > 0)
-            {
-                excursions.Add(order.Id, new OosOpeningResult(
-                    new TestOrderOutcome(true, ResultStatus.AlertLimitExceeded), FormatSummary(alertExceedances)));
-            }
+            list.Add((order.Id, allOutcomes));
         }
 
-        return (failing, excursions);
+        return list;
     }
 
     private static string FormatSummary(IEnumerable<(ResultStatus? Status, string? Value, string? Unit)> items)

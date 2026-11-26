@@ -267,7 +267,7 @@ public sealed class OosRetestPlanValidationPostgresTests(PostgresTestFixture fix
     }
 
     private static SaveRetestPlanRequest Request(World world) =>
-        new(OosRetestSource.RetainedSample, 2, [world.FailingOrder], world.Analysts, "Compare results to the recorded limits.", null);
+        new(OosRetestSource.RetainedSample, 2, [world.FailingOrder], world.Analysts, "Compare results to the recorded limits.", null, 1);
 
     private async Task<OosRetestPlanDto> DraftAsync(World world, SaveRetestPlanRequest? request = null,
         int? actor = null, uint? version = null)

@@ -392,16 +392,17 @@ public sealed class OosRetestPlanPostgresTests(PostgresTestFixture fixture) : IC
         var plan = await DraftAsync(world);
         await SignAsync(world, plan.Id);
         await using var act = fixture.CreateDbContext();
-        foreach (var sql in new[]
+        foreach (var (sql, expectedState) in new[]
         {
-            $"""UPDATE "OosRetestPlanSamples" SET "SampleId" = "SampleId" WHERE "PlanId" = {plan.Id}""",
-            $"""DELETE FROM "OosRetestPlanSamples" WHERE "PlanId" = {plan.Id}""",
-            """TRUNCATE "OosRetestPlanSamples" """
+            ($"""UPDATE "OosRetestPlanSamples" SET "SampleId" = "SampleId" WHERE "PlanId" = {plan.Id}""", Npgsql.PostgresErrorCodes.RaiseException),
+            ($"""DELETE FROM "OosRetestPlanSamples" WHERE "PlanId" = {plan.Id}""", Npgsql.PostgresErrorCodes.RaiseException),
+            ("""TRUNCATE "OosRetestPlanSamples" """, "0A000")
         })
         {
             var error = await Assert.ThrowsAsync<Npgsql.PostgresException>(() => act.Database.ExecuteSqlRawAsync(sql));
-            Assert.Equal(Npgsql.PostgresErrorCodes.RaiseException, error.SqlState);
-            Assert.Contains("OosRetestPlanSamples", error.MessageText);
+            Assert.Equal(expectedState, error.SqlState);
+            if (expectedState == Npgsql.PostgresErrorCodes.RaiseException)
+                Assert.Contains("OosRetestPlanSamples", error.MessageText);
         }
         await AssertExactlyOneSignAsync(world, plan.Id);
     }
@@ -689,7 +690,7 @@ public sealed class OosRetestPlanPostgresTests(PostgresTestFixture fixture) : IC
     }
 
     private static SaveRetestPlanRequest Request(World world) =>
-        new(OosRetestSource.RetainedSample, 2, [world.FailingOrder], world.Analysts, "Compare results to the recorded limits.", null);
+        new(OosRetestSource.RetainedSample, 2, [world.FailingOrder], world.Analysts, "Compare results to the recorded limits.", null, 1);
 
     private async Task<OosRetestPlanDto> DraftAsync(World world, SaveRetestPlanRequest? request = null, int? actor = null)
     {

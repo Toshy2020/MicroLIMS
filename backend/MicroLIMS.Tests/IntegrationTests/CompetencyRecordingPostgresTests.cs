@@ -944,85 +944,66 @@ public class CompetencyRecordingPostgresTests(PostgresTestFixture fixture)
     [PostgresFact]
     public async Task Completing_session_marks_only_active_orders_and_skips_cancelled_and_superseded()
     {
-        var section = await _seed.SectionAsync();
-        var qualified = await _seed.UserAsync(RoleType.Analyst, [PermissionConstants.TestsExecute], section);
-        var cause = await _seed.CauseOfTestingAsync();
-        var tag = Guid.NewGuid().ToString("N")[..8];
-        int sampleId;
-        int activeOrderId;
+        var setup = await SeedAsync();
         int cancelledOrderId;
-        int supersededOrderId;
 
         await using (var arrange = fixture.CreateDbContext())
         {
-            var point = new WaterSamplingPoint { Code = $"C217-{tag}", Location = "Shared point" };
-            var sample = new Sample
+            var point = new WaterSamplingPoint { Code = $"C217-{Guid.NewGuid():N}"[..16], Location = "Shared point" };
+            var locations = await arrange.SampleLocations.Where(l => l.SampleId == setup.SampleId).ToListAsync();
+            foreach (var location in locations)
             {
-                ReferenceNumber = $"C217-{tag}", Category = SampleCategory.FinishedProduct,
-                ReceivedByUserId = qualified.Id, CauseOfTestingId = cause.Id, Status = SampleStatus.InTesting,
-            };
-            var activeDef = new TestDefinition
-            {
-                Code = $"ACT-{tag}", DisplayName = $"Active {tag}", SectionId = section.Id,
-                WorkflowType = WorkflowType.Pathogen, RequiresLocationReadings = true,
-            };
-            var cancelledDef = new TestDefinition
-            {
-                Code = $"CAN-{tag}", DisplayName = $"Cancelled {tag}", SectionId = section.Id,
-                WorkflowType = WorkflowType.Pathogen, RequiresLocationReadings = true,
-            };
-            var supersededDef = new TestDefinition
-            {
-                Code = $"SUP-{tag}", DisplayName = $"Superseded {tag}", SectionId = section.Id,
-                WorkflowType = WorkflowType.Pathogen, RequiresLocationReadings = true,
-            };
-            arrange.TestDefinitions.AddRange(activeDef, cancelledDef, supersededDef);
-            var activeOrder = new TestOrder { Sample = sample, TestCode = activeDef.Code, SectionId = section.Id, AssignedAnalystId = qualified.Id, Status = ApprovalStatus.InProgress, CurrentStep = WorkflowStep.Running };
-            var cancelledOrder = new TestOrder { Sample = sample, TestCode = cancelledDef.Code, SectionId = section.Id, AssignedAnalystId = qualified.Id, Status = ApprovalStatus.Cancelled, CurrentStep = WorkflowStep.Running };
-            var supersededOrder = new TestOrder { Sample = sample, TestCode = supersededDef.Code, SectionId = section.Id, AssignedAnalystId = qualified.Id, Status = ApprovalStatus.InProgress, IsSuperseded = true, CurrentStep = WorkflowStep.Running };
-            arrange.TestOrders.AddRange(activeOrder, cancelledOrder, supersededOrder);
-            arrange.SampleLocations.AddRange(
-                new SampleLocation { Sample = sample, TestOrder = activeOrder, WaterSamplingPoint = point, LocationType = LocationType.Water, CFUResult = 0m, CalculatedResult = 0m, ReportedResult = "Absent", Status = ResultStatus.Absent, EnteredByUserId = qualified.Id },
-                new SampleLocation { Sample = sample, TestOrder = cancelledOrder, WaterSamplingPoint = point, LocationType = LocationType.Water },
-                new SampleLocation { Sample = sample, TestOrder = supersededOrder, WaterSamplingPoint = point, LocationType = LocationType.Water });
-            await arrange.SaveChangesAsync();
+                location.WaterSamplingPoint = point;
+                if (location.TestOrderId == setup.A.Id)
+                {
+                    location.CFUResult = 5m;
+                    location.CalculatedResult = 5m;
+                    location.ReportedResult = "5 CFU";
+                    location.Status = ResultStatus.WithinLimits;
+                    location.EnteredByUserId = setup.QualifiedId;
+                }
+            }
 
-            var sigId = await fixture.CreateSequenceHelper(arrange).ReserveIdAsync<AnalystQualification>();
-            arrange.AnalystQualifications.Add(new AnalystQualification
-            {
-                Id = sigId, UserId = qualified.Id, TestDefinitionId = activeDef.Id,
-                Basis = QualificationBasis.ObservedPractice, Evidence = "Observed",
-                QualifiedOn = new DateOnly(2026, 1, 1), SignedByUserId = fixture.SeededControllerUserId,
-                Signature = new ElectronicSignature { UserId = fixture.SeededControllerUserId, EntityType = nameof(AnalystQualification), EntityId = sigId, MeaningOfSignature = SignatureMeaning.AnalystQualified }
-            });
-            await arrange.SaveChangesAsync();
+            var supersededOrder = await arrange.TestOrders.SingleAsync(o => o.Id == setup.B.Id);
+            supersededOrder.IsSuperseded = true;
 
-            sampleId = sample.Id;
-            activeOrderId = activeOrder.Id;
+            var cancelledOrder = new TestOrder
+            {
+                SampleId = setup.SampleId,
+                TestCode = $"CAN-{Guid.NewGuid():N}"[..12],
+                SectionId = setup.A.SectionId,
+                AssignedAnalystId = setup.QualifiedId,
+                Status = ApprovalStatus.Cancelled,
+                CurrentStep = WorkflowStep.Running
+            };
+            arrange.TestOrders.Add(cancelledOrder);
+            await arrange.SaveChangesAsync();
             cancelledOrderId = cancelledOrder.Id;
-            supersededOrderId = supersededOrder.Id;
         }
 
         await using (var act = fixture.CreateDbContext())
         {
-            act.CurrentUserId = qualified.Id;
-            await TestServiceFactory.PathogenSession(act).CompleteSessionAsync(sampleId, qualified.Id);
+            act.CurrentUserId = setup.QualifiedId;
+            await TestServiceFactory.PathogenSession(act).CompleteSessionAsync(setup.SampleId, setup.QualifiedId);
         }
 
         await using var check = fixture.CreateDbContext();
-        var orders = await check.TestOrders.AsNoTracking().Where(o => o.SampleId == sampleId).ToDictionaryAsync(o => o.Id);
-        Assert.Equal(ApprovalStatus.ResultEntered, orders[activeOrderId].Status);
-        Assert.Equal(WorkflowStep.Ready, orders[activeOrderId].CurrentStep);
+        var orders = await check.TestOrders.AsNoTracking().Where(o => o.SampleId == setup.SampleId).ToDictionaryAsync(o => o.Id);
+        Assert.Equal(ApprovalStatus.ResultEntered, orders[setup.A.Id].Status);
+        Assert.Equal(WorkflowStep.Ready, orders[setup.A.Id].CurrentStep);
         Assert.Equal(ApprovalStatus.Cancelled, orders[cancelledOrderId].Status);
-        Assert.Equal(ApprovalStatus.InProgress, orders[supersededOrderId].Status);
+        Assert.Equal(ApprovalStatus.InProgress, orders[setup.B.Id].Status);
 
         var activeAudit = await check.AuditLogs.AsNoTracking().SingleAsync(a =>
-            a.EntityName == nameof(TestOrder) && a.EntityId == activeOrderId.ToString() && a.Action == "Update");
-        Assert.Equal(qualified.Id, activeAudit.UserId);
-        Assert.Contains(nameof(ApprovalStatus.ResultEntered), activeAudit.NewValue);
+            a.EntityName == nameof(TestOrder) && a.EntityId == setup.A.Id.ToString() && a.Action == "Update");
+        Assert.Equal(setup.QualifiedId, activeAudit.UserId);
+        using var newOrder = System.Text.Json.JsonDocument.Parse(Assert.IsType<string>(activeAudit.NewValue));
+        Assert.Equal((int)ApprovalStatus.ResultEntered,
+            newOrder.RootElement.GetProperty(nameof(TestOrder.Status)).GetInt32());
         Assert.False(await check.AuditLogs.AsNoTracking().AnyAsync(a =>
             a.EntityName == nameof(TestOrder) &&
-            (a.EntityId == cancelledOrderId.ToString() || a.EntityId == supersededOrderId.ToString()) &&
+            a.UserId == setup.QualifiedId &&
+            (a.EntityId == cancelledOrderId.ToString() || a.EntityId == setup.B.Id.ToString()) &&
             a.Action == "Update"));
     }
 }

@@ -123,7 +123,7 @@ public sealed class OosInvestigationReportBuilder(
                     $"Revision {p.Revision} · {ReportVocabulary.Humanize(p.Source.ToString())} ({p.RetestCount})",
                     $"Rule: {p.JudgingRule}" +
                     (p.SignedByName is null ? " (Draft)" : $"  |  Signed by {p.SignedByName} at {OosInvestigationService.FormatUtcWithZone(p.SignedAtUtc!.Value)}") +
-                    (p.Samples.Count == 0 ? "" : $"  |  Samples: {string.Join(", ", p.Samples.Select(s => s.ReferenceNumber))}")
+                    (p.Samples.Count == 0 ? "" : $"  |  Samples: {string.Join(", ", p.Samples.Select(FormatPlanSample))}")
                 )).ToList()
             });
         }
@@ -170,5 +170,14 @@ public sealed class OosInvestigationReportBuilder(
         });
 
         return doc;
+    }
+
+    private static string FormatPlanSample(OosRetestPlanSampleDto sample)
+    {
+        var marker = sample.IsReportable ? " [Reportable]" : "";
+        var results = sample.ResultSummaries is { Count: > 0 }
+            ? $" ({string.Join("; ", sample.ResultSummaries)})"
+            : "";
+        return $"{sample.ReferenceNumber}{marker}{results}";
     }
 }

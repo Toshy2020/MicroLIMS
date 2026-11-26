@@ -115,3 +115,24 @@
 **GxP:** Yes
 **Serves:** 21 CFR 11.10(d); EU GMP Annex 11 clause 12 (to be confirmed by QA)
 **Status:** Active
+
+### URS-QLT-014
+*(Draft — pending approval)*
+**Requirement:** Every generated PDF report of a quality record shall manifest each electronic signature with the signer's printed full name, UTC date and time with explicit time zone, and signature meaning; shall show restricted linked records by number/code only with a restricted marker; and shall indicate when linked records exceed the display cap.
+**GxP:** Yes
+**Serves:** 21 CFR 11.50, 11.10(e); EU GMP Annex 11 clause 14 (to be confirmed by QA)
+**Status:** Active
+
+### URS-QLT-015
+*(Draft — pending approval)*
+**Requirement:** The system shall provide quality trending (defaulting to the last 365 laboratory days, capped at 5 years) across type, classification, cause, section, item (including sample-linked items) and source, excluding cancelled and rejected records from performance rates and repeat-cause detection, hiding restricted equipment names, and reporting repeat-cause clusters within the configured window; and shall provide a role-scoped dashboard capped at 50 items per list with total counts and Section Head laboratory open lists.
+**GxP:** Yes
+**Serves:** 21 CFR 11.10(d), 211.192; EU GMP Annex 11 clause 12 (to be confirmed by QA)
+**Status:** Active
+
+### URS-QLT-016
+*(Draft — pending approval)*
+**Requirement:** The system shall emit post-commit quality workflow notifications (raised, assigned, returned, awaiting QA, action assigned, closed, rejected, cancelled) without rolling back committed steps on notification failure, and shall run a scheduled overdue check emitting at most one notification per recipient per item per laboratory day for open records and approved-plan actions.
+**GxP:** Yes
+**Serves:** 21 CFR 211.192; EU GMP Annex 11 clause 12 (to be confirmed by QA)
+**Status:** Active

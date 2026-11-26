@@ -599,6 +599,11 @@
     "fieldHint": {
       "aboutAria": "About {{label}}",
       "readMore": "Read more"
+    },
+    "signedTimeline": {
+      "title": "Signed Timeline",
+      "empty": "No electronic signatures recorded yet.",
+      "entryMeta": "{{name}} ({{role}}) · {{date}}"
     }
   },
   "statuses": {

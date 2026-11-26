@@ -647,6 +647,11 @@
     "fieldHint": {
       "aboutAria": "حول {{label}}",
       "readMore": "اقرأ المزيد"
+    },
+    "signedTimeline": {
+      "title": "الجدول الزمني الموقَّع",
+      "empty": "لا توجد تواقيع إلكترونية مسجَّلة بعد.",
+      "entryMeta": "{{name}} ({{role}}) · {{date}}"
     }
   },
   "statuses": {

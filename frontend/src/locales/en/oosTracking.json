@@ -191,11 +191,6 @@
     "submitAddress": "Mark Addressed",
     "addressedBy": "Addressed by {{name}} on {{date}}"
   },
-  "timeline": {
-    "title": "Signed Timeline",
-    "empty": "No electronic signatures recorded yet.",
-    "entryMeta": "{{name}} ({{role}}) · {{date}}"
-  },
   "summary": {
     "groupCount_one": "{{count}} OOS Group",
     "groupCount_other": "{{count}} OOS Groups",

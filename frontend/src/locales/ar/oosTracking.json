@@ -191,11 +191,6 @@
     "submitAddress": "تحديد كمُعالَج",
     "addressedBy": "عُولج بواسطة {{name}} في {{date}}"
   },
-  "timeline": {
-    "title": "الجدول الزمني الموقَّع",
-    "empty": "لا توجد تواقيع إلكترونية مسجَّلة بعد.",
-    "entryMeta": "{{name}} ({{role}}) · {{date}}"
-  },
   "summary": {
     "groupCount_zero": "لا توجد مجموعات OOS",
     "groupCount_one": "مجموعة OOS واحدة",

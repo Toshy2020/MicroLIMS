@@ -325,6 +325,11 @@ public sealed class ChangeControlService(
         {
             await targets.EnsureReadableAsync(input.TargetType, targetId, userId, ct);
         }
+        else if (input.TargetType == QualityLinkTargetType.Specification)
+        {
+            throw new BusinessRuleException(MessageCodes.ChangeControlSpecificationRequiresId,
+                "List a new specification by its item or test.");
+        }
         else if (!string.IsNullOrWhiteSpace(input.NewRecordCode))
         {
             newCode = QualityRecordCore.RequiredText(input.NewRecordCode, 100);

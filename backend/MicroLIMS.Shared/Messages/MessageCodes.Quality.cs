@@ -85,6 +85,8 @@ public static partial class MessageCodes
     public const string ChangeControlGateRecordNotListed = "ChangeControl.GateRecordNotListed";
     public const string ChangeControlGateReasonRequired = "ChangeControl.GateReasonRequired";
     public const string ChangeControlGateVersionStale = "ChangeControl.GateVersionStale";
+    public const string ChangeControlGateTransactionRequired = "ChangeControl.GateTransactionRequired";
+    public const string ChangeControlSpecificationRequiresId = "ChangeControl.SpecificationRequiresId";
 
     public const string ComplaintFutureReceivedOn = "Complaint.FutureReceivedOn";
     public const string ComplaintClassification = "Complaint.Classification";
@@ -119,6 +121,8 @@ public static partial class MessageCodes
         [ChangeControlGateRecordNotListed] = ["number"],
         [ChangeControlGateReasonRequired] = [],
         [ChangeControlGateVersionStale] = [],
+        [ChangeControlGateTransactionRequired] = [],
+        [ChangeControlSpecificationRequiresId] = [],
         [ChangeControlInvalidAffectedType] = [],
         [ChangeControlInvalidAffectedTarget] = [],
         [ChangeControlDuplicateAffected] = [],

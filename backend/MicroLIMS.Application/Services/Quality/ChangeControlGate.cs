@@ -32,9 +32,6 @@ public sealed class ChangeControlGate(
         string? matchCode,
         CancellationToken ct = default)
     {
-        if (targetId is int id && context.GetScopedGrant(targetType, id) is { } scoped)
-            return Task.FromResult<ChangeControlGrant?>(scoped);
-
         var normalizedCode = string.IsNullOrWhiteSpace(matchCode) ? null : matchCode.Trim();
         return EnsureAllowedCoreAsync(sectionIds, links =>
         {
@@ -61,13 +58,25 @@ public sealed class ChangeControlGate(
     public Task<ChangeControlGrant?> EnsureSpecificationCreateAllowedAsync(
         int sectionId,
         int itemId,
+        string? itemCode,
         int testDefinitionId,
-        CancellationToken ct = default) =>
-        EnsureAllowedCoreAsync([sectionId], links =>
+        string testCode,
+        CancellationToken ct = default)
+    {
+        var normalizedItemCode = string.IsNullOrWhiteSpace(itemCode) ? null : itemCode.Trim();
+        var normalizedTestCode = string.IsNullOrWhiteSpace(testCode) ? null : testCode.Trim();
+        return EnsureAllowedCoreAsync([sectionId], links =>
             links.FirstOrDefault(l =>
-                (l.TargetType == QualityLinkTargetType.Item && l.TargetId == itemId) ||
-                (l.TargetType == QualityLinkTargetType.TestDefinition && l.TargetId == testDefinitionId)),
+                (l.TargetType == QualityLinkTargetType.Item &&
+                    (l.TargetId == itemId ||
+                     (l.TargetId == null && normalizedItemCode != null && l.NewRecordCode != null &&
+                      string.Equals(l.NewRecordCode.Trim(), normalizedItemCode, StringComparison.OrdinalIgnoreCase)))) ||
+                (l.TargetType == QualityLinkTargetType.TestDefinition &&
+                    (l.TargetId == testDefinitionId ||
+                     (l.TargetId == null && normalizedTestCode != null && l.NewRecordCode != null &&
+                      string.Equals(l.NewRecordCode.Trim(), normalizedTestCode, StringComparison.OrdinalIgnoreCase))))),
             ct);
+    }
 
     public async Task RecordAppliedAsync(
         ChangeControlGrant? grant,
@@ -80,10 +89,13 @@ public sealed class ChangeControlGate(
 
         var auditLogId = db.ChangeTracker.Entries<AuditLog>()
             .Select(e => e.Entity)
-            .Where(a => a.EntityName == entityName && a.EntityId == entityId)
+            .Where(a => a.Id > 0 && !grant.PriorAuditEntries.Contains(a) && a.EntityName == entityName && a.EntityId == entityId)
             .OrderByDescending(a => a.Id)
             .Select(a => (int?)a.Id)
             .FirstOrDefault();
+
+        if (auditLogId is null)
+            return;
 
         var link = await db.QualityRecordLinks.SingleOrDefaultAsync(l => l.Id == grant.LinkId, ct);
         if (link is not null)
@@ -114,7 +126,7 @@ public sealed class ChangeControlGate(
         else
         {
             if (db.Database.CurrentTransaction is null)
-                throw new BusinessRuleException(MessageCodes.QualityTransactionRequired,
+                throw new BusinessRuleException(MessageCodes.ChangeControlGateTransactionRequired,
                     "A database transaction is required.");
 
             foreach (var sid in distinctSections)
@@ -175,6 +187,10 @@ public sealed class ChangeControlGate(
                 $"Change control {number} does not list this record.",
                 new Dictionary<string, string> { ["number"] = number });
 
-        return new ChangeControlGrant(recordId, number, matched.Id);
+        var priorAudits = new HashSet<AuditLog>(
+            db.ChangeTracker.Entries<AuditLog>().Select(e => e.Entity),
+            ReferenceEqualityComparer.Instance);
+
+        return new ChangeControlGrant(recordId, number, matched.Id, priorAudits);
     }
 }

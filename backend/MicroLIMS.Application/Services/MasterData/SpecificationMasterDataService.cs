@@ -98,7 +98,7 @@ public class SpecificationMasterDataService
         return rows;
     }
 
-    public Task<SpecificationResponse> CreateSpecificationAsync(int currentUserId, CreateSpecificationRequest request) =>
+    public Task<SpecificationResponse> CreateSpecificationAsync(int currentUserId, CreateSpecificationRequest request, CancellationToken cancellationToken = default) =>
         UnitOfWork.RunAsync(_db, async () =>
     {
         await SpecificationOwnership.EnsureCanEditAsync(_db, _scope, currentUserId, request.TestCode);
@@ -106,8 +106,13 @@ public class SpecificationMasterDataService
         var testDefInfo = await _db.TestDefinitions.AsNoTracking()
             .Where(t => t.Code == request.TestCode)
             .Select(t => new { t.Id, t.SectionId, t.DisplayName })
-            .FirstAsync();
-        var grant = await _gate.EnsureSpecificationCreateAllowedAsync(testDefInfo.SectionId, request.ItemId, testDefInfo.Id);
+            .FirstAsync(cancellationToken);
+        var itemCode = await _db.Items.AsNoTracking()
+            .Where(i => i.Id == request.ItemId)
+            .Select(i => i.Code)
+            .FirstOrDefaultAsync(cancellationToken);
+        var grant = await _gate.EnsureSpecificationCreateAllowedAsync(
+            testDefInfo.SectionId, request.ItemId, itemCode, testDefInfo.Id, request.TestCode, cancellationToken);
         using var _ = AuditReasonScope.Append(_db, grant is null ? null : $"Change control {grant.Number}");
 
         var limitType = request.LimitType ?? LimitType.CountTiered;
@@ -167,13 +172,13 @@ public class SpecificationMasterDataService
         };
 
         SpecificationService.ApplyCanonicalSpecLimit(spec);
-        await _specificationService.ValidateAsync(spec);
+        await _specificationService.ValidateAsync(spec, cancellationToken);
 
         _db.Specifications.Add(spec);
-        await _db.SaveChangesAsync();
-        await _gate.RecordAppliedAsync(grant, nameof(Specification), spec.Id.ToString(CultureInfo.InvariantCulture));
+        await _db.SaveChangesAsync(cancellationToken);
+        await _gate.RecordAppliedAsync(grant, nameof(Specification), spec.Id.ToString(CultureInfo.InvariantCulture), cancellationToken);
         return SpecificationResponse.From(spec);
-    });
+    }, cancellationToken);
 
     public Task<IReadOnlyList<SpecificationResponse>> CreateSpecificationsBatchAsync(
         int currentUserId,
@@ -182,7 +187,7 @@ public class SpecificationMasterDataService
         _batch.ExecuteAsync(
             requests,
             (row, index, token) => ValidateCreateSpecificationRowAsync(currentUserId, row, index, token),
-            row => CreateSpecificationAsync(currentUserId, row),
+            row => CreateSpecificationAsync(currentUserId, row, ct),
             ct: ct);
 
     private async Task<IReadOnlyList<FieldError>> ValidateCreateSpecificationRowAsync(

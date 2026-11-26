@@ -56,21 +56,19 @@ public class TestDefinitionMasterDataService
     public Task<string[]> GetEditableCodesAsync(int currentUserId, CancellationToken ct = default) =>
         TestCodeOwnership.GetEditableCodesOrAllActiveAsync(_db, _scope, currentUserId, ct);
 
-    public Task<TestDefinitionResponse> CreateTestDefinitionAsync(int currentUserId, CreateTestDefinitionRequest request) =>
+    public Task<TestDefinitionResponse> CreateTestDefinitionAsync(int currentUserId, CreateTestDefinitionRequest request, CancellationToken cancellationToken = default) =>
         UnitOfWork.RunAsync(_db, async () =>
     {
-        var entity = await PrepareCreateTestDefinitionAsync(currentUserId, request, dryRun: false, CancellationToken.None);
-        var grant = await _gate.EnsureAllowedAsync(entity.SectionId, QualityLinkTargetType.TestDefinition, null, entity.Code);
+        var entity = await PrepareCreateTestDefinitionAsync(currentUserId, request, dryRun: false, cancellationToken);
+        var grant = await _gate.EnsureAllowedAsync(entity.SectionId, QualityLinkTargetType.TestDefinition, null, entity.Code, cancellationToken);
         using var _ = AuditReasonScope.Append(_db, grant is null ? null : $"Change control {grant.Number}");
         if (_db.CurrentUserId is null && currentUserId > 0)
             _db.CurrentUserId = currentUserId;
         _db.TestDefinitions.Add(entity);
-        await _db.SaveChangesAsync();
-        await _gate.RecordAppliedAsync(grant, nameof(TestDefinition), entity.Id.ToString(CultureInfo.InvariantCulture));
-        if (grant is not null)
-            _gate.Context.SetScopedGrant(QualityLinkTargetType.TestDefinition, entity.Id, grant);
+        await _db.SaveChangesAsync(cancellationToken);
+        await _gate.RecordAppliedAsync(grant, nameof(TestDefinition), entity.Id.ToString(CultureInfo.InvariantCulture), cancellationToken);
         return TestDefinitionResponse.From(entity);
-    });
+    }, cancellationToken);
 
     public async Task<TestDefinitionResponse> CreateTestWithStepsAsync(
         int currentUserId,
@@ -94,7 +92,7 @@ public class TestDefinitionMasterDataService
 
             cancellationToken.ThrowIfCancellationRequested();
 
-            var created = await CreateTestDefinitionAsync(currentUserId, request.Test);
+            var created = await CreateTestDefinitionAsync(currentUserId, request.Test, cancellationToken);
 
             for (var i = 0; i < stages.Count; i++)
             {
@@ -102,7 +100,7 @@ public class TestDefinitionMasterDataService
                 var stage = stages[i];
                 try
                 {
-                    await _stageReplicateService.CreateTestDefinitionStageReplicateAsync(currentUserId, created.Id, stage);
+                    await _stageReplicateService.CreateTestDefinitionStageReplicateAsync(currentUserId, created.Id, stage, cancellationToken);
                 }
                 catch (BusinessRuleException ex)
                 {

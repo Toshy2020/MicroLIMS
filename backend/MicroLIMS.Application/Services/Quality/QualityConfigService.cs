@@ -320,10 +320,10 @@ public sealed partial class QualityConfigService(IMicroLimsDbContext db, Quality
     {
         await RequireAsync(userId, PermissionConstants.QualityApprove, ct);
 
-        var reasonText = reason?.Trim();
-        if (string.IsNullOrEmpty(reasonText))
+        if (string.IsNullOrWhiteSpace(reason))
             throw new BusinessRuleException(MessageCodes.ChangeControlGateReasonRequired,
                 "A reason is required to change the change-control gate.");
+        var reasonText = QualityRecordCore.RequiredText(reason, 4000);
 
         if (!await db.DocumentSections.AsNoTracking().AnyAsync(s => s.Id == sectionId, ct))
             throw QualityRecordCore.Missing();
@@ -348,9 +348,10 @@ public sealed partial class QualityConfigService(IMicroLimsDbContext db, Quality
         }
 
         var sigService = signatures ?? new ElectronicSignatureService(db, clock);
-        await sigService.SignAsync(userId, password ?? string.Empty,
+        var signature = await sigService.SignAsync(userId, password ?? string.Empty,
             SignatureMeaning.ChangeControlGateChanged, nameof(QualitySectionSetting), sectionId,
             reasonText, ip, ct);
+        signature.SignedAt = clock.GetUtcNow().UtcDateTime;
 
         if (row is null)
         {
@@ -368,7 +369,7 @@ public sealed partial class QualityConfigService(IMicroLimsDbContext db, Quality
         {
             await db.SaveChangesAsync(ct);
         }
-        catch (DbUpdateException)
+        catch (DbUpdateException ex) when (ex.InnerException is System.Data.Common.DbException { SqlState: "23505" })
         {
             throw new StaleSectionSettingException();
         }

@@ -66,7 +66,14 @@ public static class ReportDocumentMapper
         return $"{code} rev. {number}{label}{date}";
     }
 
-    internal static string SopCaptureText(SopCaptureDto? capture, TimeZoneInfo? labZone) => capture?.Status switch
+    internal static string PreCaptureText(DateTime? startDateUtc, TimeZoneInfo? labZone)
+    {
+        if (startDateUtc is not { } utc) return "SOP not recorded";
+        var local = TimeZoneInfo.ConvertTime(new DateTimeOffset(utc, TimeSpan.Zero), labZone ?? TimeZoneInfo.Utc);
+        return $"Not recorded (before {local.ToString("dd-MMM-yyyy", CultureInfo.InvariantCulture)})";
+    }
+
+    internal static string SopCaptureText(SopCaptureDto? capture, TimeZoneInfo? labZone, DateTime? startDateUtc = null) => capture?.Status switch
     {
         nameof(SopCaptureStatus.Captured) => SopMethodText(capture.DocumentCode ?? "", capture.Title,
             capture.RevisionNumber ?? "", capture.EffectiveDateUtc, labZone),
@@ -74,7 +81,7 @@ public static class ReportDocumentMapper
         nameof(SopCaptureStatus.NotFound) => "SOP not recorded: SOP not found in Document Control",
         nameof(SopCaptureStatus.NoEffectiveRevision) => "SOP not recorded: No effective revision",
         nameof(SopCaptureStatus.Ambiguous) => "SOP not recorded: Multiple documents match the SOP number",
-        _ => "SOP not recorded"
+        _ => PreCaptureText(startDateUtc, labZone)
     };
 
     public static ReportDocument ForSample(SampleSummaryDto s, TimeZoneInfo? labZone = null)
@@ -147,7 +154,9 @@ public static class ReportDocumentMapper
             {
                 Label = "methods",
                 Rows = s.Certificate.Sample.MethodDocuments.Select(m =>
-                    ("Method", SopMethodText(m.DocumentCode, m.Title, m.RevisionNumber, m.EffectiveDateUtc, labZone))).ToList()
+                    ("Method", m.PreCaptureStartDateUtc is { } preCaptureUtc
+                        ? PreCaptureText(preCaptureUtc, labZone)
+                        : SopMethodText(m.DocumentCode, m.Title, m.RevisionNumber, m.EffectiveDateUtc, labZone))).ToList()
             });
         }
 
@@ -176,7 +185,7 @@ public static class ReportDocumentMapper
         {
             var card = ToTestCard(t);
             if (t.SopCapture is not null || s.ItemId.HasValue)
-                card.MetaLines.Add(SopCaptureText(t.SopCapture, labZone));
+                card.MetaLines.Add(SopCaptureText(t.SopCapture, labZone, s.SopCaptureStartDateUtc));
             doc.Blocks.Add(card);
             doc.Blocks.AddRange(ToReadingsTables(t));
         }

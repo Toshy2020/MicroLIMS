@@ -27,7 +27,8 @@ public static class CertificateOfAnalysisBuilder
             .Where(x => sectionIds is null || x.SectionId is null || sectionIds.Contains(x.SectionId.Value))
             .Where(x => x.Kind != "NotApplicable" || !ordered.Contains(x.TestCode))
             .ToList();
-        var sample = BuildScope(summary.TestOrders, noResultsText: SampleCompliesNoResultsText, supportingRows: visibleSupporting);
+        var sample = BuildScope(summary.TestOrders, noResultsText: SampleCompliesNoResultsText, supportingRows: visibleSupporting,
+            hasItem: summary.ItemId.HasValue, sopCaptureStartDateUtc: summary.SopCaptureStartDateUtc);
 
         // A rejected sample still gets a certificate; it names the rejecting
         // laboratories instead of restating the result verdict.
@@ -47,31 +48,40 @@ public static class CertificateOfAnalysisBuilder
                     SectionId = s.SectionId,
                     SectionName = s.SectionName,
                     Scope = BuildScope(summary.TestOrders.Where(t => t.SectionId == s.SectionId).ToList(), noResultsText: SampleCompliesNoResultsText,
-                        supportingRows: visibleSupporting?.Where(x => x.SectionId is null || x.SectionId == s.SectionId).ToList())
+                        supportingRows: visibleSupporting?.Where(x => x.SectionId is null || x.SectionId == s.SectionId).ToList(),
+                        hasItem: summary.ItemId.HasValue, sopCaptureStartDateUtc: summary.SopCaptureStartDateUtc)
                 })
                 .ToList()
         };
     }
 
     public static CoaScopeDto BuildScope(IReadOnlyList<TestOrderSummaryDetailDto> testOrders, string noResultsText,
-        IReadOnlyList<CoaSimpleRowDto>? supportingRows = null)
+        IReadOnlyList<CoaSimpleRowDto>? supportingRows = null, bool hasItem = false, DateTime? sopCaptureStartDateUtc = null)
     {
         var matrix = BuildMatrix(testOrders);
         var simple = matrix is null ? BuildSimpleRows(testOrders) : null;
 
+        var methods = testOrders
+            .Where(t => !t.IsSuperseded && !t.IsOosInvalidated)
+            .Select(t => t.SopCapture)
+            .OfType<SopCaptureDto>()
+            .Where(s => s.Status == nameof(SopCaptureStatus.Captured) && s.RevisionId.HasValue &&
+                s.DocumentCode != null && s.Title != null && s.RevisionNumber != null)
+            .DistinctBy(s => s.RevisionId)
+            .OrderBy(s => s.DocumentCode, StringComparer.Ordinal)
+            .ThenBy(s => s.RevisionNumber, RevisionNumberComparer)
+            .Select(s => new CoaMethodDocumentDto(s.DocumentCode ?? "", s.Title ?? "", s.RevisionNumber ?? "", s.EffectiveDateUtc))
+            .ToList();
+
+        if (hasItem && sopCaptureStartDateUtc is { } startDateUtc &&
+            testOrders.Any(t => !t.IsSuperseded && !t.IsOosInvalidated && t.SopCapture is null))
+        {
+            methods.Add(new CoaMethodDocumentDto("", "", "", null, startDateUtc));
+        }
+
         return new CoaScopeDto
         {
-            MethodDocuments = testOrders
-                .Where(t => !t.IsSuperseded && !t.IsOosInvalidated)
-                .Select(t => t.SopCapture)
-                .OfType<SopCaptureDto>()
-                .Where(s => s.Status == nameof(SopCaptureStatus.Captured) && s.RevisionId.HasValue &&
-                    s.DocumentCode != null && s.Title != null && s.RevisionNumber != null)
-                .DistinctBy(s => s.RevisionId)
-                .OrderBy(s => s.DocumentCode, StringComparer.Ordinal)
-                .ThenBy(s => s.RevisionNumber, RevisionNumberComparer)
-                .Select(s => new CoaMethodDocumentDto(s.DocumentCode ?? "", s.Title ?? "", s.RevisionNumber ?? "", s.EffectiveDateUtc))
-                .ToList(),
+            MethodDocuments = methods,
             Matrix = matrix,
             Simple = simple,
             SupportingRows = supportingRows?.ToList() ?? new(),

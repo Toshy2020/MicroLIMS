@@ -72,6 +72,7 @@ public class SampleSummaryDto
     // reads as across every laboratory (a rejection by any lab wins at
     // once), distinct from Status which only follows the labs still open.
     public string OverallStatus { get; set; } = string.Empty;
+    public DateTime? SopCaptureStartDateUtc { get; set; }
 
     // True once no lab is still open (Sample.Status is Approved or
     // Rejected) - a Certificate of Analysis can be generated/downloaded.

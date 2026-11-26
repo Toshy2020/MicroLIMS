@@ -136,6 +136,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<AddLaboratoryService>();
         services.AddScoped<SampleTestSelectionService>();
         services.AddScoped<SampleSummaryService>();
+        services.AddScoped<ISopCaptureStartDateReader, SopCaptureStartDateReader>();
         services.AddScoped<SampleTrackingService>();
         services.AddScoped<OosTrackingService>();
         services.AddScoped<DashboardService>();

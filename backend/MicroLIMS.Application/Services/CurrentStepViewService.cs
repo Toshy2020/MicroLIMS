@@ -20,12 +20,14 @@ public class CurrentStepViewService
     private readonly IMicroLimsDbContext _db;
     private readonly ITestWorkflowEngine _engine;
     private readonly TimeProvider _time;
+    private readonly Interfaces.ISopCaptureStartDateReader? _sopCaptureStartDateReader;
 
-    public CurrentStepViewService(IMicroLimsDbContext db, ITestWorkflowEngine engine, TimeProvider? timeProvider = null)
+    public CurrentStepViewService(IMicroLimsDbContext db, ITestWorkflowEngine engine, TimeProvider? timeProvider = null, Interfaces.ISopCaptureStartDateReader? sopCaptureStartDateReader = null)
     {
         _time = timeProvider ?? TimeProvider.System;
         _db = db;
         _engine = engine;
+        _sopCaptureStartDateReader = sopCaptureStartDateReader;
     }
 
     public async Task<object> GetAsync(int testOrderId, CancellationToken ct = default)
@@ -35,6 +37,9 @@ public class CurrentStepViewService
         var order = details.Order;
         var facts = details.Facts;
         var sopCapture = TestOrderSopDisplay.Capture(order);
+        var sopCaptureStartDateUtc = _sopCaptureStartDateReader is null
+            ? null
+            : await _sopCaptureStartDateReader.GetStartDateUtcAsync(ct);
         var newerSopRevision = (await TestOrderSopDisplay.ReadNoticesAsync(
             _db, [order], _time.GetUtcNow().UtcDateTime, ct)).GetValueOrDefault(order.Id);
 
@@ -371,6 +376,7 @@ public class CurrentStepViewService
             {
                 testOrderId,
                 sopCapture,
+                sopCaptureStartDateUtc,
                 newerSopRevision,
                 outsourcedToLab = order.OutsourcedToLab,
                 status = order.Status.ToString(),
@@ -433,6 +439,7 @@ public class CurrentStepViewService
         {
             testOrderId,
             sopCapture,
+            sopCaptureStartDateUtc,
             newerSopRevision,
             outsourcedToLab = order.OutsourcedToLab,
             status = order.Status.ToString(),

@@ -23,8 +23,9 @@ public class SampleSummaryService
     private readonly TimeProvider _time;
     private readonly OosGate _oosGate;
     private readonly TimeZoneInfo? _labZone;
+    private readonly Interfaces.ISopCaptureStartDateReader? _sopCaptureStartDateReader;
 
-    public SampleSummaryService(IMicroLimsDbContext db, IPdfGenerator pdfGenerator, IWordGenerator wordGenerator, ReviewGateService reviewGate, OosGate oosGate, TimeProvider? timeProvider = null, Interfaces.ILabClock? labClock = null)
+    public SampleSummaryService(IMicroLimsDbContext db, IPdfGenerator pdfGenerator, IWordGenerator wordGenerator, ReviewGateService reviewGate, OosGate oosGate, TimeProvider? timeProvider = null, Interfaces.ILabClock? labClock = null, Interfaces.ISopCaptureStartDateReader? sopCaptureStartDateReader = null)
     {
         _time = timeProvider ?? TimeProvider.System;
         _db = db;
@@ -33,6 +34,7 @@ public class SampleSummaryService
         _reviewGate = reviewGate;
         _oosGate = oosGate;
         _labZone = labClock?.LabTimeZone;
+        _sopCaptureStartDateReader = sopCaptureStartDateReader;
     }
 
     // A retest can be partial - only the TestCode(s) actually selected for
@@ -335,6 +337,9 @@ public class SampleSummaryService
             Category = sample.Category.ToString(),
             ItemId = sample.ItemId,
             LabTimeZoneId = TestOrderSopDisplay.LabTimeZoneId(_labZone),
+            SopCaptureStartDateUtc = _sopCaptureStartDateReader is null
+                ? null
+                : await _sopCaptureStartDateReader.GetStartDateUtcAsync(ct),
             DisplayName = summaryDisplayName,
             ProductionStage = sample.ProductionStage,
             CauseOfTesting = sample.CauseOfTesting?.Name ?? string.Empty,
@@ -553,7 +558,9 @@ public class SampleSummaryService
             lines.Add($"Storage Condition: {s.StorageCondition}" + (s.StorageCondition == "Refrigerator" ? $" ({s.StorageTimeHours ?? 0}h)" : ""));
         lines.Add($"Status: {s.Status}");
         foreach (var method in s.Certificate.Sample.MethodDocuments)
-            lines.Add($"Method: {ReportDocumentMapper.SopMethodText(method.DocumentCode, method.Title, method.RevisionNumber, method.EffectiveDateUtc, labZone)}");
+            lines.Add($"Method: {(method.PreCaptureStartDateUtc is { } preCaptureUtc
+                ? ReportDocumentMapper.PreCaptureText(preCaptureUtc, labZone)
+                : ReportDocumentMapper.SopMethodText(method.DocumentCode, method.Title, method.RevisionNumber, method.EffectiveDateUtc, labZone))}");
         lines.Add("");
 
         if (s.Preparation is not null)
@@ -580,7 +587,7 @@ public class SampleSummaryService
             lines.Add($"{order.TestCode} - {order.TestDisplayName} [{order.Status}]{(order.IsSuperseded ? " (superseded)" : "")}");
 
             if (order.SopCapture is not null || s.ItemId.HasValue)
-                lines.Add($"  {ReportDocumentMapper.SopCaptureText(order.SopCapture, labZone)}");
+                lines.Add($"  {ReportDocumentMapper.SopCaptureText(order.SopCapture, labZone, s.SopCaptureStartDateUtc)}");
 
             foreach (var competencyOverride in order.CompetencyOverrides)
             {

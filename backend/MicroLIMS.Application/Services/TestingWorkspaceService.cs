@@ -19,13 +19,15 @@ public class TestingWorkspaceService : ITestWorkspaceService
     private readonly IUserSectionScopeService _scope;
     private readonly TimeProvider _time;
     private readonly string _labTimeZoneId;
+    private readonly ISopCaptureStartDateReader? _sopCaptureStartDateReader;
 
-    public TestingWorkspaceService(IMicroLimsDbContext db, IUserSectionScopeService scope, TimeProvider? timeProvider = null, ILabClock? labClock = null)
+    public TestingWorkspaceService(IMicroLimsDbContext db, IUserSectionScopeService scope, TimeProvider? timeProvider = null, ILabClock? labClock = null, ISopCaptureStartDateReader? sopCaptureStartDateReader = null)
     {
         _time = timeProvider ?? TimeProvider.System;
         _db = db;
         _scope = scope;
         _labTimeZoneId = TestOrderSopDisplay.LabTimeZoneId(labClock?.LabTimeZone);
+        _sopCaptureStartDateReader = sopCaptureStartDateReader;
     }
 
     private static readonly Expression<Func<Sample, string>> SampleDisplayNameExpression = s =>
@@ -514,8 +516,14 @@ public class TestingWorkspaceService : ITestWorkspaceService
         var result = samples
             .Select(s => ToDto(s, testDefs, incubations, locationCounts, analystNames, incubationsBySampleId, mediaLookup, noPreparationSectionIds, now))
             .ToList();
+        var sopCaptureStartDateUtc = _sopCaptureStartDateReader is null
+            ? null
+            : await _sopCaptureStartDateReader.GetStartDateUtcAsync(ct);
         foreach (var dto in result)
+        {
             dto.LabTimeZoneId = _labTimeZoneId;
+            dto.SopCaptureStartDateUtc = sopCaptureStartDateUtc;
+        }
         foreach (var test in result.SelectMany(s => s.AssignedTests))
             test.NewerSopRevision = sopNotices.GetValueOrDefault(test.TestOrderId);
         return result;

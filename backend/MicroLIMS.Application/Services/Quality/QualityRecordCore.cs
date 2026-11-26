@@ -141,7 +141,9 @@ public class QualityRecordCore(
             {
                 Attachments = r.Attachments.OrderBy(a => a.Id).Select(a => new QualityAttachmentDto(a.Id,
                     a.OriginalFileName, a.ContentType, a.FileSizeBytes, a.UploadedByUserId, a.UploadedAtUtc,
-                    a.VoidedAtUtc, a.VoidedByUserId, a.VoidReason)).ToList()
+                    a.VoidedAtUtc, a.VoidedByUserId, a.VoidReason,
+                    db.Users.Where(u => u.Id == a.UploadedByUserId).Select(u => u.FullName).FirstOrDefault() ?? string.Empty,
+                    a.VoidedByUserId == null ? null : db.Users.Where(u => u.Id == a.VoidedByUserId).Select(u => u.FullName).FirstOrDefault())).ToList()
             }).SingleOrDefaultAsync(ct) ?? throw Missing();
     }
 

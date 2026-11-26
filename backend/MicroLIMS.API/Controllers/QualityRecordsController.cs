@@ -89,7 +89,7 @@ public class QualityRecordsController(QualityRecordCore core, QualityLinkService
     [HttpGet("{id:int}/links")]
     [Authorize(Policy = PermissionConstants.QualityView)]
     public async Task<IActionResult> ResolveLinks(int id, int offset = 0, int pageSize = 25, CancellationToken ct = default) =>
-        Ok(ApiResponse<IReadOnlyList<QualityLinkDto>>.Ok(await links.ResolveAsync(id, Actor, offset, pageSize, ct)));
+        Ok(ApiResponse<PagedResult<QualityLinkDto>>.Ok(await links.ResolvePagedAsync(id, Actor, offset, pageSize, ct)));
 
     [HttpGet("for-target/{type}/{targetId:int}")]
     [Authorize(Policy = PermissionConstants.QualityView)]

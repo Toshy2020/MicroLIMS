@@ -32,7 +32,8 @@ public class QualityAttachmentService(IMicroLimsDbContext db, QualityRecordCore 
         };
         db.QualityAttachments.Add(attachment);
         await db.SaveChangesAsync(ct);
-        return ToDto(attachment);
+        var uploadedByName = await UserNameAsync(userId, ct);
+        return ToDto(attachment, uploadedByName, null);
     }, ct);
 
     public async Task<QualityAttachmentContent> GetContentAsync(int recordId, int attachmentId, int userId,
@@ -94,12 +95,19 @@ public class QualityAttachmentService(IMicroLimsDbContext db, QualityRecordCore 
         attachment.VoidedByUserId = userId;
         db.SetNextAuditReason(attachment, attachment.VoidReason);
         await db.SaveChangesAsync(ct);
-        return ToDto(attachment);
+        var uploadedByName = await UserNameAsync(attachment.UploadedByUserId, ct);
+        var voidedByName = await UserNameAsync(userId, ct);
+        return ToDto(attachment, uploadedByName, voidedByName);
     }, ct);
 
     public static BusinessRuleException InvalidAttachment() => new(MessageCodes.QualityInvalidAttachment,
         "Choose an allowed attachment with valid file content and a size between 1 byte and 10 MB.");
 
-    private static QualityAttachmentDto ToDto(QualityAttachment a) => new(a.Id, a.OriginalFileName, a.ContentType,
-        a.FileSizeBytes, a.UploadedByUserId, a.UploadedAtUtc, a.VoidedAtUtc, a.VoidedByUserId, a.VoidReason);
+    private Task<string> UserNameAsync(int id, CancellationToken ct) =>
+        db.Users.AsNoTracking().Where(u => u.Id == id).Select(u => u.FullName).FirstOrDefaultAsync(ct)
+        .ContinueWith(t => t.Result ?? string.Empty, ct, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
+
+    private static QualityAttachmentDto ToDto(QualityAttachment a, string uploadedByName, string? voidedByName) =>
+        new(a.Id, a.OriginalFileName, a.ContentType, a.FileSizeBytes, a.UploadedByUserId, a.UploadedAtUtc,
+            a.VoidedAtUtc, a.VoidedByUserId, a.VoidReason, uploadedByName, voidedByName);
 }

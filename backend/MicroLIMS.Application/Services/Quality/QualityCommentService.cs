@@ -18,7 +18,11 @@ public class QualityCommentService(IMicroLimsDbContext db, QualityRecordCore cor
         };
         db.QualityComments.Add(comment);
         await db.SaveChangesAsync(ct);
-        return new QualityCommentDto(comment.Id, comment.Text, comment.AuthorUserId, comment.CreatedAtUtc);
+        var authorName = await db.Users.AsNoTracking()
+            .Where(u => u.Id == userId)
+            .Select(u => u.FullName)
+            .FirstOrDefaultAsync(ct) ?? string.Empty;
+        return new QualityCommentDto(comment.Id, comment.Text, comment.AuthorUserId, comment.CreatedAtUtc, authorName);
     }, ct);
 
     public async Task<IReadOnlyList<QualityCommentDto>> ListAsync(int recordId, int userId, int offset, int pageSize,
@@ -29,6 +33,12 @@ public class QualityCommentService(IMicroLimsDbContext db, QualityRecordCore cor
         return await db.QualityComments.AsNoTracking().Where(c => c.RecordId == recordId)
             .OrderBy(c => c.Id).Skip(Math.Max(0, offset))
             .Take(Paging.Normalize(1, pageSize, 1).PageSize)
-            .Select(c => new QualityCommentDto(c.Id, c.Text, c.AuthorUserId, c.CreatedAtUtc)).ToListAsync(ct);
+            .Select(c => new QualityCommentDto(
+                c.Id,
+                c.Text,
+                c.AuthorUserId,
+                c.CreatedAtUtc,
+                db.Users.Where(u => u.Id == c.AuthorUserId).Select(u => u.FullName).FirstOrDefault() ?? string.Empty))
+            .ToListAsync(ct);
     }
 }

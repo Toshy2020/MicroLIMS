@@ -66,7 +66,8 @@ public sealed record QualityActionDetailDto(
     string? DoneByName,
     string? Evidence,
     int? EvidenceLinkId,
-    uint Version);
+    uint Version,
+    bool IsOverdue);
 
 public sealed record QualityDeviationDetailDto(
     QualityDeviationStatus Status,

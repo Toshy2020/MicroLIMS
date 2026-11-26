@@ -608,6 +608,7 @@ QualityRecordsController.DownloadAttachment(Int32, Int32, CancellationToken): Se
 QualityRecordsController.ForTarget(QualityLinkTargetType, Int32, Int32, Int32, CancellationToken): SectionHead,Reviewer,Analyst,QcManager,Qa
 QualityRecordsController.GetById(Int32, CancellationToken): SectionHead,Reviewer,Analyst,QcManager,Qa
 QualityRecordsController.GetDashboard(CancellationToken): SectionHead,Reviewer,Analyst,QcManager,Qa
+QualityRecordsController.GetQaAvailability(CancellationToken): SectionHead,Reviewer,Analyst,QcManager,Qa
 QualityRecordsController.GetRecordDetail(Int32, CancellationToken): SectionHead,Reviewer,Analyst,QcManager,Qa
 QualityRecordsController.GetRecordPdf(Int32, CancellationToken): SectionHead,Reviewer,Analyst,QcManager,Qa
 QualityRecordsController.GetTrends(String, Nullable`1, Nullable`1, Int32, CancellationToken): SectionHead,Reviewer,Analyst,QcManager,Qa

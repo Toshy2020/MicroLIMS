@@ -48,11 +48,26 @@ public sealed class OosTrendService(
             baseQuery = baseQuery.Where(i => i.SectionId == sec);
 
         var fromUtc = from is DateTime f ? OosReadDates.ToUtc(f) : (DateTime?)null;
-        var toUtc = to is DateTime t ? OosReadDates.ToUtc(t) : (DateTime?)null;
+        DateTime? toUtc = null;
+        DateTime? toExclusiveUtc = null;
+        if (to is DateTime t)
+        {
+            var tUtc = OosReadDates.ToUtc(t);
+            if (t.TimeOfDay == TimeSpan.Zero)
+            {
+                toExclusiveUtc = tUtc.AddDays(1);
+                toUtc = toExclusiveUtc.Value.AddSeconds(-1);
+            }
+            else
+            {
+                toUtc = tUtc;
+                toExclusiveUtc = tUtc.AddTicks(1);
+            }
+        }
         if (fromUtc.HasValue)
             baseQuery = baseQuery.Where(i => i.OpenedAtUtc >= fromUtc.Value);
-        if (toUtc.HasValue)
-            baseQuery = baseQuery.Where(i => i.OpenedAtUtc <= toUtc.Value);
+        if (toExclusiveUtc.HasValue)
+            baseQuery = baseQuery.Where(i => i.OpenedAtUtc < toExclusiveUtc.Value);
 
         var rows = normalized switch
         {

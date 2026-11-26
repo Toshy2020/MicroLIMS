@@ -118,6 +118,7 @@ export function QualityRegisterPage() {
 
   const [classifications, setClassifications] = useState<QualityClassificationDto[]>([]);
   const [sections, setSections] = useState<LaboratorySection[]>([]);
+  const [hasActiveQa, setHasActiveQa] = useState(true);
   const [failedLookups, setFailedLookups] = useState<LookupKey[]>([]);
   const [lookupAttempt, setLookupAttempt] = useState(0);
 
@@ -144,7 +145,15 @@ export function QualityRegisterPage() {
         .then((result) => {
           if (!controller.signal.aborted) setSections(result);
         })
-        .catch(() => markFailed("sections"))
+        .catch(() => markFailed("sections")),
+      qualityService
+        .getQaAvailability(controller.signal)
+        .then((result) => {
+          if (!controller.signal.aborted) setHasActiveQa(result.hasActiveQa);
+        })
+        .catch(() => {
+          // Keep default true if availability check fails so we don't show a false warning.
+        })
     ]).then(() => {
       if (!controller.signal.aborted) setFailedLookups(failed);
     });
@@ -266,6 +275,11 @@ export function QualityRegisterPage() {
       </Tabs>
 
       <Stack spacing={2}>
+        {!hasActiveQa && (
+          <Alert severity="warning" role="status">
+            {t("register.noActiveQa")}
+          </Alert>
+        )}
         {failedLookups.length > 0 && (
           <PartialOutageBanner
             sources={failedLookups.map((key) => t(`register.outageSources.${key}`))}

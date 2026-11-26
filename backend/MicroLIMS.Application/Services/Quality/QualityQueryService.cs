@@ -830,6 +830,17 @@ public sealed class QualityQueryService(
         return repeatCauses.OrderByDescending(r => r.OccurrenceCount).ToList();
     }
 
+    public async Task<QaAvailabilityDto> GetQaAvailabilityAsync(CancellationToken ct = default)
+    {
+        var now = clock.UtcNow;
+        var hasActiveQa = await db.Users.AsNoTracking()
+            .AnyAsync(u => u.IsActive && u.Role != null && u.Role.IsActive &&
+                u.Role.Type == RoleType.Qa &&
+                (u.LockedUntil == null || u.LockedUntil <= now) &&
+                db.RolePermissions.Any(rp => rp.RoleId == u.RoleId && rp.Permission!.Code == PermissionConstants.QualityApprove), ct);
+        return new QaAvailabilityDto(hasActiveQa);
+    }
+
     public async Task<QualityDashboardDto> GetDashboardAsync(int userId, CancellationToken ct = default)
     {
         var access = await core.GetReadAccessAsync(userId, ct);

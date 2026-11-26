@@ -484,8 +484,16 @@ describe("QualityRegisterPage", () => {
     renderPage();
 
     expect(await screen.findByText("DEV-2026-0001")).toBeTruthy();
-    const banner = await screen.findByRole("status");
-    expect(banner.textContent).toContain("No active QA user");
+    const banner = screen.getByText(/No active QA user/);
+    expect(banner.closest('[role="status"]')).toBeTruthy();
+
+    cleanup();
+    serve({
+      qaAvailability: () => Promise.resolve({ data: { success: true, data: { hasActiveQa: true } } })
+    });
+    renderPage();
+    expect(await screen.findByText("DEV-2026-0001")).toBeTruthy();
+    expect(screen.queryByText(/No active QA user/)).toBeNull();
   });
 });
 

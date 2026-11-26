@@ -604,7 +604,7 @@ public class SopRevisionCapturePostgresTests(PostgresTestFixture fixture)
 
         var summary = await ReadSummaryAsync(setup.OrderId);
         Assert.Equal(
-            new[] { "01.2", "01.10", "02", "02.1", "2", "10" },
+            new[] { "01.2", "01.10", "02", "2", "02.1", "10" },
             summary.Certificate.Sample.MethodDocuments.Select(m => m.RevisionNumber));
     }
 }

@@ -393,4 +393,52 @@ public sealed class QualityQueriesPostgresTests(PostgresTestFixture fixture)
             Assert.NotNull(exportLog);
         }
     }
+
+    [PostgresFact]
+    public async Task Qa_availability_is_true_when_active_qa_user_exists_and_false_when_none()
+    {
+        var clock = new MutableClock(Utc(2090, 1, 1));
+        int qaId;
+        await using (var arrange = Context(clock))
+        {
+            qaId = await CreateUserAsync(arrange, RoleType.Qa, fixture.SeededSectionId, "Active QA User",
+                PermissionConstants.QualityView, PermissionConstants.QualityApprove);
+        }
+
+        await using (var act = Context(clock, qaId))
+        {
+            var available = await QueryService(act, clock).GetQaAvailabilityAsync();
+            Assert.True(available.HasActiveQa);
+        }
+
+        // Deactivate all active QA users holding Quality.Approve (including any seeded QA users) in a fresh context,
+        // then verify HasActiveQa becomes false and restore them afterwards.
+        List<int> deactivatedIds;
+        await using (var arrange = Context(clock))
+        {
+            var qaUsers = await arrange.Users
+                .Where(u => u.IsActive && u.Role != null && u.Role.IsActive && u.Role.Type == RoleType.Qa &&
+                    arrange.RolePermissions.Any(rp => rp.RoleId == u.RoleId && rp.Permission!.Code == PermissionConstants.QualityApprove))
+                .ToListAsync();
+            deactivatedIds = qaUsers.Select(u => u.Id).ToList();
+            foreach (var u in qaUsers)
+                u.IsActive = false;
+            await arrange.SaveChangesAsync();
+        }
+
+        try
+        {
+            await using var act = Context(clock, qaId);
+            var unavailable = await QueryService(act, clock).GetQaAvailabilityAsync();
+            Assert.False(unavailable.HasActiveQa);
+        }
+        finally
+        {
+            await using var cleanup = Context(clock);
+            var toRestore = await cleanup.Users.Where(u => deactivatedIds.Contains(u.Id)).ToListAsync();
+            foreach (var u in toRestore)
+                u.IsActive = true;
+            await cleanup.SaveChangesAsync();
+        }
+    }
 }

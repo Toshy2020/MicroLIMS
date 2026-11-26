@@ -69,7 +69,7 @@ public static class CertificateOfAnalysisBuilder
                     s.DocumentCode != null && s.Title != null && s.RevisionNumber != null)
                 .DistinctBy(s => s.RevisionId)
                 .OrderBy(s => s.DocumentCode, StringComparer.Ordinal)
-                .ThenBy(s => s.RevisionNumber, StringComparer.Ordinal)
+                .ThenBy(s => s.RevisionNumber, RevisionNumberComparer)
                 .Select(s => new CoaMethodDocumentDto(s.DocumentCode ?? "", s.Title ?? "", s.RevisionNumber ?? "", s.EffectiveDateUtc))
                 .ToList(),
             Matrix = matrix,
@@ -398,5 +398,31 @@ public static class CertificateOfAnalysisBuilder
         var spaced = Regex.Replace(value, "([a-z0-9])([A-Z])", "$1 $2");
         spaced = Regex.Replace(spaced, "([A-Z]+)([A-Z][a-z])", "$1 $2");
         return Regex.Replace(spaced, @"\s+(.)", m => " " + m.Groups[1].Value.ToLowerInvariant());
+    }
+
+    private static readonly IComparer<string?> RevisionNumberComparer = Comparer<string?>.Create(CompareRevisionNumbers);
+
+    // Document Control numbers revisions as "01", "02", ..., "10" or dotted minor revisions "01.2", "01.10".
+    // Compare each dot-separated segment numerically when both segments are non-negative integers so "2" < "10"
+    // and "01.2" < "01.10", while keeping ordinal comparison for non-numeric segments.
+    private static int CompareRevisionNumbers(string? left, string? right)
+    {
+        if (ReferenceEquals(left, right)) return 0;
+        if (left is null) return -1;
+        if (right is null) return 1;
+
+        var leftParts = left.Trim().Split('.');
+        var rightParts = right.Trim().Split('.');
+        var count = Math.Min(leftParts.Length, rightParts.Length);
+        for (var i = 0; i < count; i++)
+        {
+            var cmp = int.TryParse(leftParts[i], System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var li) &&
+                      int.TryParse(rightParts[i], System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var ri)
+                ? li.CompareTo(ri)
+                : StringComparer.Ordinal.Compare(leftParts[i], rightParts[i]);
+            if (cmp != 0) return cmp;
+        }
+        var lengthCmp = leftParts.Length.CompareTo(rightParts.Length);
+        return lengthCmp != 0 ? lengthCmp : StringComparer.Ordinal.Compare(left, right);
     }
 }

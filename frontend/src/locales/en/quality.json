@@ -53,6 +53,7 @@
     "emptyTitle": "No quality records found",
     "emptyDescription": "No record matches the selected tab and filters.",
     "loadError": "Failed to load quality records.",
+    "noActiveQa": "No active QA user is currently configured. Records can be raised and investigated, but approval and closure are unavailable.",
     "shown": "Showing {{shown}} of {{total}} records.",
     "outageSources": {
       "classifications": "classifications",

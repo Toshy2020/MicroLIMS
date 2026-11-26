@@ -16,7 +16,7 @@ vi.mock("../../../services/apiClient", async (importOriginal) => {
 });
 
 import { LinksPanel } from "./LinksPanel";
-import { link } from "../testFixtures";
+import { link, networkFailure, refusal } from "../testFixtures";
 import type { QualityLinkDto } from "../../../services/qualityService";
 
 const searchResult = {
@@ -178,7 +178,7 @@ describe("LinksPanel", () => {
 
   it("shows the server's refusal beside the action and does not reload", async () => {
     const user = userEvent.setup();
-    http.post.mockRejectedValue({ response: { data: { message: "This target is already linked." } } });
+    http.post.mockRejectedValue(refusal("This target is already linked."));
     const { onChanged } = renderPanel();
 
     await user.click(screen.getByRole("button", { name: "Add link" }));
@@ -192,7 +192,7 @@ describe("LinksPanel", () => {
 
   it("says when the search itself fails", async () => {
     const user = userEvent.setup();
-    http.get.mockRejectedValue(new Error("offline"));
+    http.get.mockRejectedValue(networkFailure());
     renderPanel();
 
     await user.click(screen.getByRole("button", { name: "Add link" }));

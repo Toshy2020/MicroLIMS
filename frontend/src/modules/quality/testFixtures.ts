@@ -1,3 +1,4 @@
+import { AxiosError, type InternalAxiosRequestConfig } from "axios";
 import type {
   QualityActionDetailDto,
   QualityAttachmentDto,
@@ -176,4 +177,20 @@ export function recordDetail(overrides: Partial<QualityRecordDetailDto> = {}): Q
     linksCount: 0,
     ...overrides
   };
+}
+
+// A refusal as apiClient delivers it: an AxiosError whose body carries the server's own sentence.
+export function refusal(message: string): AxiosError {
+  return new AxiosError(
+    "Request failed with status code 400",
+    "ERR_BAD_REQUEST",
+    undefined,
+    undefined,
+    { status: 400, statusText: "Bad Request", headers: {}, config: {} as InternalAxiosRequestConfig, data: { success: false, message } }
+  );
+}
+
+// A request that never reached the server, with the readable text apiClient puts on such errors.
+export function networkFailure(): AxiosError {
+  return new AxiosError("Could not reach the MicroLIMS server. Check your network connection and try again.", "ERR_NETWORK");
 }

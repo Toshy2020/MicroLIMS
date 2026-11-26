@@ -15,7 +15,7 @@ vi.mock("../../../services/apiClient", async (importOriginal) => {
 });
 
 import { ActionsPanel } from "./ActionsPanel";
-import { actionDetail, link } from "../testFixtures";
+import { actionDetail, link, refusal } from "../testFixtures";
 import type { QualityActionDetailDto, QualityLinkDto, QualityRecordType } from "../../../services/qualityService";
 
 interface PanelOptions {
@@ -155,7 +155,7 @@ describe("ActionsPanel", () => {
 
   it("keeps the dialog open and shows the server's refusal when completing fails", async () => {
     const user = userEvent.setup();
-    http.post.mockRejectedValue({ response: { data: { message: "The CAPA plan must be approved first." } } });
+    http.post.mockRejectedValue(refusal("The CAPA plan must be approved first."));
     const { onChanged } = renderPanel();
 
     await user.click(screen.getByRole("button", { name: "Complete action: Recalibrate the incubator probe" }));

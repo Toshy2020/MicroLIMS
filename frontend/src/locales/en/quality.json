@@ -227,7 +227,8 @@
     "voidSubmit": "Void attachment",
     "voided": "Voided",
     "voidedLine": "Voided {{date}}: {{reason}}",
-    "unavailable": "Attachments could not be loaded."
+    "unavailable": "Attachments could not be loaded.",
+    "voidFailed": "The attachment could not be voided."
   },
   "comments": {
     "title": "Comments",
@@ -239,7 +240,8 @@
     "posting": "Posting...",
     "you": "You",
     "author": "User {{id}}",
-    "line": "{{author}} · {{date}}"
+    "line": "{{author}} · {{date}}",
+    "postFailed": "The comment could not be posted."
   },
   "extensions": {
     "title": "Due-date extensions",

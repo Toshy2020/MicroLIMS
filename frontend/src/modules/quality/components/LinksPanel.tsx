@@ -6,7 +6,7 @@ import { Link as RouterLink } from "react-router-dom";
 import { useTranslation } from "../../../i18n";
 import { MetaBadge, ToneBadge } from "../../../components/StatusBadge";
 import { monospaceFontFamily } from "../../../theme/palette";
-import { serverMessage } from "../../../utils/errorMessage";
+import { getErrorMessage } from "../../../utils/errorMessage";
 import { globalSearchApi } from "../../../api/globalSearchApi";
 import { qualityService, type QualityLinkDto, type QualityLinkTargetType } from "../../../services/qualityService";
 import { PanelFrame } from "./PanelFrame";
@@ -116,7 +116,7 @@ export function LinksPanel({ recordId, recordVersion, links, canEdit, onChanged 
       closeSearch();
       await onChanged();
     } catch (e: unknown) {
-      setError(serverMessage(e) ?? t("links.changeFailed"));
+      setError(getErrorMessage(e, t("links.changeFailed")));
     } finally {
       setBusy(false);
     }
@@ -129,7 +129,7 @@ export function LinksPanel({ recordId, recordVersion, links, canEdit, onChanged 
       await qualityService.removeLink(recordId, link.id, recordVersion);
       await onChanged();
     } catch (e: unknown) {
-      setError(serverMessage(e) ?? t("links.changeFailed"));
+      setError(getErrorMessage(e, t("links.changeFailed")));
     } finally {
       setBusy(false);
     }

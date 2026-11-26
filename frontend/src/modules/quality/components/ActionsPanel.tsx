@@ -3,7 +3,7 @@ import { Box, Button, List, ListItem, MenuItem, Stack, TextField, Typography } f
 import { useTranslation } from "../../../i18n";
 import { FormDialog } from "../../../components/lab/FormDialog";
 import { MetaBadge, ToneBadge } from "../../../components/StatusBadge";
-import { serverMessage } from "../../../utils/errorMessage";
+import { getErrorMessage } from "../../../utils/errorMessage";
 import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
 import {
   qualityService,
@@ -56,7 +56,7 @@ export function ActionsPanel({ record, actions, links, currentUserId, onChanged,
       closeDialog();
       await onChanged();
     } catch (e: unknown) {
-      setError(serverMessage(e) ?? t("actions.completeFailed"));
+      setError(getErrorMessage(e, t("actions.completeFailed")));
     } finally {
       setSubmitting(false);
     }

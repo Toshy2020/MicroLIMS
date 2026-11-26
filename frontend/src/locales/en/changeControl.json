@@ -14,5 +14,9 @@
     "cancel": "Cancel",
     "cancelled": "Not saved: no change control was chosen.",
     "refusalHeading": "The server refused the change"
+  },
+  "workbook": {
+    "title": "Change control number (optional)",
+    "hint": "If the laboratory requires a change control, enter its number in the change control field and import the remaining rows again."
   }
 }

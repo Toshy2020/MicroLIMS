@@ -5,6 +5,8 @@ import { LabPage, RegisterTable } from "../../../components/lab";
 import type { RegisterColumn } from "../../../components/lab";
 import { SectionTitle } from "../../../components/SectionTitle";
 import { SignatureDialog } from "../../../components/SignatureDialog";
+import { ChangeControlNumberField, normaliseChangeControlNumber } from "../../../components/ChangeControlNumberField";
+import { useAuth } from "../../../contexts/AuthContext";
 import { masterDataWorkbookService as api } from "./masterDataWorkbookService";
 import { WorkbookReportTable } from "./WorkbookReportTable";
 import { canLoad } from "./types";
@@ -16,6 +18,8 @@ import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
 // shows its report.
 export function MasterDataWorkbookPage() {
   const { t } = useTranslation("labConfig");
+  const { t: tc } = useTranslation("changeControl");
+  const { permissions } = useAuth();
   const [file, setFile] = useState<File | null>(null);
   const [report, setReport] = useState<WorkbookReport | null>(null);
   const [busy, setBusy] = useState(false);
@@ -23,6 +27,11 @@ export function MasterDataWorkbookPage() {
   const [imports, setImports] = useState<MasterDataImport[]>([]);
   const [signing, setSigning] = useState<"load" | MasterDataImport | null>(null);
   const [comment, setComment] = useState("");
+  // Optional approved change control for a laboratory whose gate is on (CONF-227); sent with the import only.
+  const [changeControlInput, setChangeControlInput] = useState("");
+  const [importRefused, setImportRefused] = useState(false);
+  const changeControl = normaliseChangeControlNumber(changeControlInput);
+  const changeControlInvalid = changeControlInput.trim() !== "" && !changeControl.valid;
 
   const refresh = useCallback(() => api.imports().then(setImports), []);
   useEffect(() => { void refresh(); }, [refresh]);
@@ -37,8 +46,9 @@ export function MasterDataWorkbookPage() {
 
   const sign = async (password: string) => {
     if (signing === "load" && file) {
-      const result = await api.load(file, password, comment);
+      const result = await api.load(file, password, comment, changeControl.valid ? changeControl.number : undefined);
       setReport(result.report);
+      setImportRefused(!result.committed && result.report.hasErrors);
       if (result.committed) {
         setMessage({ text: t("masterDataWorkbook.loaded"), ok: true });
         setFile(null);
@@ -90,8 +100,18 @@ export function MasterDataWorkbookPage() {
             </Button>
             <Typography variant="body2">{file?.name ?? t("masterDataWorkbook.noFile")}</Typography>
             <Button variant="contained" disabled={!file || busy} onClick={check}>{busy ? t("masterDataWorkbook.checking") : t("masterDataWorkbook.checkFile")}</Button>
-            <Button variant="contained" color="success" disabled={!file || !canLoad(report) || busy} onClick={() => setSigning("load")}>{t("masterDataWorkbook.loadAndSign")}</Button>
+            <Button variant="contained" color="success" disabled={!file || !canLoad(report) || busy || changeControlInvalid} onClick={() => setSigning("load")}>{t("masterDataWorkbook.loadAndSign")}</Button>
           </Stack>
+          <Stack sx={{ mt: 2, maxWidth: 520 }}>
+            <Typography variant="subtitle2" component="h3" sx={{ mb: 1 }}>{tc("workbook.title")}</Typography>
+            <ChangeControlNumberField
+              sectionId={null}
+              value={changeControlInput}
+              onChange={setChangeControlInput}
+              listEnabled={permissions.includes("Quality.View")}
+            />
+          </Stack>
+          {importRefused && <Alert severity="info" sx={{ mt: 2 }}>{tc("workbook.hint")}</Alert>}
           {report && <Stack sx={{ mt: 2 }}><WorkbookReportTable report={report} /></Stack>}
         </Paper>
 

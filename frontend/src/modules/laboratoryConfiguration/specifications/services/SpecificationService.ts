@@ -204,7 +204,10 @@ export const SpecificationService = {
       .then((r) => r.data.data ?? []),
   previewCopy: (request: CopySpecificationsRequest): Promise<CopySpecificationsPreviewRow[]> =>
     apiClient.post("/masterdata/specifications/copy/preview", request).then((r) => r.data.data ?? []),
-  copySpecifications: (request: CopySpecificationsRequest): Promise<number> =>
-    apiClient.post("/masterdata/specifications/copy", request).then((r) => r.data.data)
+  copySpecifications: (request: CopySpecificationsRequest, changeControl?: string): Promise<number> =>
+    (changeControl
+      ? apiClient.post("/masterdata/specifications/copy", request, withChangeControl(undefined, changeControl))
+      : apiClient.post("/masterdata/specifications/copy", request)
+    ).then((r) => r.data.data)
 };
 

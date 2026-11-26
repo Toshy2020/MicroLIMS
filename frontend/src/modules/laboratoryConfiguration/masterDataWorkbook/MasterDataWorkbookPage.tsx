@@ -13,12 +13,13 @@ import { canLoad } from "./types";
 import type { MasterDataImport, WorkbookReport } from "./types";
 import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
 
+const QUALITY_VIEW_PERMISSION = "Quality.View";
+
 // Master data workbook: download, check (dry run), load (signed) and
 // second-person verify. Every rule is on the server; this page only
 // shows its report.
 export function MasterDataWorkbookPage() {
   const { t } = useTranslation("labConfig");
-  const { t: tc } = useTranslation("changeControl");
   const { permissions } = useAuth();
   const [file, setFile] = useState<File | null>(null);
   const [report, setReport] = useState<WorkbookReport | null>(null);
@@ -103,15 +104,15 @@ export function MasterDataWorkbookPage() {
             <Button variant="contained" color="success" disabled={!file || !canLoad(report) || busy || changeControlInvalid} onClick={() => setSigning("load")}>{t("masterDataWorkbook.loadAndSign")}</Button>
           </Stack>
           <Stack sx={{ mt: 2, maxWidth: 520 }}>
-            <Typography variant="subtitle2" component="h3" sx={{ mb: 1 }}>{tc("workbook.title")}</Typography>
+            <Typography variant="subtitle2" component="h3" sx={{ mb: 1 }}>{t("changeControl:workbook.title")}</Typography>
             <ChangeControlNumberField
               sectionId={null}
               value={changeControlInput}
               onChange={setChangeControlInput}
-              listEnabled={permissions.includes("Quality.View")}
+              listEnabled={permissions.includes(QUALITY_VIEW_PERMISSION)}
             />
           </Stack>
-          {importRefused && <Alert severity="info" sx={{ mt: 2 }}>{tc("workbook.hint")}</Alert>}
+          {importRefused && <Alert severity="info" sx={{ mt: 2 }}>{t("changeControl:workbook.hint")}</Alert>}
           {report && <Stack sx={{ mt: 2 }}><WorkbookReportTable report={report} /></Stack>}
         </Paper>
 

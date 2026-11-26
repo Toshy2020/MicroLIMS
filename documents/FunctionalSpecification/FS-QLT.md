@@ -4,7 +4,7 @@
 |---|---|
 | Document number | FS-QLT |
 | Title | Quality records (deviation, CAPA, change control, complaint) functional specification |
-| Version | 0.1 |
+| Version | 0.2 |
 | Status | Draft — pending approval |
 | Author | Claude (AI agent), draft from code |
 | Reviewer | To be assigned by QA |
@@ -16,11 +16,12 @@
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1 | 2026-11-25 | AI coding agent, draft from code | First draft for D2 Tasks 1 to 8 as merged on r3/integration (FS-QLT-001..018; Draft — pending approval). |
+| 0.2 | 2026-11-26 | AI coding agent, draft from code | Added D2 Task 9, the master-data change-control gate (FS-QLT-022..024, Draft — pending approval); corrected FS-QLT-001, FS-QLT-016 and FS-QLT-018 against the code; scope notes updated to D2 Tasks 1 to 10. |
 
 ## Scope and reading notes
 
-- This document describes the quality record code merged for D2 Tasks 1 to 10. Every statement was written from the code files named in each entry.
-- Not described here, because not merged: the master-data change-control gate (D2 Task 9) and all screens (Tasks 11 to 13).
+- This document describes the quality record code merged for D2 Tasks 1 to 10 and Task 9 (FS-QLT-022 to FS-QLT-024). Every statement was written from the code files named in each entry.
+- Not described here: the screens (D2 Tasks 11 to 13).
 - Where the approved specification and the code disagree, the entry says what the code does and names the `CONF` entry in `documents/Conflicts.md`.
 - In every entry, "refused" means the service throws a coded error (message codes in `backend/MicroLIMS.Shared/Messages/MessageCodes.Quality.cs` and the English texts in `frontend/src/locales/en/serverMessages.json`).
 
@@ -30,7 +31,7 @@
 *(Draft — pending approval)*
 **Satisfies:** URS-QLT-001
 **Function:** Creation and numbering. `QualityRecordCore.CreateAsync` is the one place that writes a new `QualityRecord`. Create access by type (`EnsureCreateAccessAsync`): Deviation needs `Quality.Raise`; ChangeControl needs `Quality.Raise` and an active user whose role is SectionHead, QcManager or Qa; Capa needs `Quality.Investigate` or `Quality.Approve`; Complaint needs `Quality.Approve`. A section, when given, must be one the user is a member of and must exist (`DocumentSections`). Title is 1 to 200 characters and description 1 to 4000 (`RequiredText`). Links given at creation must be readable by the user. The number comes from `ReferenceNumberGenerator.GenerateQualityNumberAsync` under a per-type transaction advisory lock (`AdvisoryLockKeys.QualityDeviation`, `QualityCapa`, `QualityChangeControl`, `QualityComplaint`): the prefix is `DEV-`, `CAPA-`, `CC-` or `CMP-` followed by the laboratory year and `-`, and the sequence is the highest existing suffix plus one, written with four digits. There is no generic create route: `POST api/quality/{type}` was removed (CONF-230), so every record is created through its typed service.
-**Code:** `backend/MicroLIMS.Application/Services/Quality/QualityRecordCore.cs` — `CreateAsync`, `EnsureCreateAccessAsync`; `backend/MicroLIMS.Application/Services/ReferenceNumberGenerator.cs` — `GenerateQualityNumberAsync`; `backend/MicroLIMS.API/Controllers/QualityRecordsController.cs` — `Create`
+**Code:** `backend/MicroLIMS.Application/Services/Quality/QualityRecordCore.cs` — `CreateAsync`, `EnsureCreateAccessAsync`; `backend/MicroLIMS.Application/Services/ReferenceNumberGenerator.cs` — `GenerateQualityNumberAsync`
 **Verified by:** reading (not run)
 **Conflicts:** CONF-230
 
@@ -177,7 +178,7 @@
 ### FS-QLT-016
 *(Draft — pending approval)*
 **Satisfies:** URS-QLT-008, URS-QLT-013
-**Function:** Endpoints and authorisation. Routes: `api/quality/deviations`, `api/quality/capas`, `api/quality/change-controls`, `api/quality/complaints`, `api/quality` (configuration, extensions and overdue) and `api/quality` (records, links, attachments, comments) in `QualityRecordsController`. Each endpoint has a permission policy (`PermissionConstants.Quality*`, or `PermissionPolicyProvider.QualityApproveOrInvestigate`). The policy is necessary but not sufficient: where a service makes the decision, for example the CAPA plan save, the complaint investigation save and the CAPA action completion, the route policy is `Quality.View` and the service refuses the caller. Every change to an existing record requires an `If-Match` version (`RecordVersionMiddleware.ParseExpectedVersion`); a missing version is refused with `Quality.VersionRequired`. Creation routes do not take a version. `backend/MicroLIMS.Tests/ArchitectureTests/authorization-matrix.txt` lists the role types permitted by each of the 60 quality endpoints.
+**Function:** Endpoints and authorisation. Routes: `api/quality/deviations`, `api/quality/capas`, `api/quality/change-controls`, `api/quality/complaints`, `api/quality` (configuration, extensions and overdue) and `api/quality` (records, links, attachments, comments) in `QualityRecordsController`. Each endpoint has a permission policy (`PermissionConstants.Quality*`, or `PermissionPolicyProvider.QualityApproveOrInvestigate`). The policy is necessary but not sufficient: where a service makes the decision, for example the CAPA plan save, the complaint investigation save and the CAPA action completion, the route policy is `Quality.View` and the service refuses the caller. Every change to an existing record requires an `If-Match` version (`RecordVersionMiddleware.ParseExpectedVersion`); a missing version is refused with `Quality.VersionRequired`. Creation routes do not take a version. `backend/MicroLIMS.Tests/ArchitectureTests/authorization-matrix.txt` lists the role types permitted by each of the 66 quality controller endpoints.
 **Code:** `backend/MicroLIMS.API/Controllers/Quality/DeviationsController.cs`; `backend/MicroLIMS.API/Controllers/Quality/CapasController.cs`; `backend/MicroLIMS.API/Controllers/Quality/ChangeControlsController.cs`; `backend/MicroLIMS.API/Controllers/Quality/ComplaintsController.cs`; `backend/MicroLIMS.API/Controllers/Quality/QualityConfigController.cs`; `backend/MicroLIMS.API/Controllers/QualityRecordsController.cs`; `backend/MicroLIMS.API/Authorization/PermissionPolicyProvider.cs`
 **Verified by:** reading (not run)
 **Conflicts:** CONF-230
@@ -195,7 +196,7 @@
 **Satisfies:** URS-QLT-008
 **Function:** Master-data writes that quality records depend on (the Task 8 fix, merged as commit 9ed6ced). `TestWorkflowStepMasterDataService` takes the caller's user ID on the workflow-type update and on the create, update, move and delete of a step, and checks `TestConfigurationScope.EnsureCanConfigureAsync` for the test's section. The update, move and delete of a step, and the workflow-type update, call `RecordVersion.EnsureCurrent` on the stored row. `TestDefinitionMasterDataService.FreezeTestDefinitionAsync` and `UnfreezeTestDefinitionAsync` take the user ID, check the same scope and version, and then run the change-reason guard (`_reasonGuard.EnsureAsync`) before saving.
 **Code:** `backend/MicroLIMS.Application/Services/MasterData/TestWorkflowStepMasterDataService.cs` — `UpdateWorkflowTypeAsync`, `UpdateTestWorkflowStepAsync`, `MoveTestWorkflowStepAsync`, `DeleteTestWorkflowStepAsync`; `backend/MicroLIMS.Application/Services/MasterData/TestDefinitionMasterDataService.cs` — `FreezeTestDefinitionAsync`, `UnfreezeTestDefinitionAsync`
-**Verified by:** reading (not run). The Task 8 tests (`MasterDataWriteScopePostgresTests`) were not run for this document.
+**Verified by:** reading (not run). The Task 8 tests (`TestConfigurationWriteScopePostgresTests`) were not run for this document.
 
 ### FS-QLT-019
 *(Draft — pending approval)*
@@ -220,3 +221,27 @@
 **Code:** `backend/MicroLIMS.Application/Services/Notifications/IPermissionRecipientResolver.cs`; `backend/MicroLIMS.Application/Services/Oos/OosRecipientResolver.cs`; `backend/MicroLIMS.Application/Services/Quality/QualityNotifier.cs`; `backend/MicroLIMS.API/BackgroundServices/QualityOverdueWorker.cs`; `backend/MicroLIMS.Application/Services/BackgroundJobs/BackgroundJobCatalog.cs`
 **Verified by:** `QualityNotificationsAndWorkerPostgresTests`
 **Conflicts:** CONF-241
+
+### FS-QLT-022
+*(Draft — pending approval)*
+**Satisfies:** URS-QLT-017
+**Function:** Gated master-data writes (D2 Task 9). `ChangeControlGate` runs inside the caller's transaction and refuses with `ChangeControl.GateTransactionRequired` when there is none. For each laboratory section that the write touches it takes a shared row lock on the section's `QualitySectionSettings` row. When `ChangeControlRequired` is false for every such section, the write proceeds unchanged and the `X-Change-Control` value is ignored. When it is true, the write needs the change-control number from the header (set by the middleware, FS-QLT-023): a missing number is refused with `ChangeControl.GateRequired`; a number with no change control record of type ChangeControl is refused with `ChangeControl.GateNotFound`; a cancelled change control, or one not in `ApprovedForImplementation`, with `ChangeControl.GateNotApproved`; a change control whose laboratory differs from the write's section with `ChangeControl.GateWrongLaboratory`; and a change control with no matching affected link with `ChangeControl.GateRecordNotListed`. Only affected links (`IsAffectedByChange`) are considered. A link matches the record by `TargetId`. A link with no `TargetId` (a created test definition) matches by `NewRecordCode`, trimmed and case-insensitive. A specification create matches an Item link by item ID or item code, or a TestDefinition link by test ID or test code (`EnsureSpecificationCreateAllowedAsync`). Specification update, delete and reinstate match only the specification's own link by its ID, so a listed item or test does not cover edits to existing specifications. The 16 gated writes are: specification create, update, delete and reinstate; test definition create, update, freeze and unfreeze; test workflow type update, step create, update, move and delete; and test stage replicate create, update and delete. Other writes are not gated (CONF-227). After a gated write, `RecordAppliedAsync` looks for the audit row that this write created for the entity. When it exists, the matched link gets `ChangedAtUtc` from the injected clock and `ChangeAuditLogId`, and a repeated change overwrites both. When no audit row is created (a write that changes nothing), the link is not changed (CONF-227 D1). The audit reason of the write is set to `Change control {number}` when the gate applied.
+**Code:** `backend/MicroLIMS.Application/Services/Quality/ChangeControlGate.cs` — `EnsureAllowedAsync`, `EnsureAllowedForSectionsAsync`, `EnsureSpecificationCreateAllowedAsync`, `RecordAppliedAsync`; `backend/MicroLIMS.Application/Services/MasterData/SpecificationMasterDataService.cs` — `CreateSpecificationAsync`, `UpdateSpecificationAsync`, `DeleteSpecificationAsync`, `ReinstateSpecificationAsync`; `backend/MicroLIMS.Application/Services/MasterData/TestDefinitionMasterDataService.cs` — `CreateTestDefinitionAsync`, `UpdateTestDefinitionAsync`, `FreezeTestDefinitionAsync`, `UnfreezeTestDefinitionAsync`; `backend/MicroLIMS.Application/Services/MasterData/TestWorkflowStepMasterDataService.cs` — `UpdateWorkflowTypeAsync`, `CreateTestWorkflowStepAsync`, `UpdateTestWorkflowStepAsync`, `MoveTestWorkflowStepAsync`, `DeleteTestWorkflowStepAsync`; `backend/MicroLIMS.Application/Services/MasterData/TestStageReplicateMasterDataService.cs` — `CreateTestDefinitionStageReplicateAsync`, `UpdateTestDefinitionStageReplicateAsync`, `DeleteTestDefinitionStageReplicateAsync`
+**Verified by:** reading (not run). `ChangeControlGatePostgresTests` and `ChangeControlGateFixesPostgresTests` were not run for this document.
+**Conflicts:** CONF-227, CONF-232
+
+### FS-QLT-023
+*(Draft — pending approval)*
+**Satisfies:** URS-QLT-018
+**Function:** Gate switch and the change-control header. `QualityConfigService.SetSectionSettingAsync` (`PUT api/quality/section-settings/{sectionId}`) switches `ChangeControlRequired` for one laboratory. It requires `Quality.Approve`, and refuses a blank reason (`ChangeControl.GateReasonRequired`); the reason is stored as entered, up to 4000 characters. An unknown section is refused. The transaction takes a table lock on `QualitySectionSettings`. When a settings row exists, the expected version (`If-Match`) is required (`Quality.VersionRequired` when missing) and a different version is refused with `ChangeControl.GateVersionStale`; a first save with a non-zero expected version is refused the same way. The electronic signature (user identity and password, meaning `SignatureMeaning.ChangeControlGateChanged`, entity `QualitySectionSetting`, record ID = section ID) is created before the flag changes, and the audit reason is the entered reason. `GET api/quality/section-settings/{sectionId}` returns the stored value and version, or `false` with version 0 when no row exists. `ChangeControlHeaderMiddleware` reads `X-Change-Control` on every request before the endpoint runs. A request with more than one value, or with a value that does not match `^[A-Z0-9-]{1,20}$` after trimming and upper-casing, is refused with `ChangeControl.HeaderInvalid` (HTTP 400), whether or not the gate is on for the laboratory. A valid value is stored in the request-scoped change-control context.
+**Code:** `backend/MicroLIMS.Application/Services/Quality/QualityConfigService.cs` — `GetSectionSettingAsync`, `SetSectionSettingAsync`; `backend/MicroLIMS.API/Controllers/Quality/QualityConfigController.cs` — section-settings routes; `backend/MicroLIMS.API/Middleware/ChangeControlHeaderMiddleware.cs` — `InvokeAsync`; `backend/MicroLIMS.API/Extensions/ApplicationBuilderExtensions.cs` — middleware registration
+**Verified by:** reading (not run)
+**Conflicts:** CONF-227
+
+### FS-QLT-024
+*(Draft — pending approval)*
+**Satisfies:** URS-QLT-019
+**Function:** Item deletion and affected specification links (D2 Task 9, CONF-227 D2 and D3). `ItemService.DeleteAsync` keeps its existing cascade to the item's specifications, without the gate. After the not-applicable check it refuses with `Item.DeleteBlockedByChangeControlGate` when any specification of the item has a test definition (matched by test code) in a laboratory whose gate is on. `ChangeControlService.BuildAffectedLinkAsync` builds every affected link, for both proposing and adding an affected record. Affected types are Item, Specification, TestDefinition, Equipment and DocumentMaster (`ChangeControl.InvalidAffectedType`). A Specification link without a `TargetId` is refused with `ChangeControl.SpecificationRequiresId` ("List a new specification by its item or test."); a link with a `TargetId` must be readable by the caller. An Item or TestDefinition link without a `TargetId` needs a `NewRecordCode` of up to 100 characters, and any other link without either value is refused with `ChangeControl.InvalidAffectedTarget`.
+**Code:** `backend/MicroLIMS.Application/Services/ItemService.cs` — `DeleteAsync`; `backend/MicroLIMS.Application/Services/Quality/ChangeControlService.cs` — `BuildAffectedLinkAsync`
+**Verified by:** reading (not run)
+**Conflicts:** CONF-227

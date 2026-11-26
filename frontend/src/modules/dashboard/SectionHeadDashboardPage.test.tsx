@@ -151,8 +151,12 @@ describe("SectionHeadDashboardPage", () => {
     expect(labOpenLink.textContent).toContain("7");
     expect(labOpenLink.getAttribute("href")).toBe("/quality");
 
-    expect(screen.getByRole("link", { name: /My open records & actions/i }).textContent).toContain("3");
-    expect(screen.getByRole("link", { name: /Overdue quality items/i }).textContent).toContain("1");
+    const myOpenLink = screen.getByRole("link", { name: /My open records & actions/i });
+    expect(myOpenLink.textContent).toContain("3");
+    expect(myOpenLink.getAttribute("href")).toBe("/quality?owner=me");
+    const overdueLink = screen.getByRole("link", { name: /Overdue quality items/i });
+    expect(overdueLink.textContent).toContain("1");
+    expect(overdueLink.getAttribute("href")).toBe("/quality?overdue=true");
 
     cleanup();
     vi.mocked(qualityDashboardService.getDashboard).mockRejectedValueOnce(new Error("Down"));

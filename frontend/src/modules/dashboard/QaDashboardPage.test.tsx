@@ -297,7 +297,9 @@ describe("QaDashboardPage and dashboard routing", () => {
     expect(decisionLink.textContent).toContain("5");
     expect(decisionLink.getAttribute("href")).toBe("/quality");
 
-    expect(screen.getByRole("link", { name: /My open records & actions/i }).textContent).toContain("5");
+    const myOpenLink = screen.getByRole("link", { name: /My open records & actions/i });
+    expect(myOpenLink.textContent).toContain("5");
+    expect(myOpenLink.getAttribute("href")).toBe("/quality?owner=me");
     const overdueLink = screen.getByRole("link", { name: /Overdue quality items/i });
     expect(overdueLink.textContent).toContain("5");
     expect(overdueLink.getAttribute("href")).toBe("/quality?overdue=true");

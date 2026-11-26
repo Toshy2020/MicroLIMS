@@ -5,7 +5,7 @@ import { Link } from "react-router-dom";
 import { useTranslation } from "../../i18n";
 import { PageHeader } from "../../components/PageHeader";
 import { EmptyState } from "../../components/lab/EmptyState";
-import { RegisterTable, type RegisterColumn } from "../../components/lab/RegisterTable";
+import { TrendTable, type TrendColumn } from "../../components/lab/TrendTable";
 import { getErrorMessage } from "../../utils/errorMessage";
 import { formatDateTimeWithTimeZone } from "../../utils/formatDate";
 import {
@@ -85,45 +85,38 @@ export function QualityTrendsPage() {
 
   const retry = useCallback(() => setAttempt((n) => n + 1), []);
 
-  const columns: RegisterColumn<QualityTrendGroupDto>[] = [
-    { key: "label", label: t(`trends.groupBy.${groupBy}`), sortable: true, sortValue: (g) => g.label },
-    { key: "totalCount", label: t("trends.columns.total"), numeric: true, sortable: true, render: (g) => numberCell(g.totalCount) },
-    { key: "openCount", label: t("trends.columns.open"), numeric: true, sortable: true, render: (g) => numberCell(g.openCount) },
-    { key: "closedCount", label: t("trends.columns.closed"), numeric: true, sortable: true, render: (g) => numberCell(g.closedCount) },
-    { key: "cancelledCount", label: t("trends.columns.cancelled"), numeric: true, sortable: true, render: (g) => numberCell(g.cancelledCount) },
-    { key: "rejectedCount", label: t("trends.columns.rejected"), numeric: true, sortable: true, render: (g) => numberCell(g.rejectedCount) },
+  const columns: TrendColumn<QualityTrendGroupDto>[] = [
+    { key: "label", label: t(`trends.groupBy.${groupBy}`), render: (g) => g.label },
+    { key: "totalCount", label: t("trends.columns.total"), numeric: true, render: (g) => numberCell(g.totalCount) },
+    { key: "openCount", label: t("trends.columns.open"), numeric: true, render: (g) => numberCell(g.openCount) },
+    { key: "closedCount", label: t("trends.columns.closed"), numeric: true, render: (g) => numberCell(g.closedCount) },
+    { key: "cancelledCount", label: t("trends.columns.cancelled"), numeric: true, render: (g) => numberCell(g.cancelledCount) },
+    { key: "rejectedCount", label: t("trends.columns.rejected"), numeric: true, render: (g) => numberCell(g.rejectedCount) },
     {
       key: "averageTimeToCloseDays",
       label: t("trends.columns.averageDaysToClose"),
       numeric: true,
-      sortable: true,
-      sortValue: (g) => g.averageTimeToCloseDays,
       render: (g) => nullableCell(g.averageTimeToCloseDays === null ? null : String(g.averageTimeToCloseDays))
     },
     {
       key: "onTimeRate",
       label: t("trends.columns.onTimeRate"),
       numeric: true,
-      sortable: true,
-      sortValue: (g) => g.onTimeRate,
       render: (g) => nullableCell(percent(g.onTimeRate))
     },
     {
       key: "capaEffectivenessRate",
       label: t("trends.columns.capaEffectiveness"),
       numeric: true,
-      sortable: true,
-      sortValue: (g) => g.capaEffectivenessRate,
       render: (g) => nullableCell(percent(g.capaEffectivenessRate))
     }
   ];
 
-  const repeatColumns: RegisterColumn<QualityRepeatCauseDto>[] = [
-    { key: "causeCategoryName", label: t("trends.repeat.cause"), sortable: true },
+  const repeatColumns: TrendColumn<QualityRepeatCauseDto>[] = [
+    { key: "causeCategoryName", label: t("trends.repeat.cause"), render: (r) => r.causeCategoryName },
     {
       key: "targetLabel",
       label: t("trends.repeat.target"),
-      sortable: true,
       render: (r) => (
         <Stack>
           <Typography variant="body2">{r.targetLabel}</Typography>
@@ -133,25 +126,22 @@ export function QualityTrendsPage() {
         </Stack>
       )
     },
-    { key: "occurrenceCount", label: t("trends.repeat.occurrences"), numeric: true, sortable: true, render: (r) => numberCell(r.occurrenceCount) },
+    { key: "occurrenceCount", label: t("trends.repeat.occurrences"), numeric: true, render: (r) => numberCell(r.occurrenceCount) },
     {
       key: "firstRaisedAtUtc",
       label: t("trends.repeat.first"),
       numeric: true,
-      sortable: true,
       render: (r) => nullableCell(formatDateTimeWithTimeZone(r.firstRaisedAtUtc))
     },
     {
       key: "lastRaisedAtUtc",
       label: t("trends.repeat.last"),
       numeric: true,
-      sortable: true,
       render: (r) => nullableCell(formatDateTimeWithTimeZone(r.lastRaisedAtUtc))
     },
     {
       key: "recordNumbers",
       label: t("trends.repeat.records"),
-      sortable: false,
       render: (r) => (
         <Typography variant="body2" sx={{ wordBreak: "break-word" }}>
           {r.recordNumbers.join(", ")}
@@ -249,13 +239,13 @@ export function QualityTrendsPage() {
         ) : (
           <div aria-live="polite">
             <Stack spacing={2.5}>
-              <RegisterTable
+              <TrendTable
+                label={t("trends.title")}
                 columns={columns}
                 rows={report?.groups ?? []}
                 getRowId={(g) => g.key}
                 loading={loading}
-                defaultSort={{ key: "totalCount", direction: "desc" }}
-                empty={{ title: t("trends.empty") }}
+                emptyTitle={t("trends.empty")}
               />
               {report && (
                 <PanelFrame title={t("trends.repeat.title")}>
@@ -266,11 +256,12 @@ export function QualityTrendsPage() {
                       <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
                         {t("trends.repeat.intro", { days: report.repeatWindowDays })}
                       </Typography>
-                      <RegisterTable
+                      <TrendTable
+                        label={t("trends.repeat.title")}
                         columns={repeatColumns}
                         rows={report.repeatCauses}
                         getRowId={(r) => `${r.causeCategoryId}|${r.targetType}|${r.targetId}`}
-                        empty={{ title: t("trends.repeat.empty") }}
+                        emptyTitle={t("trends.repeat.empty")}
                       />
                     </>
                   )}

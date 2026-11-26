@@ -5,7 +5,7 @@ import { Link } from "react-router-dom";
 import { useTranslation } from "../../i18n";
 import { PageHeader } from "../../components/PageHeader";
 import { PartialOutageBanner } from "../../components/lab/PartialOutageBanner";
-import { RegisterTable, type RegisterColumn } from "../../components/lab/RegisterTable";
+import { TrendTable, type TrendColumn } from "../../components/lab/TrendTable";
 import { serverMessage } from "../../utils/errorMessage";
 import { formatDateTimeWithTimeZone } from "../../utils/formatDate";
 import { laboratorySectionService, type LaboratorySection } from "../../services/laboratorySectionService";
@@ -92,20 +92,18 @@ export function OosTrendsPage() {
 
   const retry = useCallback(() => setAttempt((n) => n + 1), []);
 
-  const columns: RegisterColumn<OosTrendGroupDto>[] = [
-    { key: "label", label: t(`trends.groupLabel.${groupBy}`), sortable: true, sortValue: (g) => g.label },
-    { key: "totalCount", label: t("trends.columns.total"), numeric: true, sortable: true, render: (g) => numberCell(g.totalCount) },
-    { key: "openCount", label: t("trends.columns.open"), numeric: true, sortable: true, render: (g) => numberCell(g.openCount) },
-    { key: "concludedCount", label: t("trends.columns.concluded"), numeric: true, sortable: true, render: (g) => numberCell(g.concludedCount) },
-    { key: "confirmedCount", label: t("trends.columns.confirmed"), numeric: true, sortable: true, render: (g) => numberCell(g.confirmedCount) },
-    { key: "invalidatedCount", label: t("trends.columns.invalidated"), numeric: true, sortable: true, render: (g) => numberCell(g.invalidatedCount) },
-    { key: "excursionClosedCount", label: t("trends.columns.excursionClosed"), numeric: true, sortable: true, render: (g) => numberCell(g.excursionClosedCount) },
+  const columns: TrendColumn<OosTrendGroupDto>[] = [
+    { key: "label", label: t(`trends.groupLabel.${groupBy}`), render: (g) => g.label },
+    { key: "totalCount", label: t("trends.columns.total"), numeric: true, render: (g) => numberCell(g.totalCount) },
+    { key: "openCount", label: t("trends.columns.open"), numeric: true, render: (g) => numberCell(g.openCount) },
+    { key: "concludedCount", label: t("trends.columns.concluded"), numeric: true, render: (g) => numberCell(g.concludedCount) },
+    { key: "confirmedCount", label: t("trends.columns.confirmed"), numeric: true, render: (g) => numberCell(g.confirmedCount) },
+    { key: "invalidatedCount", label: t("trends.columns.invalidated"), numeric: true, render: (g) => numberCell(g.invalidatedCount) },
+    { key: "excursionClosedCount", label: t("trends.columns.excursionClosed"), numeric: true, render: (g) => numberCell(g.excursionClosedCount) },
     {
       key: "medianWorkingDaysToConclude",
       label: t("trends.columns.median"),
       numeric: true,
-      sortable: true,
-      sortValue: (g) => g.medianWorkingDaysToConclude,
       render: (g) => (
         <Typography variant="body2" sx={{ fontVariantNumeric: "tabular-nums" }}>
           {g.medianWorkingDaysToConclude ?? "—"}
@@ -233,13 +231,13 @@ export function OosTrendsPage() {
           </Alert>
         ) : (
           <div aria-live="polite">
-            <RegisterTable
+            <TrendTable
+              label={t("trends.title")}
               columns={columns}
               rows={report?.groups ?? []}
               getRowId={(g) => g.key}
               loading={loading}
-              defaultSort={{ key: "totalCount", direction: "desc" }}
-              empty={{ title: t("trends.empty") }}
+              emptyTitle={t("trends.empty")}
             />
           </div>
         )}

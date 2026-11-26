@@ -12,6 +12,7 @@ import {
 import { documentApprovalService } from "../documentControl/services/documentApprovalService";
 import type { DocumentApprovalTaskDto } from "../documentControl/types/documentControlTypes";
 import { laboratorySectionService } from "../../services/laboratorySectionService";
+import { qualityDashboardService } from "../../services/qualityDashboardService";
 import { DashboardService } from "./services/DashboardService";
 import type { SectionHeadDashboard } from "./types/dashboard";
 
@@ -30,6 +31,12 @@ vi.mock("../documentControl/services/documentApprovalService", () => ({
 vi.mock("../../services/laboratorySectionService", () => ({
   laboratorySectionService: {
     getMySections: vi.fn()
+  }
+}));
+
+vi.mock("../../services/qualityDashboardService", () => ({
+  qualityDashboardService: {
+    getDashboard: vi.fn()
   }
 }));
 
@@ -168,6 +175,24 @@ beforeEach(() => {
   vi.mocked(DashboardService.getSectionHeadDashboard).mockResolvedValue(makeSectionHeadDashboard());
   vi.mocked(DashboardService.getStatusDistribution).mockResolvedValue([]);
   vi.mocked(DashboardService.getMonthlyTrend).mockResolvedValue([]);
+  vi.mocked(qualityDashboardService.getDashboard).mockResolvedValue({
+    waitingForMyDecision: [],
+    myOpenRecords: [],
+    myOpenActions: [],
+    overdueRecords: [],
+    overdueActions: [],
+    effectivenessChecksDue: [],
+    waitingForMyDecisionTotalCount: 0,
+    myOpenRecordsTotalCount: 0,
+    myOpenActionsTotalCount: 0,
+    overdueRecordsTotalCount: 0,
+    overdueActionsTotalCount: 0,
+    effectivenessChecksDueTotalCount: 0,
+    laboratoryOpenRecords: null,
+    laboratoryOpenRecordsTotalCount: 0,
+    laboratoryOpenActions: null,
+    laboratoryOpenActionsTotalCount: 0
+  });
 });
 
 afterEach(() => {
@@ -243,5 +268,50 @@ describe("QaDashboardPage and dashboard routing", () => {
 
     const reviewsLink = screen.getByRole("link", { name: /Audit trail reviews in progress/i });
     expect(reviewsLink.textContent).toContain("—");
+  });
+
+  it("shows QA quality event tiles with TotalCount and partial outage when quality dashboard fails", async () => {
+    seedAuth("Qa", ["Audit.View", "Documents.Approve", "Quality.View"], 10);
+    vi.mocked(qualityDashboardService.getDashboard).mockResolvedValue({
+      waitingForMyDecision: [],
+      myOpenRecords: [],
+      myOpenActions: [],
+      overdueRecords: [],
+      overdueActions: [],
+      effectivenessChecksDue: [],
+      waitingForMyDecisionTotalCount: 5,
+      myOpenRecordsTotalCount: 3,
+      myOpenActionsTotalCount: 2,
+      overdueRecordsTotalCount: 1,
+      overdueActionsTotalCount: 4,
+      effectivenessChecksDueTotalCount: 2,
+      laboratoryOpenRecords: null,
+      laboratoryOpenRecordsTotalCount: 0,
+      laboratoryOpenActions: null,
+      laboratoryOpenActionsTotalCount: 0
+    });
+
+    renderQaDashboard();
+
+    const decisionLink = await screen.findByRole("link", { name: /Waiting for my decision/i });
+    expect(decisionLink.textContent).toContain("5");
+    expect(decisionLink.getAttribute("href")).toBe("/quality");
+
+    expect(screen.getByRole("link", { name: /My open records & actions/i }).textContent).toContain("5");
+    const overdueLink = screen.getByRole("link", { name: /Overdue quality items/i });
+    expect(overdueLink.textContent).toContain("5");
+    expect(overdueLink.getAttribute("href")).toBe("/quality?overdue=true");
+
+    const effLink = screen.getByRole("link", { name: /Effectiveness checks due/i });
+    expect(effLink.textContent).toContain("2");
+    expect(effLink.getAttribute("href")).toBe("/quality?type=Capa");
+
+    cleanup();
+    vi.mocked(qualityDashboardService.getDashboard).mockRejectedValueOnce(new Error("Down"));
+    renderQaDashboard();
+
+    const alert = await screen.findByRole("alert");
+    expect(alert.textContent).toContain("Quality events");
+    expect(screen.getByRole("link", { name: /Waiting for my decision/i }).textContent).toContain("—");
   });
 });

@@ -33,8 +33,15 @@ import { SamplesTrendChart } from "./components/SamplesTrendChart";
 import { TestOrderStatusDonut } from "./components/TestOrderStatusDonut";
 import { tableHeadSx } from "../../theme";
 import { SummaryTiles } from "../../components/configHierarchy/SummaryTiles";
+import { PartialOutageBanner } from "../../components/lab";
 import { SectionSelfAssignmentCard } from "./components/SectionSelfAssignmentCard";
 import { useDashboardLab } from "./DashboardLabContext";
+import { useAuth } from "../../contexts/AuthContext";
+import { PERMISSIONS } from "../../routes/routes";
+import {
+  qualityDashboardService,
+  type QualityDashboardDto
+} from "../../services/qualityDashboardService";
 import { useTranslation } from "../../i18n";
 
 // Kept as a key so the translated text is looked up at render, not stored in the effect.
@@ -44,8 +51,12 @@ export function SectionHeadDashboardPage() {
   const { t } = useTranslation("dashboard");
   const theme = useTheme();
   const lab = useDashboardLab();
+  const { permissions } = useAuth();
+  const canViewQuality = permissions.includes(PERMISSIONS.QUALITY_VIEW);
 
   const [data, setData] = useState<SectionHeadDashboard | null>(null);
+  const [qualityDash, setQualityDash] = useState<QualityDashboardDto | null>(null);
+  const [qualityOutage, setQualityOutage] = useState(false);
   const [months, setMonths] = useState(6);
   const [trend, setTrend] = useState<MonthlyTrendPoint[] | null>(null);
   const [statusDist, setStatusDist] = useState<DistributionSlice[] | null>(null);
@@ -58,18 +69,34 @@ export function SectionHeadDashboardPage() {
   // The dashboard body and the status donut do not depend on `months` - only
   // the trend does - so changing the period no longer refetches all three.
   useEffect(() => {
+    const controller = new AbortController();
     let cancelled = false;
     setLoading(true);
     setError(null);
+    setQualityOutage(false);
+
+    const qualityPromise = canViewQuality
+      ? qualityDashboardService
+          .getDashboard(controller.signal)
+          .then((res) => ({ ok: true as const, res }))
+          .catch(() => ({ ok: false as const }))
+      : Promise.resolve({ ok: true as const, res: null });
 
     Promise.all([
       DashboardService.getSectionHeadDashboard(lab.code),
-      DashboardService.getStatusDistribution(lab.code).catch(() => null)
+      DashboardService.getStatusDistribution(lab.code).catch(() => null),
+      qualityPromise
     ])
-      .then(([dashData, distData]) => {
+      .then(([dashData, distData, qualityResult]) => {
         if (cancelled) return;
         setData(dashData);
         setStatusDist(distData);
+        if (qualityResult.ok) {
+          setQualityDash(qualityResult.res);
+        } else {
+          setQualityDash(null);
+          setQualityOutage(true);
+        }
       })
       .catch(() => {
         if (!cancelled) setError(SERVICE_ERROR_KEY);
@@ -78,8 +105,11 @@ export function SectionHeadDashboardPage() {
         if (!cancelled) setLoading(false);
       });
 
-    return () => { cancelled = true; };
-  }, [reloadKey, lab.code]);
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
+  }, [reloadKey, lab.code, canViewQuality]);
 
   useEffect(() => {
     let cancelled = false;
@@ -132,6 +162,12 @@ export function SectionHeadDashboardPage() {
         </Button>
       </PageHeader>
 
+      {qualityOutage && (
+        <Box sx={{ mb: 2 }}>
+          <PartialOutageBanner sources={[t("qualityTiles.source")]} onRetry={reload} />
+        </Box>
+      )}
+
       {/* Tier 1: Laboratory Overview KPI Strip */}
       <SummaryTiles
         tiles={[
@@ -153,7 +189,46 @@ export function SectionHeadDashboardPage() {
             icon: <WarningAmberOutlinedIcon />,
             hint: t("tiles.attentionHint"),
             onClick: () => document.getElementById("attention-section")?.scrollIntoView({ behavior: "smooth" })
-          }
+          },
+          ...(canViewQuality
+            ? [
+                {
+                  label: t("qualityTiles.labOpen"),
+                  value: qualityDash
+                    ? qualityDash.laboratoryOpenRecordsTotalCount +
+                      qualityDash.laboratoryOpenActionsTotalCount
+                    : "—",
+                  tone: "info" as const,
+                  icon: <ScienceOutlinedIcon />,
+                  hint: t("qualityTiles.labOpenHint"),
+                  to: "/quality"
+                },
+                {
+                  label: t("qualityTiles.myOpen"),
+                  value: qualityDash
+                    ? qualityDash.myOpenRecordsTotalCount + qualityDash.myOpenActionsTotalCount
+                    : "—",
+                  tone: "info" as const,
+                  icon: <RateReviewOutlinedIcon />,
+                  hint: t("qualityTiles.myOpenHint"),
+                  to: "/quality"
+                },
+                {
+                  label: t("qualityTiles.overdue"),
+                  value: qualityDash
+                    ? qualityDash.overdueRecordsTotalCount + qualityDash.overdueActionsTotalCount
+                    : "—",
+                  tone:
+                    qualityDash &&
+                    qualityDash.overdueRecordsTotalCount + qualityDash.overdueActionsTotalCount > 0
+                      ? ("detected" as const)
+                      : ("notDetected" as const),
+                  icon: <AccessTimeOutlinedIcon />,
+                  hint: t("qualityTiles.overdueHint"),
+                  to: "/quality?overdue=true"
+                }
+              ]
+            : [])
         ]}
       />
 

@@ -28,6 +28,16 @@ public class BusinessRuleException : InvalidOperationException, ICodedMessage
     public IReadOnlyDictionary<string, string>? Parameters { get; }
     public List<ApiError>? ErrorDetails { get; init; }
 
+    public IReadOnlyList<ApiError>? Details { get; }
+
+    private BusinessRuleException(IReadOnlyList<ApiError> details)
+        : base(string.Join(" ", details.Select(detail => detail.Message)))
+    {
+        Details = details;
+    }
+
+    public static BusinessRuleException FromDetails(IReadOnlyList<ApiError> details) => new(details);
+
     public BusinessRuleException(string? message) : base(message) { }
 
     public BusinessRuleException(string? code, string? englishMessage, IReadOnlyDictionary<string, string>? parameters = null)

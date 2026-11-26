@@ -175,12 +175,9 @@ public class UserService
 
         if (user.SignInMethod != SignInMethod.Directory)
         {
-            var passwordFailures = PasswordPolicy.Validate(plainPassword ?? string.Empty, await _settings.GetIntOrDefaultAsync(SystemSettingKeys.PasswordMinimumLength));
+            var passwordFailures = PasswordPolicy.ValidateCoded(plainPassword ?? string.Empty, await _settings.GetIntOrDefaultAsync(SystemSettingKeys.PasswordMinimumLength));
             if (passwordFailures.Count > 0)
-                throw new BusinessRuleException(
-                    MessageCodes.UserPasswordPolicyFailed,
-                    string.Join(" ", passwordFailures),
-                    new Dictionary<string, string> { ["message"] = string.Join(" ", passwordFailures) });
+                throw BusinessRuleException.FromDetails(passwordFailures);
         }
 
         if (await _db.Users.AnyAsync(u => u.Username == user.Username, ct))

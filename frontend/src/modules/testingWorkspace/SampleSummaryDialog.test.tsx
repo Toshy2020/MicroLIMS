@@ -1,11 +1,12 @@
 import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
-import { render, screen, cleanup, fireEvent, waitFor, within } from "@testing-library/react";
+import { render, screen, cleanup, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { PinnedLightTheme } from "../../theme/PinnedLightTheme";
 import { renderInArabic, resetLanguage } from "../../i18n/testUtils";
 import { SampleSummaryDialog } from "./SampleSummaryDialog";
 import type { SampleSummary } from "./types/sampleSummaryTypes";
+import { AuthProvider } from "../../contexts/AuthContext";
 import { PERMISSIONS } from "../../routes/routes";
 import { labelService } from "../../services/labelService";
 import { actionAvailabilityService } from "../../services/actionAvailabilityService";
@@ -55,44 +56,36 @@ vi.mock("../../services/labelService", () => ({
   }
 }));
 
-vi.mock("../../contexts/AuthContext", () => ({
-  useOptionalAuth: () => null,
-  useAuth: () => ({
-    permissions: [
-      PERMISSIONS.SAMPLES_REVIEW,
-      PERMISSIONS.SAMPLES_APPROVE,
-      PERMISSIONS.SAMPLES_RECEIVE_OWN_LAB,
-      PERMISSIONS.LABELS_REPRINT,
-      PERMISSIONS.OOS_MANAGE
-    ],
-    fullName: "QC Reviewer",
-    username: "qcreviewer",
-    role: "Reviewer"
-  })
-}));
+afterEach(() => {
+  cleanup();
+  localStorage.clear();
+});
 
-// Mock SignatureDialog to immediately trigger onConfirm with password
-vi.mock("../../components/SignatureDialog", () => ({
-  SignatureDialog: ({
-    open,
-    meaningStatement,
-    onConfirm
-  }: {
-    open: boolean;
-    meaningStatement?: string;
-    onConfirm: (p: string) => Promise<void>;
-  }) =>
-    open ? (
-      <div data-testid="mock-signature-dialog">
-        <span>{meaningStatement}</span>
-        <button onClick={() => void onConfirm("secret123")}>confirm-signature</button>
-      </div>
-    ) : null
-}));
+const dialog = (
+  <MemoryRouter>
+    <AuthProvider>
+      <SampleSummaryDialog open sampleId={77} onClose={vi.fn()} />
+    </AuthProvider>
+  </MemoryRouter>
+);
 
-afterEach(cleanup);
+function mount() {
+  return render(<PinnedLightTheme>{dialog}</PinnedLightTheme>);
+}
+
+async function sign(user: ReturnType<typeof userEvent.setup>) {
+  const password = await screen.findByLabelText(/^Password/i);
+  const signButton = screen.getByRole("button", { name: "Sign" });
+  expect(signButton).toHaveProperty("disabled", true);
+  await user.type(password, "secret123");
+  await user.click(signButton);
+}
 
 beforeEach(() => {
+  localStorage.setItem("microlims_role", "Reviewer");
+  localStorage.setItem("microlims_full_name", "QC Reviewer");
+  localStorage.setItem("microlims_permissions", JSON.stringify([PERMISSIONS.SAMPLES_RECEIVE_OWN_LAB]));
+
   mockGetSummary.mockReset();
   mockGetSampleVersion.mockReset();
   mockGetSampleVersion.mockResolvedValue(5);
@@ -141,7 +134,17 @@ const createSample = (over: Partial<SampleSummary> = {}): SampleSummary => ({
   signatures: [],
   testOrders: [],
   timeline: [],
-  certificate: { sample: { matrix: null, simple: null } } as never,
+  certificate: {
+    sample: {
+      matrix: null,
+      simple: null,
+      supportingRows: [],
+      complies: false,
+      conclusionText: "",
+      resultDate: null
+    },
+    sections: []
+  },
   sections: [
     {
       sectionId: 10,
@@ -169,34 +172,23 @@ const createSample = (over: Partial<SampleSummary> = {}): SampleSummary => ({
 
 describe("SampleSummaryDialog review flow", () => {
   it("sends retentionQuantity and retentionQuantityUnit when completing review for RawMaterial FP", async () => {
+    const user = userEvent.setup();
     const sample = createSample({ category: "RawMaterial" });
     mockGetSummary.mockResolvedValue(sample);
     mockCompleteReview.mockResolvedValue(undefined);
 
-    render(
-      <MemoryRouter>
-        <PinnedLightTheme>
-          <SampleSummaryDialog open={true} sampleId={77} onClose={vi.fn()} />
-        </PinnedLightTheme>
-      </MemoryRouter>
-    );
-
-    expect(await screen.findByText("Complete overview of test execution, incubation stages, results, and approvals.")).toBeTruthy();
-    expect(screen.getByLabelText(/Retention quantity/i)).toBeTruthy();
+    mount();
 
     // Fill retention quantity and select unit
-    fireEvent.change(screen.getByLabelText(/Retention quantity/i), { target: { value: "50" } });
-    await userEvent.click(screen.getByRole("combobox", { name: /Unit/i }));
-    await userEvent.click(screen.getByRole("option", { name: "g" }));
+    await user.type(await screen.findByLabelText(/Retention quantity/i), "50");
+    await user.click(screen.getByRole("combobox", { name: /Unit/i }));
+    await user.click(screen.getByRole("option", { name: "g" }));
 
     // Click Submit Review
-    const submitReviewBtn = screen.getByRole("button", { name: /Submit Review/i });
-    expect((submitReviewBtn as HTMLButtonElement).disabled).toBe(false);
-    fireEvent.click(submitReviewBtn);
+    const submitReviewBtn = await screen.findByRole("button", { name: /Submit Review/i });
+    await user.click(submitReviewBtn);
 
-    // Signature dialog appears
-    expect(await screen.findByTestId("mock-signature-dialog")).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "confirm-signature", hidden: true }));
+    await sign(user);
 
     await waitFor(() => expect(mockCompleteReview).toHaveBeenCalledTimes(1));
     expect(mockCompleteReview).toHaveBeenCalledWith(
@@ -210,48 +202,18 @@ describe("SampleSummaryDialog review flow", () => {
   }, 15000);
 
   it("does not send retention fields when completing review for FinishedProduct", async () => {
-    const sample = createSample({
-      category: "FinishedProduct",
-      sections: [
-        {
-          sectionId: 10,
-          sectionCode: "FP",
-          sectionName: "Physicochemical",
-          status: "UnderReview",
-          canView: true,
-          reviewedByName: null,
-          reviewedAt: null,
-          approvedByName: null,
-          approvedAt: null,
-          approvalDecision: null,
-          certificateRemarks: null,
-          coaAvailable: false,
-          closedByName: null,
-          closedAt: null,
-          closeReason: null
-        }
-      ]
-    });
+    const user = userEvent.setup();
+    const sample = createSample({ category: "FinishedProduct" });
     mockGetSummary.mockResolvedValue(sample);
     mockCompleteReview.mockResolvedValue(undefined);
 
-    render(
-      <MemoryRouter>
-        <PinnedLightTheme>
-          <SampleSummaryDialog open={true} sampleId={77} onClose={vi.fn()} />
-        </PinnedLightTheme>
-      </MemoryRouter>
-    );
+    mount();
 
-    expect(await screen.findByText("Complete overview of test execution, incubation stages, results, and approvals.")).toBeTruthy();
+    const submitReviewBtn = await screen.findByRole("button", { name: /Submit Review/i });
     expect(screen.queryByLabelText(/Retention quantity/i)).toBeNull();
+    await user.click(submitReviewBtn);
 
-    const submitReviewBtn = screen.getByRole("button", { name: /Submit Review/i });
-    expect((submitReviewBtn as HTMLButtonElement).disabled).toBe(false);
-    fireEvent.click(submitReviewBtn);
-
-    expect(await screen.findByTestId("mock-signature-dialog")).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "confirm-signature", hidden: true }));
+    await sign(user);
 
     await waitFor(() => expect(mockCompleteReview).toHaveBeenCalledTimes(1));
     expect(mockCompleteReview).toHaveBeenCalledWith(
@@ -265,22 +227,17 @@ describe("SampleSummaryDialog review flow", () => {
   }, 15000);
 
   it("disables review submission when retention quantity is 0", async () => {
+    const user = userEvent.setup();
     const sample = createSample({ category: "RawMaterial" });
     mockGetSummary.mockResolvedValue(sample);
 
-    render(
-      <MemoryRouter>
-        <PinnedLightTheme>
-          <SampleSummaryDialog open={true} sampleId={77} onClose={vi.fn()} />
-        </PinnedLightTheme>
-      </MemoryRouter>
-    );
+    mount();
 
-    expect(await screen.findByLabelText(/Retention quantity/i)).toBeTruthy();
-
-    fireEvent.change(screen.getByLabelText(/Retention quantity/i), { target: { value: "0" } });
-    await userEvent.click(screen.getByRole("combobox", { name: /Unit/i }));
-    await userEvent.click(screen.getByRole("option", { name: "g" }));
+    const quantity = await screen.findByLabelText(/Retention quantity/i);
+    await user.type(quantity, "0");
+    expect(quantity).toHaveProperty("value", "0");
+    await user.click(screen.getByRole("combobox", { name: /Unit/i }));
+    await user.click(screen.getByRole("option", { name: "g" }));
 
     const submitReviewBtn = screen.getByRole("button", { name: /Submit Review/i });
     expect((submitReviewBtn as HTMLButtonElement).disabled).toBe(true);
@@ -288,22 +245,17 @@ describe("SampleSummaryDialog review flow", () => {
   }, 15000);
 
   it("disables review submission when retention quantity is negative", async () => {
+    const user = userEvent.setup();
     const sample = createSample({ category: "RawMaterial" });
     mockGetSummary.mockResolvedValue(sample);
 
-    render(
-      <MemoryRouter>
-        <PinnedLightTheme>
-          <SampleSummaryDialog open={true} sampleId={77} onClose={vi.fn()} />
-        </PinnedLightTheme>
-      </MemoryRouter>
-    );
+    mount();
 
-    expect(await screen.findByLabelText(/Retention quantity/i)).toBeTruthy();
-
-    fireEvent.change(screen.getByLabelText(/Retention quantity/i), { target: { value: "-5" } });
-    await userEvent.click(screen.getByRole("combobox", { name: /Unit/i }));
-    await userEvent.click(screen.getByRole("option", { name: "g" }));
+    const quantity = await screen.findByLabelText(/Retention quantity/i);
+    await user.type(quantity, "-5");
+    expect(quantity).toHaveProperty("value", "-5");
+    await user.click(screen.getByRole("combobox", { name: /Unit/i }));
+    await user.click(screen.getByRole("option", { name: "g" }));
 
     const submitReviewBtn = screen.getByRole("button", { name: /Submit Review/i });
     expect((submitReviewBtn as HTMLButtonElement).disabled).toBe(true);
@@ -311,20 +263,15 @@ describe("SampleSummaryDialog review flow", () => {
   }, 15000);
 
   it("disables review submission when retention unit is empty", async () => {
+    const user = userEvent.setup();
     const sample = createSample({ category: "RawMaterial" });
     mockGetSummary.mockResolvedValue(sample);
 
-    render(
-      <MemoryRouter>
-        <PinnedLightTheme>
-          <SampleSummaryDialog open={true} sampleId={77} onClose={vi.fn()} />
-        </PinnedLightTheme>
-      </MemoryRouter>
-    );
+    mount();
 
-    expect(await screen.findByLabelText(/Retention quantity/i)).toBeTruthy();
-
-    fireEvent.change(screen.getByLabelText(/Retention quantity/i), { target: { value: "50" } });
+    const quantity = await screen.findByLabelText(/Retention quantity/i);
+    await user.type(quantity, "50");
+    expect(quantity).toHaveProperty("value", "50");
 
     const submitReviewBtn = screen.getByRole("button", { name: /Submit Review/i });
     expect((submitReviewBtn as HTMLButtonElement).disabled).toBe(true);
@@ -346,13 +293,7 @@ describe("SampleSummaryDialog review flow", () => {
       }
     ]);
 
-    render(
-      <MemoryRouter>
-        <PinnedLightTheme>
-          <SampleSummaryDialog open={true} sampleId={77} onClose={vi.fn()} />
-        </PinnedLightTheme>
-      </MemoryRouter>
-    );
+    mount();
 
     const printBtn = await screen.findByRole("button", { name: "Print label" });
     await waitFor(() => {
@@ -366,12 +307,27 @@ describe("SampleSummaryDialog review flow", () => {
   });
 });
 
-function mount(sampleId = 77) {
-  return render(
+// R3 tests (OOS banner, retest availability, gated actions) render with the real AuthProvider
+// and the permissions a reviewer/approver holds, read from localStorage like the rest of this file.
+function mountAt(sampleId = 77) {
+  localStorage.setItem("microlims_permissions", JSON.stringify([
+    PERMISSIONS.SAMPLES_REVIEW,
+    PERMISSIONS.SAMPLES_APPROVE,
+    PERMISSIONS.SAMPLES_RECEIVE_OWN_LAB,
+    PERMISSIONS.LABELS_REPRINT,
+    PERMISSIONS.OOS_MANAGE
+  ]));
+  return render(dialogAt(sampleId));
+}
+
+function dialogAt(sampleId: number) {
+  return (
     <MemoryRouter>
-      <PinnedLightTheme>
-        <SampleSummaryDialog open={true} sampleId={sampleId} onClose={vi.fn()} />
-      </PinnedLightTheme>
+      <AuthProvider>
+        <PinnedLightTheme>
+          <SampleSummaryDialog open={true} sampleId={sampleId} onClose={vi.fn()} />
+        </PinnedLightTheme>
+      </AuthProvider>
     </MemoryRouter>
   );
 }
@@ -385,7 +341,7 @@ describe("SampleSummaryDialog gated actions", () => {
     ]);
     const user = userEvent.setup();
 
-    mount();
+    mountAt();
 
     const reason = await screen.findByText(sentence);
     const button = screen.getByRole("button", { name: /Submit Review/i });
@@ -394,7 +350,7 @@ describe("SampleSummaryDialog gated actions", () => {
     expect(vi.mocked(actionAvailabilityService.get)).toHaveBeenCalledWith("sample", 77, 10, expect.any(AbortSignal));
 
     await user.click(button);
-    expect(screen.queryByTestId("mock-signature-dialog")).toBeNull();
+    expect(screen.queryByLabelText(/^Password/i)).toBeNull();
     expect(mockCompleteReview).not.toHaveBeenCalled();
   }, 15000);
 
@@ -403,7 +359,6 @@ describe("SampleSummaryDialog gated actions", () => {
     mockGetSummary.mockResolvedValue(
       createSample({
         status: "UnderApproval",
-        certificate: { sample: { matrix: null, simple: null }, sections: [] } as never,
         sections: (createSample().sections ?? []).map((section) => ({ ...section, status: "UnderApproval" }))
       })
     );
@@ -413,13 +368,13 @@ describe("SampleSummaryDialog gated actions", () => {
     ]);
     const user = userEvent.setup();
 
-    mount();
+    mountAt();
 
     expect((await screen.findAllByText(sentence)).length).toBeGreaterThan(0);
     const button = screen.getByRole("button", { name: /Submit Decision/i });
     expect(button.getAttribute("aria-disabled")).toBe("true");
     await user.click(button);
-    expect(screen.queryByTestId("mock-signature-dialog")).toBeNull();
+    expect(screen.queryByLabelText(/^Password/i)).toBeNull();
     expect(mockDecideApproval).not.toHaveBeenCalled();
 
     // The same screen gates Not Conform on its own action: allowed here, so the sentence goes away.
@@ -432,7 +387,6 @@ describe("SampleSummaryDialog gated actions", () => {
     mockGetSummary.mockResolvedValue(
       createSample({
         status: "UnderApproval",
-        certificate: { sample: { matrix: null, simple: null }, sections: [] } as never,
         sections: (createSample().sections ?? []).map((section) => ({ ...section, status: "UnderApproval" }))
       })
     );
@@ -443,10 +397,10 @@ describe("SampleSummaryDialog gated actions", () => {
     ]);
     const user = userEvent.setup();
 
-    mount();
+    mountAt();
 
     await user.click(await screen.findByRole("button", { name: /Submit Decision/i }));
-    await user.click(await screen.findByRole("button", { name: "confirm-signature", hidden: true }));
+    await sign(user);
     await waitFor(() => expect(mockDecideApproval).toHaveBeenCalledTimes(1));
     expect(mockDecideApproval).toHaveBeenCalledWith(
       77, "secret123", "Approve", undefined, undefined, undefined, undefined, undefined, 10
@@ -502,7 +456,7 @@ describe("SampleSummaryDialog gated actions", () => {
     ]);
     const user = userEvent.setup();
 
-    mount();
+    mountAt();
 
     const reviewReason = await screen.findByText(reviewRefusal);
     const reviewButton = screen.getByRole("button", { name: /Submit Review/i });
@@ -548,7 +502,7 @@ describe("SampleSummaryDialog gated actions", () => {
       }
     ]);
 
-    mount();
+    mountAt();
 
     expect((await screen.findAllByText(approveRefusal)).length).toBeGreaterThan(0);
     const approveButton = screen.getByRole("button", { name: /Submit Decision/i });
@@ -565,12 +519,7 @@ describe("SampleSummaryDialog in Arabic RTL", () => {
 
   it("renders RTL layout, Arabic heading, and sample identifier in LTR bdi", async () => {
     mockGetSummary.mockResolvedValue(createSample());
-    await renderInArabic(
-      <MemoryRouter>
-        <SampleSummaryDialog open={true} sampleId={77} onClose={vi.fn()} />
-      </MemoryRouter>,
-      ["common", "testingWorkspace"]
-    );
+    await renderInArabic(dialog, ["common", "testingWorkspace"]);
 
     expect(document.documentElement.dir).toBe("rtl");
     expect(await screen.findByText("ملخص العينة")).toBeTruthy();
@@ -629,7 +578,7 @@ describe("SampleSummaryDialog OOS banner and retest options", () => {
       }
     ]);
 
-    mount();
+    mountAt();
 
     const link = await screen.findByRole("link", { name: /OOS-2026-0042/i });
     expect(link.getAttribute("href")).toBe("/oos-tracking/42");
@@ -649,13 +598,7 @@ describe("SampleSummaryDialog OOS banner and retest options", () => {
       })
     );
 
-    render(
-      <MemoryRouter>
-        <PinnedLightTheme>
-          <SampleSummaryDialog open={true} sampleId={77} onClose={vi.fn()} />
-        </PinnedLightTheme>
-      </MemoryRouter>
-    );
+    mountAt(77);
 
     expect(await screen.findByRole("radio", { name: /Approve/i })).toBeTruthy();
     expect(screen.getByRole("radio", { name: /Not Conform/i })).toBeTruthy();
@@ -704,7 +647,7 @@ describe("SampleSummaryDialog OOS banner and retest options", () => {
       { action: "approval.newSampleRequest", allowed: true, reason: null }
     ]);
 
-    const { rerender } = mount();
+    const { rerender } = mountAt();
 
     expect(await screen.findByRole("radio", { name: /Retest Retained Sample/i })).toBeTruthy();
     expect(screen.getByRole("radio", { name: /New Sample Required/i })).toBeTruthy();
@@ -739,13 +682,7 @@ describe("SampleSummaryDialog OOS banner and retest options", () => {
       }
     ]);
 
-    rerender(
-      <MemoryRouter>
-        <PinnedLightTheme>
-          <SampleSummaryDialog open={true} sampleId={78} onClose={vi.fn()} />
-        </PinnedLightTheme>
-      </MemoryRouter>
-    );
+    rerender(dialogAt(78));
 
     expect((await screen.findAllByText("OOS investigation OOS-2026-0099 is open.")).length).toBeGreaterThan(0);
     expect(screen.queryByRole("radio", { name: /Retest Retained Sample/i })).toBeNull();
@@ -800,7 +737,7 @@ describe("SampleSummaryDialog OOS banner and retest options", () => {
       ];
     });
 
-    mount();
+    mountAt();
 
     const sectionInput = await screen.findByRole("combobox", { name: /Laboratory Section/i });
     await user.click(sectionInput);
@@ -844,7 +781,7 @@ describe("SampleSummaryDialog OOS banner and retest options", () => {
       version: 1
     });
 
-    mount();
+    mountAt();
 
     expect(await screen.findByRole("radio", { name: /Retest Retained Sample/i })).toBeTruthy();
     expect(screen.getByRole("radio", { name: /New Sample Required/i })).toBeTruthy();
@@ -874,7 +811,7 @@ describe("SampleSummaryDialog OOS banner and retest options", () => {
       }
     ]);
 
-    const { rerender } = mount();
+    const { rerender } = mountAt();
     expect((await screen.findAllByText("This section cannot be approved because OOS was confirmed.")).length).toBeGreaterThan(0);
     expect(screen.queryByRole("button", { name: /Open investigation/i })).toBeNull();
 
@@ -890,13 +827,7 @@ describe("SampleSummaryDialog OOS banner and retest options", () => {
       response: { data: { message: "Manual opening requires a reviewed failing section without an investigation." } }
     });
 
-    rerender(
-      <MemoryRouter>
-        <PinnedLightTheme>
-          <SampleSummaryDialog open={true} sampleId={78} onClose={vi.fn()} />
-        </PinnedLightTheme>
-      </MemoryRouter>
-    );
+    rerender(dialogAt(78));
     await user.click(await screen.findByRole("button", { name: /Open investigation/i }));
     const refusal = await screen.findByText(
       "Manual opening requires a reviewed failing section without an investigation."
@@ -914,18 +845,12 @@ describe("SampleSummaryDialog OOS banner and retest options", () => {
       .mockResolvedValueOnce([]);
     mockGetSummary.mockResolvedValue(createSample({ status: "UnderApproval" }));
 
-    const { rerender } = mount(77);
+    const { rerender } = mountAt(77);
     expect(oosInvestigationService.getForSample).toHaveBeenCalledWith(77, expect.any(AbortSignal));
     const firstSignal = vi.mocked(oosInvestigationService.getForSample).mock.calls[0][1] as AbortSignal;
     expect(firstSignal.aborted).toBe(false);
 
-    rerender(
-      <MemoryRouter>
-        <PinnedLightTheme>
-          <SampleSummaryDialog open={true} sampleId={78} onClose={vi.fn()} />
-        </PinnedLightTheme>
-      </MemoryRouter>
-    );
+    rerender(dialogAt(78));
     expect(firstSignal.aborted).toBe(true);
     expect(oosInvestigationService.getForSample).toHaveBeenCalledWith(78, expect.any(AbortSignal));
 
@@ -954,7 +879,7 @@ describe("SampleSummaryDialog OOS banner and retest options", () => {
       } as never
     ]);
 
-    await waitFor(() => expect(mockGetSummary).toHaveBeenCalledWith(78));
+    await waitFor(() => expect(mockGetSummary).toHaveBeenCalledWith(78, expect.objectContaining({ signal: expect.any(AbortSignal) })));
     expect(screen.queryByText("OOS-STALE-001")).toBeNull();
   }, 15000);
 });

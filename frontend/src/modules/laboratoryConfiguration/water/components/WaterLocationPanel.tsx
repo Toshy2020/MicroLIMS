@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { isAxiosError } from "axios";
 import type { TFunction } from "i18next";
 import { useTranslation } from "../../../../i18n";
 import { Alert, Box, Button, MenuItem, Stack, TextField, Typography } from "@mui/material";
@@ -14,8 +15,7 @@ import {
   LimitPills,
   LimitValues,
   PanelSection,
-  SidePanel,
-  emptyLimits
+  SidePanel
 } from "../../../../components/configHierarchy";
 import { TestCodePickerMulti } from "../../../../components/TestCodePickerMulti";
 import { useTestDefinitions } from "../../../../hooks/useTestDefinitions";
@@ -266,13 +266,14 @@ export function WaterLocationPanel({ open, point: openedPoint, defaultDepartment
     setLabError(null);
     try {
       const updated = await WaterConfigService.setPointLabFrequency(currentPointId, secId, frequencyRule(editingFrequency));
+      noteOwnSave("waterPointLabFrequency", updated.id);
       setLabFrequencies((prev) => {
         const rest = prev.filter((f) => f.sectionId !== secId);
         return [...rest, updated];
       });
       setEditingLabId(null);
-    } catch (e: any) {
-      setLabError(e?.response?.data?.message ?? t("water.panel.labSaveError"));
+    } catch (e: unknown) {
+      setLabError((isAxiosError<{ message?: string }>(e) && e.response?.data?.message) || t("water.panel.labSaveError"));
     } finally {
       setLabSavingId(null);
     }
@@ -285,12 +286,29 @@ export function WaterLocationPanel({ open, point: openedPoint, defaultDepartment
     setLabError(null);
     try {
       await WaterConfigService.deletePointLabFrequency(currentPointId, secId);
+      noteOwnSave("waterPointLabFrequency", labFrequencies.find((f) => f.sectionId === secId)?.id);
       setLabFrequencies((prev) => prev.filter((f) => f.sectionId !== secId));
       if (editingLabId === secId) setEditingLabId(null);
-    } catch (e: any) {
-      setLabError(e?.response?.data?.message ?? t("water.panel.labResetError"));
+    } catch (e: unknown) {
+      setLabError((isAxiosError<{ message?: string }>(e) && e.response?.data?.message) || t("water.panel.labResetError"));
     } finally {
       setLabSavingId(null);
+    }
+  };
+
+  const reloadLabFrequency = async (pointId: number, sectionId: number) => {
+    setLabError(null);
+    try {
+      const points: SamplingPoint[] = await WaterConfigService.getSamplingPoints();
+      const fresh = points.find((p) => p.id === pointId)?.labFrequencies?.find((f) => f.sectionId === sectionId);
+      setLabFrequencies((previous) => [
+        ...previous.filter((f) => f.sectionId !== sectionId),
+        ...(fresh ? [fresh] : [])
+      ]);
+      setEditingLabId((previous) => previous === sectionId ? null : previous);
+    } catch (e: unknown) {
+      setLabError((isAxiosError<{ message?: string }>(e) && e.response?.data?.message) ||
+        t("components.configWizard.reloadLatestFailed", { ns: "common" }));
     }
   };
 
@@ -337,8 +355,8 @@ export function WaterLocationPanel({ open, point: openedPoint, defaultDepartment
         setSavedPointId(pointId);
         setPointVersion(created?.version);
       }
-    } catch (e: any) {
-      setError(e?.response?.data?.message ?? t("water.panel.saveError"));
+    } catch (e: unknown) {
+      setError((isAxiosError<{ message?: string }>(e) && e.response?.data?.message) || t("water.panel.saveError"));
       setSaving(false);
       return;
     }
@@ -412,8 +430,9 @@ export function WaterLocationPanel({ open, point: openedPoint, defaultDepartment
             );
           }
         }
-      } catch (e: any) {
-        failed.push(`${testCode}: ${e?.response?.data?.message ?? t("water.panel.couldNotBeSaved")}`);
+      } catch (e: unknown) {
+        const message = (isAxiosError<{ message?: string }>(e) && e.response?.data?.message) || t("water.panel.couldNotBeSaved");
+        failed.push(`${testCode}: ${message}`);
       }
     }
     setSaving(false);
@@ -438,7 +457,7 @@ export function WaterLocationPanel({ open, point: openedPoint, defaultDepartment
       saveLabel={point ? t("water.panel.saveChanges") : t("water.panel.addTitle")}
       error={error}
     >
-      {open && point && <RecordChangedBanner type="waterSamplingPoint" id={point.id} dirty={touched} onReload={() => void reload()} />}
+      {open && point && <RecordChangedBanner type="waterSamplingPoint" id={point.id} dirty={touched || editingLabId !== null} onReload={() => void reload()} />}
       <PanelSection title={t("water.panel.section1")}>
         <Stack spacing={1.5}>
           <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5}>
@@ -504,6 +523,14 @@ export function WaterLocationPanel({ open, point: openedPoint, defaultDepartment
                     bgcolor: editable ? "background.paper" : "action.hover"
                   }}
                 >
+                  {open && point && override?.id != null && (
+                    <RecordChangedBanner
+                      type="waterPointLabFrequency"
+                      id={override.id}
+                      dirty={isEditing}
+                      onReload={() => void reloadLabFrequency(point.id, sec.id)}
+                    />
+                  )}
                   <Stack direction="row" spacing={1.5} sx={{ alignItems: "center", justifyContent: "space-between", flexWrap: "wrap" }}>
                     <Box>
                       <Typography sx={{ fontSize: 14, fontWeight: 600 }}>{sec.code}</Typography>

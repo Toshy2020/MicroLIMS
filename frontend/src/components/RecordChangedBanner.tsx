@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Alert, Button } from "@mui/material";
 import { useTranslation } from "../i18n";
-import { useRecordChanged } from "../hooks/useRecordChanged";
+import { useRecordChanged, type RecordChangedState } from "../hooks/useRecordChanged";
 import { formatDateTimeWithTimeZone } from "../utils/formatDate";
 import { ConfirmationDialog } from "./ConfirmationDialog";
 
@@ -18,8 +18,18 @@ export interface RecordChangedBannerProps {
  * itself: the user chooses, and is asked first when they have unsaved edits.
  */
 export function RecordChangedBanner({ type, id, dirty, onReload }: RecordChangedBannerProps) {
+  const change = useRecordChanged(type, id);
+  return <RecordChangedNotice change={change} dirty={dirty} onReload={onReload} />;
+}
+
+// A screen can keep its subscription when the notice moves into a modal.
+export function RecordChangedNotice({ change, dirty, onReload }: {
+  change: RecordChangedState;
+  dirty: boolean;
+  onReload: () => void;
+}) {
   const { t } = useTranslation();
-  const { changed, at, dismiss } = useRecordChanged(type, id);
+  const { changed, at, dismiss } = change;
   const [confirming, setConfirming] = useState(false);
 
   const reload = () => {

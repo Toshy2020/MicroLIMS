@@ -3,9 +3,11 @@ import { render, screen, cleanup, act, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { AxiosError, type AxiosResponse } from "axios";
 import { MemoryRouter } from "react-router-dom";
-import { ThemeProvider } from "@mui/material";
-import { lightTheme } from "../../theme";
+import { PinnedLightTheme } from "../../theme/PinnedLightTheme";
 import { AuthProvider } from "../../contexts/AuthContext";
+import { LiveProvider } from "../../contexts/LiveContext";
+import { createFakeLiveConnection, type FakeLiveConnection } from "../../contexts/testing/fakeLiveConnection";
+import { signInForTest } from "../../services/drafts/draftTestUtils";
 import { TestWorkflowDialog } from "./TestWorkflowDialog";
 import { renderInArabic, resetLanguage } from "../../i18n/testUtils";
 
@@ -54,19 +56,38 @@ const incubating = (remainingMinimumSeconds: number) => ({
   allSteps: [{ stepOrder: 1, stepName: "TAMC" }], completedSteps: []
 });
 
-function renderDialog() {
+function renderDialog(connection?: FakeLiveConnection) {
+  const dialog = <TestWorkflowDialog testOrderId={9} testCode="TAMC" category="FinishedProduct" displayName="Tablet" />;
   return render(
-    <ThemeProvider theme={lightTheme}>
+    <PinnedLightTheme>
       <AuthProvider>
         <MemoryRouter>
-          <TestWorkflowDialog testOrderId={9} testCode="TAMC" category="FinishedProduct" displayName="Tablet" />
+          {connection ? <LiveProvider connection={connection}>{dialog}</LiveProvider> : dialog}
         </MemoryRouter>
       </AuthProvider>
-    </ThemeProvider>
+    </PinnedLightTheme>
   );
 }
 
 describe("TestWorkflowDialog count test", () => {
+  it("reloads the current step only after the analyst chooses Reload", async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    const connection = createFakeLiveConnection();
+    signInForTest(7);
+    service.getCurrentStep.mockResolvedValueOnce(incubating(60)).mockResolvedValue(incubating(0));
+    renderDialog(connection);
+    expect((await screen.findByRole<HTMLButtonElement>("button", { name: "Record Result" })).disabled).toBe(true);
+    await waitFor(() => expect(connection.invoke).toHaveBeenCalledWith("WatchRecord", "testOrder", 9));
+
+    act(() => connection.emitSignal({ kind: "record", key: "testOrder:9", actorUserId: 99 }));
+    expect(service.getCurrentStep).toHaveBeenCalledTimes(1);
+    await user.click(await screen.findByRole("button", { name: "Reload" }));
+
+    expect(await screen.findByText("Plate reading is available now")).toBeTruthy();
+    expect(service.getCurrentStep).toHaveBeenCalledTimes(2);
+    expect(screen.queryByRole("button", { name: "Reload" })).toBeNull();
+  });
+
   it("counts down to the plate reading and unlocks Record Result at zero", async () => {
     service.getCurrentStep.mockResolvedValue(incubating(60));
     renderDialog();
@@ -115,13 +136,13 @@ describe("TestWorkflowDialog count test", () => {
     });
 
     render(
-      <ThemeProvider theme={lightTheme}>
+      <PinnedLightTheme>
         <AuthProvider>
           <MemoryRouter>
             <TestWorkflowDialog testOrderId={42} testCode="PH" category="Water" displayName="Purified Water pH" />
           </MemoryRouter>
         </AuthProvider>
-      </ThemeProvider>
+      </PinnedLightTheme>
     );
 
     expect(await screen.findByText("PW-01 - Point 1")).toBeTruthy();

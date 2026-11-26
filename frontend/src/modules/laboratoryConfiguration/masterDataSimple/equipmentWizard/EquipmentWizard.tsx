@@ -192,6 +192,7 @@ function OpenEquipmentWizard({
       recordVersion={isEditing ? (editing?.version ?? null) : null}
       getRecordVersion={() => reloadedEquipmentRef.current?.version ?? null}
       reloadOriginal={reloadOriginal}
+      liveRecord={isEditing ? { type: "equipment", id: editing?.id ?? null } : undefined}
       draftKey={draftKey}
       draftFields={[...EQUIPMENT_DRAFT_FIELDS]}
       usage={usageFn}

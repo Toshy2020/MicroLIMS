@@ -273,7 +273,8 @@ public static class SampleWorkflowQueues
     /// </summary>
     public static async Task<Dictionary<int, DateTime>> GetReviewClockStartsAsync(
         IMicroLimsDbContext db,
-        IReadOnlyCollection<int> sampleIds)
+        IReadOnlyCollection<int> sampleIds,
+        CancellationToken cancellationToken = default)
     {
         if (sampleIds == null || sampleIds.Count == 0)
         {
@@ -290,7 +291,7 @@ public static class SampleWorkflowQueues
                      && distinctSampleIds.Contains(e.EntityId))
             .GroupBy(e => e.EntityId)
             .Select(g => new { SampleId = g.Key, MaxTimestamp = g.Max(e => e.Timestamp) })
-            .ToDictionaryAsync(x => x.SampleId, x => x.MaxTimestamp);
+            .ToDictionaryAsync(x => x.SampleId, x => x.MaxTimestamp, cancellationToken);
 
         // Identify samples needing history fallback
         var missingAfterEvents = distinctSampleIds.Where(id => !eventStarts.ContainsKey(id)).ToList();
@@ -303,7 +304,7 @@ public static class SampleWorkflowQueues
                 .AsNoTracking()
                 .Where(t => missingAfterEvents.Contains(t.SampleId) && !t.IsSuperseded)
                 .Select(t => new { t.Id, t.SampleId })
-                .ToListAsync();
+                .ToListAsync(cancellationToken);
 
             if (orderData.Count > 0)
             {
@@ -315,7 +316,7 @@ public static class SampleWorkflowQueues
                     .Where(h => orderIds.Contains(h.TestOrderId) && h.ToStep == WorkflowStep.Ready)
                     .GroupBy(h => h.TestOrderId)
                     .Select(g => new { TestOrderId = g.Key, MaxTimestamp = g.Max(h => h.Timestamp) })
-                    .ToListAsync();
+                    .ToListAsync(cancellationToken);
 
                 historyStarts = historyData
                     .GroupBy(h => orderToSample[h.TestOrderId])

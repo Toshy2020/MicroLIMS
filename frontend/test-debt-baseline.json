@@ -1,6 +1,6 @@
 {
-  "fireEventCalls": 552,
-  "projectModuleMocks": 109,
-  "anyInSource": 97,
+  "fireEventCalls": 544,
+  "projectModuleMocks": 107,
+  "anyInSource": 93,
   "anyInTests": 21
 }

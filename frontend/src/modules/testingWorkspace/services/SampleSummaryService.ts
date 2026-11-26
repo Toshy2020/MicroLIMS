@@ -20,9 +20,9 @@ async function downloadBlob(url: string, fileName: string): Promise<void> {
 }
 
 export const SampleSummaryService = {
-  async getSummary(sampleId: number, opts?: { forCertificate?: boolean }): Promise<SampleSummary> {
+  async getSummary(sampleId: number, opts?: { forCertificate?: boolean; signal?: AbortSignal }): Promise<SampleSummary> {
     const params = opts?.forCertificate ? { forCertificate: true } : undefined;
-    return (await apiClient.get(`/samples/${sampleId}/summary`, { params })).data.data;
+    return (await apiClient.get(`/samples/${sampleId}/summary`, { params, signal: opts?.signal })).data.data;
   },
   async getSampleVersion(sampleId: number): Promise<number | null> {
     const data = (await apiClient.get(`/testorders/${sampleId}`)).data?.data as { version?: number } | undefined;

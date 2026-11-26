@@ -158,6 +158,8 @@ export interface CurrentStepLocationItem {
 
 export interface CurrentStepResponse extends TestOrderSop {
   testOrderId: number;
+  outsourcedToLab?: string | null;
+  status?: string;
   step: TestWorkflowStepDto | null;
   stepNumber: number | null;
   totalSteps: number;

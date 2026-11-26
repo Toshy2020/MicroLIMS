@@ -16,8 +16,8 @@ export interface RequestHeadersConfig {
 }
 
 export const TestWorkflowService = {
-  getCurrentStep: (testOrderId: number): Promise<CurrentStepResponse> =>
-    apiClient.get(`/test-workflow/${testOrderId}/current-step`).then((r) => r.data.data),
+  getCurrentStep: (testOrderId: number, signal?: AbortSignal): Promise<CurrentStepResponse> =>
+    apiClient.get(`/test-workflow/${testOrderId}/current-step`, { signal }).then((r) => r.data.data),
 
   getSiblingPathogenOrders: (testOrderId: number): Promise<SiblingPathogenOrder[]> =>
     apiClient.get(`/test-workflow/${testOrderId}/sibling-pathogen-orders`).then((r) => r.data.data),

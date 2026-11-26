@@ -211,10 +211,13 @@ public class ExceptionMiddleware
     // The code, its parameters and the English sentence of a coded refusal;
     // null for every other exception, so an uncoded response has no
     // errorDetails key at all.
-    private static List<ApiError>? DetailsOf(Exception exception) =>
-        exception is ICodedMessage { Code: { } code } coded
-            ? [new ApiError(code, coded.Parameters is { Count: > 0 } ? coded.Parameters : null, exception.Message)]
-            : null;
+    private static List<ApiError>? DetailsOf(Exception exception) => exception switch
+    {
+        BusinessRuleException { Details: { } details } => details.ToList(),
+        ICodedMessage { Code: { } code } coded =>
+            [new ApiError(code, coded.Parameters is { Count: > 0 } ? coded.Parameters : null, exception.Message)],
+        _ => null
+    };
 
     private static Task WriteResponse(HttpContext context, object payload)
     {

@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.RateLimiting;
 using MicroLIMS.API.Extensions;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Services;
+using MicroLIMS.Shared.Exceptions;
 using MicroLIMS.Shared.Responses;
 
 namespace MicroLIMS.API.Controllers;
@@ -103,6 +104,10 @@ public class AuthenticationController : ControllerBase
         {
             await _adminPasswordRecoveryService.ConfirmRecoveryAsync(request.Username, request.RecoveryCode, request.NewPassword);
             return Ok(ApiResponse<object>.Ok(new { message = "Password recovery successful. You may now log in with your new password." }));
+        }
+        catch (BusinessRuleException ex) when (ex.Details is { } details)
+        {
+            return BadRequest(ApiResponse<object>.Fail(ex.Message, null, null, details.ToList()));
         }
         catch (InvalidOperationException ex)
         {

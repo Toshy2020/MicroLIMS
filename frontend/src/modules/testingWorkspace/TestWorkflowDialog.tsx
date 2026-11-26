@@ -1,4 +1,6 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { RecordChangedNotice } from "../../components/RecordChangedBanner";
+import { noteOwnSave, useRecordChanged } from "../../hooks/useRecordChanged";
 import axios from "axios";
 import { Box, Typography, TextField, Button, Stack, Alert, IconButton, useTheme } from "@mui/material";
 import { toast } from "sonner";
@@ -7,7 +9,7 @@ import AddIcon from "@mui/icons-material/Add";
 import CloseIcon from "@mui/icons-material/Close";
 import EditIcon from "@mui/icons-material/Edit";
 import { Ltr } from "../../components/Ltr";
-import { useTranslation } from "../../i18n";
+import { i18n, useTranslation } from "../../i18n";
 import { StatusBadge } from "../../components/StatusBadge";
 import { statusTone } from "../../theme/statusTokens";
 import { errorsByRow } from "../../utils/fieldErrors";
@@ -209,6 +211,7 @@ type Phase = "loading" | "select-media" | "awaiting-result" | "transfer-stage-2"
 // Dialog for their per-location batch result entry, exactly as today.
 export function TestWorkflowDialog(props: Props) {
   const [loadedSop, setLoadedSop] = useState<(TestOrderSop & { testOrderId: number }) | null>(null);
+  const [reloadCount, setReloadCount] = useState(0);
   const sop = loadedSop?.testOrderId === props.testOrderId ? loadedSop : props;
   // Samples with no item (water, environmental monitoring, after cleaning) get no Open SOP action.
   return (
@@ -219,14 +222,20 @@ export function TestWorkflowDialog(props: Props) {
           <SopMethodDetails sopCapture={sop.sopCapture} newerSopRevision={sop.newerSopRevision} timeZone={props.labTimeZoneId} />
         </>
       )}
-      <TestWorkflowDialogBody {...props} onSopLoaded={setLoadedSop} />
+      <TestWorkflowDialogBody
+        key={`${props.testOrderId}:${reloadCount}`}
+        {...props}
+        onSopLoaded={setLoadedSop}
+        onReload={() => setReloadCount((count) => count + 1)}
+      />
     </>
   );
 }
 
 function TestWorkflowDialogBody({
-  testOrderId, testCode, category, displayName, itemId, sampleId, status, outsourcedToLab, onClose, onSopLoaded
-}: Props & { onSopLoaded: (sop: TestOrderSop & { testOrderId: number }) => void }) {
+  testOrderId, testCode, category, displayName, itemId, sampleId, status, outsourcedToLab, onClose, onSopLoaded, onReload
+}: Props & { onSopLoaded: (sop: TestOrderSop & { testOrderId: number }) => void; onReload: () => void }) {
+  const recordChange = useRecordChanged("testOrder", testOrderId);
   const { t } = useTranslation("testingWorkspace");
   const theme = useTheme();
   const isEmOrAfterCleaning = category === "EnvironmentalMonitoring" || category === "AfterCleaning";
@@ -235,7 +244,9 @@ function TestWorkflowDialogBody({
   const [error, setError] = useState<string | null>(null);
   const [isCompetencyRefusal, setIsCompetencyRefusal] = useState(false);
   const [showLocationGrid, setShowLocationGrid] = useState(false);
-  const [outsourcedLab, setOutsourcedLab] = useState<string | null>(outsourcedToLab ?? null);
+  const [newOutsourcedLab, setNewOutsourcedLab] = useState<string | null>(null);
+  const outsourcedLab = newOutsourcedLab ?? (current?.outsourcedToLab === undefined ? outsourcedToLab : current.outsourcedToLab);
+  const orderStatus = current?.status ?? status;
 
   const [mediaId, setMediaId] = useState<number | "">("");
   const [incubatorId, setIncubatorId] = useState<number | "">("");
@@ -245,6 +256,9 @@ function TestWorkflowDialogBody({
   const lotLastChoice = useLastChoiceDefault<number>("lot");
   const incubatorLastChoice = useLastChoiceDefault<number>("equipment");
   const stage2IncubatorLastChoice = useLastChoiceDefault<number>("equipment");
+  const { reset: resetLot } = lotLastChoice;
+  const { reset: resetIncubator } = incubatorLastChoice;
+  const { reset: resetStage2Incubator } = stage2IncubatorLastChoice;
 
   const [readings, setReadings] = useState<string[]>(["", ""]);
   const [dilutionFactor, setDilutionFactor] = useState("1");
@@ -257,17 +271,18 @@ function TestWorkflowDialogBody({
 
   const [lastOutcome, setLastOutcome] = useState<CountOutcome | null>(null);
 
-  const load = async () => {
+  const load = useCallback(async (signal?: AbortSignal) => {
     setError(null);
     try {
-      const data = await TestWorkflowService.getCurrentStep(testOrderId);
+      const data = await TestWorkflowService.getCurrentStep(testOrderId, signal);
+      if (signal?.aborted) return;
       setCurrent(data);
       if (data.sopCapture !== undefined)
         onSopLoaded({ testOrderId, sopCapture: data.sopCapture, newerSopRevision: data.newerSopRevision });
       setMediaId(""); setIncubatorId(""); setStage2IncubatorId("");
-      lotLastChoice.reset();
-      incubatorLastChoice.reset();
-      stage2IncubatorLastChoice.reset();
+      resetLot();
+      resetIncubator();
+      resetStage2Incubator();
       const sampleType = data?.sampleContext?.sampleType ?? "";
       const isDirect = ["Water", "EnvironmentalMonitoring", "AfterCleaning"].includes(sampleType);
       const configuredDf = data?.sampleContext?.configuredDilutionFactor;
@@ -280,11 +295,21 @@ function TestWorkflowDialogBody({
       setReadingErrors({});
       setPhase(data.allStepsComplete ? "all-complete" : data.incubationLock != null ? "awaiting-result" : "select-media");
     } catch (e: unknown) {
-      setError(serverMessage(e) ?? t("testWorkflow.loadFailed"));
+      if (signal?.aborted) return;
+      setError(serverMessage(e) ?? i18n.t("testingWorkspace:testWorkflow.loadFailed"));
     }
-  };
+  }, [testOrderId, resetLot, resetIncubator, resetStage2Incubator]);
 
-  useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [testOrderId]);
+  useEffect(() => {
+    const controller = new AbortController();
+    void load(controller.signal);
+    return () => controller.abort();
+  }, [load]);
+
+  const reloadAfterSave = () => {
+    noteOwnSave("testOrder", testOrderId);
+    return load();
+  };
 
   const currentRef = useRef(current);
   currentRef.current = current;
@@ -460,7 +485,7 @@ function TestWorkflowDialogBody({
     if (!mediaId || !incubatorId || !step) return;
     try {
       await TestWorkflowService.selectMedia(testOrderId, step.stepName, Number(mediaId), Number(incubatorId));
-      await load();
+      await reloadAfterSave();
     } catch (e: unknown) {
       setIsCompetencyRefusal(isCompetencyRefusalError(e));
       setError(serverMessage(e) ?? t("testWorkflow.startIncubationFailed"));
@@ -474,7 +499,7 @@ function TestWorkflowDialogBody({
     try {
       await TestWorkflowService.startStage2Incubation(testOrderId, step.stepName, Number(stage2IncubatorId));
       setStage2IncubatorId("");
-      await load();
+      await reloadAfterSave();
     } catch (e: unknown) {
       setIsCompetencyRefusal(isCompetencyRefusalError(e));
       setError(serverMessage(e) ?? t("testWorkflow.startStage2Failed"));
@@ -486,7 +511,7 @@ function TestWorkflowDialogBody({
     setIsCompetencyRefusal(false);
     try {
       await TestWorkflowService.closeIncubationWindow(testOrderId);
-      await load();
+      await reloadAfterSave();
     } catch (e: unknown) {
       setIsCompetencyRefusal(isCompetencyRefusalError(e));
       setError(serverMessage(e) ?? t("testWorkflow.closeWindowFailed"));
@@ -716,6 +741,7 @@ function TestWorkflowDialogBody({
 
       setSaving(true);
       const result = await TestWorkflowService.recordCountResult(testOrderId, payload, ...draftHeaderArgs(draft.submitHeaders()));
+      noteOwnSave("testOrder", testOrderId);
       await draft.onSubmitted();
       setKeptOffline(false);
       setLastOutcome(result);
@@ -750,8 +776,14 @@ function TestWorkflowDialogBody({
   };
 
   // An outsourced test is reported from the external lab's report, whatever its workflow type.
+  const banner = (dirty: boolean, reload = onReload) => (
+    <RecordChangedNotice change={recordChange} dirty={dirty} onReload={reload} />
+  );
+  // Delegated forms own their edits. Ask before remounting any of them on reload.
+  const withEditablePanel = (panel: ReactNode) => <>{banner(true)}{panel}</>;
+
   if (outsourcedLab) {
-    return (
+    return withEditablePanel(
       <OutsourcedPanel
         key={testOrderId}
         testOrderId={testOrderId}
@@ -759,7 +791,8 @@ function TestWorkflowDialogBody({
         testCode={testCode}
         outsourcedToLab={outsourcedLab}
         sampleId={sampleId}
-        status={status}
+        status={orderStatus}
+        onRecorded={() => noteOwnSave("testOrder", testOrderId)}
       />
     );
   }
@@ -767,15 +800,19 @@ function TestWorkflowDialogBody({
   if (phase === "loading" || !current) {
     return (
       <Box sx={{ py: 4 }}>
+        {banner(false)}
         {error ? <Alert severity="error">{error}</Alert> : <DialogBodySkeleton blocks={3} blockHeight={56} />}
       </Box>
     );
   }
 
   // Physicochemical tests can be sent to an outside laboratory instead.
-  const withOutsource = (panel: ReactNode) => (
+  const withOutsource = (panel: ReactNode) => withEditablePanel(
     <>
-      <OutsourceTestAction testOrderId={testOrderId} status={status} onOutsourced={setOutsourcedLab} />
+      <OutsourceTestAction testOrderId={testOrderId} status={orderStatus} onOutsourced={(lab) => {
+        noteOwnSave("testOrder", testOrderId);
+        setNewOutsourcedLab(lab);
+      }} />
       {panel}
     </>
   );
@@ -788,13 +825,13 @@ function TestWorkflowDialogBody({
 
   // Water / AC per-location result entry
   if (panelKind === "LocationResults") {
-    return (
+    return withEditablePanel(
       <LocationResultsPanel
         testOrderId={testOrderId}
         displayName={displayName}
         testCode={testCode}
         current={current}
-        onRecorded={load}
+        onRecorded={reloadAfterSave}
         onClose={onClose}
       />
     );
@@ -810,7 +847,7 @@ function TestWorkflowDialogBody({
         itemId={itemId}
         sampleId={sampleId}
         current={panelCurrent}
-        onRecorded={load}
+        onRecorded={reloadAfterSave}
         onClose={onClose}
       />
     );
@@ -826,7 +863,7 @@ function TestWorkflowDialogBody({
         itemId={itemId}
         sampleId={sampleId}
         current={panelCurrent}
-        onRecorded={load}
+        onRecorded={reloadAfterSave}
         onClose={onClose}
       />
     );
@@ -842,7 +879,7 @@ function TestWorkflowDialogBody({
         itemId={itemId}
         sampleId={sampleId}
         current={panelCurrent}
-        onRecorded={load}
+        onRecorded={reloadAfterSave}
         onClose={onClose}
       />
     );
@@ -859,7 +896,7 @@ function TestWorkflowDialogBody({
         itemId={itemId}
         sampleId={sampleId}
         current={panelCurrent}
-        onRecorded={load}
+        onRecorded={reloadAfterSave}
         onClose={onClose}
       />
     );
@@ -875,7 +912,7 @@ function TestWorkflowDialogBody({
         itemId={itemId}
         sampleId={sampleId}
         current={panelCurrent}
-        onRecorded={load}
+        onRecorded={reloadAfterSave}
         onClose={onClose}
       />
     );
@@ -891,7 +928,7 @@ function TestWorkflowDialogBody({
         itemId={itemId}
         sampleId={sampleId}
         current={panelCurrent}
-        onRecorded={load}
+        onRecorded={reloadAfterSave}
         onClose={onClose}
       />
     );
@@ -907,7 +944,7 @@ function TestWorkflowDialogBody({
         itemId={itemId}
         sampleId={sampleId}
         current={panelCurrent}
-        onRecorded={load}
+        onRecorded={reloadAfterSave}
         onClose={onClose}
       />
     );
@@ -923,7 +960,7 @@ function TestWorkflowDialogBody({
         itemId={itemId}
         sampleId={sampleId}
         current={panelCurrent}
-        onRecorded={load}
+        onRecorded={reloadAfterSave}
         onClose={onClose}
       />
     );
@@ -942,7 +979,9 @@ function TestWorkflowDialogBody({
   // Unchanged routing: every workflow other than CountTest (and other than EM / After Cleaning)
   // opens the pathogen step dialog, as it always has.
   if (current.workflowType !== "CountTest" && !isEmOrAfterCleaning) {
-    return <PathogenStepDialog testOrderId={testOrderId} testCode={testCode} displayName={displayName} onClose={onClose} />;
+    return withEditablePanel(
+      <PathogenStepDialog testOrderId={testOrderId} testCode={testCode} displayName={displayName} onClose={onClose} />
+    );
   }
 
   const stepChip: { label: string; tone: StepChipTone } | null =
@@ -958,6 +997,7 @@ function TestWorkflowDialogBody({
     const outcome = lastOutcome?.finalResult ?? current.finalResult;
     return (
       <Box>
+        {banner(false)}
         <StepChainStrip current={current} />
         <Alert severity={outcome === "Detected" ? "error" : "success"} sx={{ mb: 2 }}>
           <Trans
@@ -979,7 +1019,7 @@ function TestWorkflowDialogBody({
     );
   }
 
-  if (!step) return null;
+  if (!step) return banner(false);
 
   const previewTone = preview?.status ? theme.custom.status[statusTone(preview.status)] : null;
 
@@ -1155,6 +1195,12 @@ function TestWorkflowDialogBody({
 
   return (
     <Box>
+      {!(benchCount && phase === "enter-result") && banner(
+        phase === "enter-result"
+          ? countEntryDirty || dilutionFactorOverriding
+          : (phase === "select-media" && (mediaId !== "" || incubatorId !== "")) ||
+            (phase === "transfer-stage-2" && stage2IncubatorId !== "")
+      )}
       <StepChainStrip current={current} />
       {current?.returnInfo && (
         <Alert severity="warning" sx={{ mb: 2 }}>
@@ -1289,7 +1335,9 @@ function TestWorkflowDialogBody({
           testOrderId={testOrderId}
           step={step}
           current={current}
-          onSubmitted={load}
+          onSubmitted={(saved = true) => {
+            void (saved ? reloadAfterSave() : load());
+          }}
           incubationWindow={{ tempMin: activeTempMin, tempMax: activeTempMax, minHours: activeIncMinHours, maxHours: activeIncMaxHours }}
           nextLabel={
             isTwoStageTransfer && !isStage2 ? t("testWorkflow.nextLabelStage2")
@@ -1327,7 +1375,7 @@ function TestWorkflowDialogBody({
           minReadyAt={minReadyAt}
           minimumDurationOverridden={minimumDurationOverridden}
           onClose={() => setShowLocationGrid(false)}
-          onSubmitted={() => { setShowLocationGrid(false); load(); }}
+          onSubmitted={() => { setShowLocationGrid(false); void reloadAfterSave(); }}
         />
       ) : current.workflowType === "CountTest" ? (
         <LocationResultGridDialog
@@ -1338,7 +1386,7 @@ function TestWorkflowDialogBody({
           minReadyAt={minReadyAt}
           minimumDurationOverridden={minimumDurationOverridden}
           onClose={() => setShowLocationGrid(false)}
-          onSubmitted={() => { setShowLocationGrid(false); load(); }}
+          onSubmitted={() => { setShowLocationGrid(false); void reloadAfterSave(); }}
         />
       ) : (
         <PathogenLocationResultGridDialog
@@ -1349,7 +1397,7 @@ function TestWorkflowDialogBody({
           minReadyAt={minReadyAt}
           minimumDurationOverridden={minimumDurationOverridden}
           onClose={() => setShowLocationGrid(false)}
-          onSubmitted={() => { setShowLocationGrid(false); load(); }}
+          onSubmitted={() => { setShowLocationGrid(false); void reloadAfterSave(); }}
         />
       )}
 
@@ -1400,6 +1448,13 @@ function TestWorkflowDialogBody({
           dirty={countEntryDirty}
         >
           <Stack spacing={2}>
+            {banner(countEntryDirty || dilutionFactorOverriding, () => {
+              if (countEntryDirty || dilutionFactorOverriding) {
+                void draft.discard().then(onReload);
+              } else {
+                onReload();
+              }
+            })}
             <DraftRestoreNotice startedAt={draft.restoredStartedAt} onRestore={restoreDraft} onDiscard={() => void draft.discard()} />
             {keptOffline && <OfflineDraftNotice onTryAgain={() => setKeptOffline(false)} />}
             {error && (
@@ -1454,7 +1509,7 @@ function TestWorkflowDialogBody({
             />
           )}
           <StepActionBar>
-            <Button variant="contained" onClick={load}>{lastOutcome.isDefinitive ? t("testWorkflow.proceedNextStep") : t("testWorkflow.retryThisStep")}</Button>
+            <Button variant="contained" onClick={() => void load()}>{lastOutcome.isDefinitive ? t("testWorkflow.proceedNextStep") : t("testWorkflow.retryThisStep")}</Button>
           </StepActionBar>
         </Stack>
       )}

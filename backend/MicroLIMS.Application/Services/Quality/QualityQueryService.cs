@@ -17,6 +17,7 @@ namespace MicroLIMS.Application.Services.Quality;
 public sealed class QualityQueryService(
     IMicroLimsDbContext db,
     QualityRecordCore core,
+    QualityLinkService links,
     ILabClock clock)
 {
     public async Task<PagedResult<QualityRecordListItemDto>> ListAsync(QualityRecordFilter filter, int userId,
@@ -230,6 +231,10 @@ public sealed class QualityQueryService(
                 a.VoidedByUserId == null ? null : db.Users.Where(u => u.Id == a.VoidedByUserId).Select(u => u.FullName).FirstOrDefault()))
             .ToListAsync(ct);
 
+        var affected = row.ChangeControl is null
+            ? []
+            : await links.ResolveAffectedAsync(id, userId, ct);
+
         var pathSteps = BuildPathSteps(row.Type, status, row.RaisedAtUtc, row.RaisedByName, timeline);
 
         return new QualityRecordDetailDto(
@@ -265,7 +270,8 @@ public sealed class QualityQueryService(
                 row.Capa.SuccessorCapaId, row.Capa.SuccessorCapaNumber),
             row.ChangeControl is null ? null : new QualityChangeControlDetailDto(
                 row.ChangeControl.Status, row.ChangeControl.Reason, row.ChangeControl.ImpactSummary,
-                row.ChangeControl.RejectionReason, row.ChangeControl.PostChangeReview, row.ChangeControl.UnchangedJustification),
+                row.ChangeControl.RejectionReason, row.ChangeControl.PostChangeReview, row.ChangeControl.UnchangedJustification,
+                affected),
             row.Complaint is null ? null : new QualityComplaintDetailDto(
                 row.Complaint.Status, row.Complaint.Source, row.Complaint.ReceivedOn, row.Complaint.ExternalReference,
                 row.Complaint.ItemId, row.Complaint.ItemName, row.Complaint.LotText, row.Complaint.ComplaintText,

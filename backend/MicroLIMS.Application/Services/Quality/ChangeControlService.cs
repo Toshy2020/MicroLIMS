@@ -301,10 +301,9 @@ public sealed class ChangeControlService(
                     $"Complete the unfinished task before closure: {unfinishedTask}",
                     new Dictionary<string, string> { ["task"] = unfinishedTask });
 
-            var hasUnchangedGatedTarget = await db.QualityRecordLinks.AsNoTracking().AnyAsync(l =>
-                l.RecordId == id && l.IsAffectedByChange &&
-                (l.TargetType == QualityLinkTargetType.Specification || l.TargetType == QualityLinkTargetType.TestDefinition) &&
-                l.ChangedAtUtc == null, ct);
+            var hasUnchangedGatedTarget = await db.QualityRecordLinks.AsNoTracking()
+                .Where(l => l.RecordId == id)
+                .AnyAsync(ChangeControlAffectedRules.UnchangedGatedTargetExpression, ct);
 
             string? justification = null;
             if (string.IsNullOrWhiteSpace(request.UnchangedJustification))

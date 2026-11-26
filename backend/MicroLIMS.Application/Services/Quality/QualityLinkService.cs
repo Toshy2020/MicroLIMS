@@ -118,6 +118,43 @@ public class QualityLinkService(IMicroLimsDbContext db, QualityRecordCore core, 
         };
     }
 
+    // The affected records of a change control with the label rule of ResolveAsync (restricted: number or
+    // code only) and the closure's Unchanged rule.
+    public async Task<IReadOnlyList<QualityChangeControlAffectedDto>> ResolveAffectedAsync(int recordId, int userId,
+        CancellationToken ct = default)
+    {
+        var access = await core.GetReadAccessAsync(userId, ct);
+        if (!await core.ReadableRecords(userId, access).AnyAsync(r => r.Id == recordId, ct)) throw QualityRecordCore.Missing();
+
+        var links = await db.QualityRecordLinks.AsNoTracking()
+            .Where(l => l.RecordId == recordId && l.IsAffectedByChange)
+            .OrderBy(l => l.Id).Take(AffectedCap)
+            .ToListAsync(ct);
+
+        var targets = new Dictionary<QualityLinkTargetType, Dictionary<int, (QualityLinkTargets.Target Target, bool IsReadable)>>();
+        foreach (var group in links.Where(l => l.TargetId.HasValue).GroupBy(l => l.TargetType))
+        {
+            var ids = group.Select(l => l.TargetId.GetValueOrDefault()).Distinct().ToArray();
+            targets.Add(group.Key, await _targets.ResolveBatchAsync(group.Key, ids, userId, access, ct));
+        }
+
+        return links.Select(link =>
+        {
+            var unchanged = ChangeControlAffectedRules.IsUnchangedGatedTarget(link);
+            if (link.TargetId is int id && targets.TryGetValue(link.TargetType, out var batch) &&
+                batch.TryGetValue(id, out var resolved))
+            {
+                return new QualityChangeControlAffectedDto(link.Id, link.TargetType, link.TargetId, resolved.Target.Number,
+                    resolved.IsReadable ? resolved.Target.Label : null, !resolved.IsReadable,
+                    link.ChangedAtUtc, link.ChangeAuditLogId, unchanged);
+            }
+            return new QualityChangeControlAffectedDto(link.Id, link.TargetType, link.TargetId, link.NewRecordCode,
+                null, link.TargetId.HasValue, link.ChangedAtUtc, link.ChangeAuditLogId, unchanged);
+        }).ToList();
+    }
+
+    private const int AffectedCap = 200;
+
     public Task<IReadOnlyList<QualityRecordRefDto>> ForTargetAsync(QualityLinkTargetType targetType, int targetId,
         int userId, CancellationToken ct = default) => ForTargetAsync(targetType, targetId, userId, 0, 100, ct);
 

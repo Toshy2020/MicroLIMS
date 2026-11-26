@@ -61,7 +61,10 @@ public sealed class QualityQueriesPostgresTests(PostgresTestFixture fixture)
     }
 
     private static QualityQueryService QueryService(MicroLimsDbContext db, TimeProvider clock) =>
-        new(db, Core(db, clock), new LabClock(clock, TimeZoneInfo.Utc));
+        new(db, Core(db, clock), Links(db, clock), new LabClock(clock, TimeZoneInfo.Utc));
+
+    private static QualityLinkService Links(MicroLimsDbContext db, TimeProvider clock) =>
+        new(db, Core(db, clock), new PermissionService(db), new UserSectionScopeService(db), clock);
 
     private static QualityReportBuilder ReportBuilder(MicroLimsDbContext db, TimeProvider clock)
     {
@@ -69,7 +72,7 @@ public sealed class QualityQueriesPostgresTests(PostgresTestFixture fixture)
         var scope = new UserSectionScopeService(db);
         var core = Core(db, clock);
         var links = new QualityLinkService(db, core, permissions, scope, clock);
-        var query = new QualityQueryService(db, core, new LabClock(clock, TimeZoneInfo.Utc));
+        var query = new QualityQueryService(db, core, links, new LabClock(clock, TimeZoneInfo.Utc));
         return new QualityReportBuilder(query, links, new PdfGenerator(), new DataExportAuditService(db), db);
     }
 

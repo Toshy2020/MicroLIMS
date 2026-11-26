@@ -17,9 +17,9 @@ function menuPaths(groups: MenuGroup[]): string[] {
 }
 
 describe("guide chapters", () => {
-  it("CHAPTERS has 45 entries numbered 1-45 with titles", () => {
-    expect(CHAPTERS).toHaveLength(45);
-    expect(CHAPTERS.map((c) => c.number)).toEqual(Array.from({ length: 45 }, (_, i) => i + 1));
+  it("CHAPTERS has 46 entries numbered 1-46 with titles", () => {
+    expect(CHAPTERS).toHaveLength(46);
+    expect(CHAPTERS.map((c) => c.number)).toEqual(Array.from({ length: 46 }, (_, i) => i + 1));
     for (const chapter of CHAPTERS) {
       expect(chapter.id).toMatch(/^\d\d-[a-z0-9-]+$/);
       expect(chapter.title.length).toBeGreaterThan(0);
@@ -77,6 +77,8 @@ describe("HELP_MAP", () => {
 describe("chapterForPath", () => {
   it("maps an exact path", () => {
     expect(chapterForPath("/my-work", "").chapterId).toBe("45-my-work");
+    expect(chapterForPath("/quality", "").chapterId).toBe("46-quality-events");
+    expect(chapterForPath("/quality/config", "").chapterId).toBe("46-quality-events");
     expect(chapterForPath("/receiving", "").chapterId).toBe("12-sample-receiving");
     expect(chapterForPath("/receiving/tracking", "").chapterId).toBe("11-sample-management");
   });

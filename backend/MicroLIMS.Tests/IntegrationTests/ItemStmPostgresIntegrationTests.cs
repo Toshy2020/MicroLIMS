@@ -193,23 +193,22 @@ public class ItemStmPostgresIntegrationTests
         Assert.Equal(ItemStmStatus.Effective, r.Status);
     }
 
-    // Review Focus 2
+    // Review Focus 2. CONF-212: a code is never reused (not even by a void master), so a void master
+    // cannot share its code with an active one; the void master itself must still be ignored.
     [PostgresFact]
-    public async Task VoidedDocumentWithSameCode_IsIgnored()
+    public async Task VoidedDocument_IsIgnored()
     {
         await using var db = _fixture.CreateDbContext();
         var code = NewCode();
         var (voided, _, _) = await AddEffectiveAsync(db, code);
         voided.RecordStatus = DocumentRecordStatus.Void;
         await db.SaveChangesAsync();
-        var active = await AddMasterAsync(db, code);
-        await AddRevisionAsync(db, active, "01", 1, DocumentRevisionStatus.Draft);
         var item = await AddItemAsync(db, code);
 
         var r = await Service(db).GetForItemAsync(item.Id, _fixture.SeededUserId);
 
-        Assert.Equal(ItemStmStatus.NoEffectiveRevision, r.Status);
-        Assert.Equal(active.Id, r.DocumentMasterId);
+        Assert.Equal(ItemStmStatus.NotFound, r.Status);
+        Assert.Null(r.DocumentMasterId);
     }
 
     // Review Focus 3

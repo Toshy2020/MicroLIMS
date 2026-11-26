@@ -5,7 +5,7 @@
 | Field | Value |
 |---|---|
 | Title | Quality Assurance (QA) Role Guide |
-| Version | 0.4 |
+| Version | 0.5 |
 | Status | Draft — pending approval |
 | Author | AI coding agent, draft from code |
 | Reviewer | |
@@ -21,7 +21,7 @@
 - **Access reviews:** Generate/view periodic user access reviews, record or update findings, and electronically sign reviews (**Access Review**).
 - **Controlled documents:** Read controlled documents, review drafts when assigned, and approve revisions when assigned (**Document Control**).
 - **Quality events (`Quality.View`, `Quality.Approve`):** *(Draft — pending approval)* Receive complaints, assess and approve deviations, approve and verify CAPAs, check CAPA effectiveness, approve and close change controls, conclude complaints, decide due-date extensions and cancel records. See section 6.
-- **Quality dashboard tiles (`Quality.View`):** *(Draft — pending approval)* The QA dashboard also shows **Waiting for my decision**, **My open records & actions**, **Overdue quality items** and **Effectiveness checks due**. The tiles open the **Quality Events** register; the register does not yet apply the filters the tiles name, so set them yourself.
+- **Quality dashboard tiles (`Quality.View`):** *(Draft — pending approval)* The QA dashboard also shows **Waiting for my decision**, **My open records & actions**, **Overdue quality items** and **Effectiveness checks due**. **Waiting for my decision** opens the **Quality Events** register without a filter. **My open records & actions** opens it filtered to records you own (`owner=me`), **Overdue quality items** to overdue records (`overdue=true`), and **Effectiveness checks due** to CAPAs (`type=Capa`).
 - **Analyst competency oversight (`Competency.View`):** *(Draft — pending approval)* View the **Qualification Matrix** across laboratories (`Sections.ViewAll`) to inspect analyst test qualifications, expiry dates, and current effective SOP codes/revisions. QA cannot qualify or withdraw analyst qualifications (`Competency.Manage`), toggle the laboratory competency gate, or grant competency overrides (`Competency.Override`).
 
 ## 2. What QA cannot do (and why)
@@ -52,7 +52,7 @@
 
 ## 6. Quality events *(Draft — pending approval)*
 
-QA approves, verifies, closes and cancels quality records. QA does not investigate, and QA does not sign laboratory conclusions or laboratory reports. Each signed step asks for your password and states its meaning. The owner and the raiser of a record cannot approve or close it, and the server refuses such a request.
+QA approves, verifies, closes and cancels quality records. QA does not investigate, and QA does not sign laboratory conclusions or laboratory reports. Each signed step asks for your password and states its meaning. The owner and the raiser of a record cannot approve, close or cancel it, and the server refuses such a request.
 
 ### 6.1 Find and open a record
 1. Open **Quality Events** from the **QUALITY & COMPLIANCE** group in the sidebar.

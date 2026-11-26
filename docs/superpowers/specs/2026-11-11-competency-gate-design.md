@@ -87,12 +87,12 @@ Roadmap decision D-6 is closed by 4.
 - **Test screens:** a refused action shows the reason as text beside the button (package C8 style).
 - **Test Master:** a field for the requalification interval.
 
-### 5.7 Permissions
+### 5.7 Permissions *(Draft — pending approval: updated for CONF-210 on 2026-11-26)*
 
 | Permission | Default holders | Allows |
 |---|---|---|
 | `Competency.View` | Section Head, Reviewer, QC Manager, QA; analysts for their own | Read |
-| `Competency.Manage` | Section Head, QC Manager | Sign and withdraw qualifications; set intervals and laboratory settings |
+| `Competency.Manage` | Section Head, QC Manager | Sign and withdraw qualifications; switch the laboratory competency gate. Requalification intervals are not set here: they are set in the Test Master under `MasterData.Manage` (CONF-210) |
 | `Competency.Override` | Section Head | Override for one test order |
 
 ## 6. Error handling

@@ -4,7 +4,7 @@
 |---|---|
 | Document number | URS-QLT |
 | Title | Quality records (deviation, CAPA, change control, complaint) user requirements |
-| Version | 0.1 |
+| Version | 0.2 |
 | Status | Draft — pending approval |
 | Author | Claude (AI agent), draft from code |
 | Reviewer | To be assigned by QA |
@@ -16,12 +16,13 @@
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1 | 2026-11-25 | AI coding agent, draft from code | First draft for D2 Tasks 1 to 8 (merged on r3/integration). Requirements URS-QLT-001..013 (Draft — pending approval). |
+| 0.2 | 2026-11-26 | AI coding agent, draft from code | Added D2 Task 9 (master-data change-control gate, CONF-227): URS-QLT-017..019 (Draft — pending approval). Scope notes updated to cover D2 Tasks 1 to 10 as merged. |
 
 ## Scope and reading notes
 
-- This document covers the quality record functions merged for D2 Tasks 1 to 8: the shared record core, links, attachments and comments, deviation, CAPA, change control, complaint, checklists, classifications, due rules, extensions, and the Task 8 scope and version fix on master-data writes.
-- Not covered here, and to be added in part 2 of D2: the master-data change-control gate (D2 Task 9), queries, report, trending, notifications and the overdue job (Task 10), and the screens (Tasks 11 to 13).
-- Each requirement is a need that the merged code serves. Where the approved specification and the code disagree, the difference is recorded in `documents/Conflicts.md` (CONF-228 to CONF-240) and is not written as a requirement here.
+- This document covers the quality record functions merged for D2 Tasks 1 to 10: the shared record core, links, attachments and comments, deviation, CAPA, change control, complaint, checklists, classifications, due rules, extensions, queries, PDF report, trending, dashboard, notifications and the overdue job; the Task 8 scope and version fix on master-data writes; and the Task 9 master-data change-control gate (URS-QLT-017 to URS-QLT-019).
+- Not covered here: the screens (D2 Tasks 11 to 13).
+- Each requirement is a need that the merged code serves. Where the approved specification and the code disagree, the difference is recorded in `documents/Conflicts.md` (the CONF entries named in the FS entries that serve each requirement) and is not written as a requirement here.
 
 ## Requirements
 
@@ -135,4 +136,25 @@
 **Requirement:** The system shall emit post-commit quality workflow notifications (raised, assigned, returned, awaiting QA, action assigned, closed, rejected, cancelled) without rolling back committed steps on notification failure, and shall run a scheduled overdue check emitting at most one notification per recipient per item per laboratory day for open records and approved-plan actions.
 **GxP:** Yes
 **Serves:** 21 CFR 211.192; EU GMP Annex 11 clause 12 (to be confirmed by QA)
+**Status:** Active
+
+### URS-QLT-017
+*(Draft — pending approval)*
+**Requirement:** Where a laboratory has the master-data change-control gate switched on, the system shall refuse each specification, test definition, test workflow step and test stage replicate write made outside an approved change control; shall accept such a write only when the change control is approved for implementation, not cancelled, belongs to that laboratory, and lists the record changed (by a specification's own link, or by an item or test link for a new specification or a created test); and shall record on that link when the listed record was changed.
+**GxP:** Yes
+**Serves:** 21 CFR 211.100, 11.10(e); EU GMP Annex 11 clause 10 (to be confirmed by QA)
+**Status:** Active
+
+### URS-QLT-018
+*(Draft — pending approval)*
+**Requirement:** The system shall let only a user with the quality approval permission switch a laboratory's change-control gate on or off, with a stated reason, the current settings version, and an electronic signature whose meaning is recorded; shall refuse the change when the version is stale; and shall refuse a request that carries an invalid change-control number on any endpoint, whether the gate is on or off.
+**GxP:** Yes
+**Serves:** 21 CFR 11.50, 11.10(e), 211.100; EU GMP Annex 11 clause 14 (to be confirmed by QA)
+**Status:** Active
+
+### URS-QLT-019
+*(Draft — pending approval)*
+**Requirement:** The system shall refuse to delete an item while any of its specifications belongs to a laboratory with the gate on, so that each specification change goes through an approved change control; and shall accept an affected specification in a change control only by naming an existing specification.
+**GxP:** Yes
+**Serves:** 21 CFR 211.100, 11.10(e) (to be confirmed by QA)
 **Status:** Active

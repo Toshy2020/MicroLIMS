@@ -248,6 +248,6 @@ describe("useChangeControlGate", () => {
     await user.click(screen.getByRole("button", { name: "Save test" }));
 
     await screen.findByRole("dialog");
-    expect(http.put.mock.calls.at(-1)?.[2].headers["X-Change-Control"]).toBeUndefined();
+    expect(http.put.mock.calls[http.put.mock.calls.length - 1][2].headers["X-Change-Control"]).toBeUndefined();
   });
 });

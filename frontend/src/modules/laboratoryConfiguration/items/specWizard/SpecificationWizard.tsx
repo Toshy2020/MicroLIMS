@@ -20,6 +20,7 @@ import {
 } from "../../specifications/services/SpecificationService";
 import type { Item } from "../services/ItemService";
 import { createLimitStep } from "./LimitStep";
+import { useChangeControlGate } from "../../../../hooks/useChangeControlGate";
 import { createMethodStep } from "./MethodStep";
 import { createTestParameterStep } from "./TestParameterStep";
 import { createUnitDilutionStep } from "./UnitDilutionStep";
@@ -267,8 +268,17 @@ function OpenSpecificationWizard({
     [isEditing, editingSpec?.id, item.id, item.category, workflowTypeByCode, t]
   );
 
+  // Every specification write is gated (CONF-227): a refusal opens the change-control prompt for that
+  // write, and the number the server accepted is reused for the rest of this editing session.
+  const gate = useChangeControlGate({
+    sectionId: null,
+    recordKey: isEditing && editingSpec?.id != null ? `spec-${editingSpec.id}` : `spec-new-${item.id}`
+  });
+  const gateRun = gate.run;
+
   const handleSave = useCallback(
     async (model: SpecFormModel, reason: string | null, saveCtx: WizardSaveContext<SpecFormModel>) => {
+      const scope = { sectionId: lookupRef.current.testDefs[model.testCode]?.sectionId ?? null };
       const basePayload: UpdateSpecificationPayload = {
         ...toBasePayload(model),
         grade: null
@@ -286,31 +296,39 @@ function OpenSpecificationWizard({
               : w.existing.id === editingSpec?.id
                 ? (saveCtx.recordVersion ?? w.existing.version)
                 : w.existing.version;
-            if (reason) {
-              await SpecificationService.update(
-                w.existing.id,
-                updatePayload,
-                version,
-                reason
-              );
-            } else {
-              await SpecificationService.update(w.existing.id, updatePayload, version);
-            }
+            const specId = w.existing.id;
+            await gateRun(
+              (cc) =>
+                cc
+                  ? SpecificationService.update(specId, updatePayload, version, reason ?? undefined, cc)
+                  : reason
+                    ? SpecificationService.update(specId, updatePayload, version, reason)
+                    : SpecificationService.update(specId, updatePayload, version),
+              scope
+            );
           } else {
             const createPayload: CreateSpecificationPayload = {
               itemId: item.id,
               ...basePayload,
               grade: w.grade
             };
-            await SpecificationService.create(createPayload);
+            await gateRun((cc) => (cc ? SpecificationService.create(createPayload, cc) : SpecificationService.create(createPayload)), scope);
           }
           wrote = true;
         }
 
         for (const r of removes) {
           if (r.id != null) {
-            if (reason) await SpecificationService.remove(r.id, reason);
-            else await SpecificationService.remove(r.id);
+            const removeId = r.id;
+            await gateRun(
+              (cc) =>
+                cc
+                  ? SpecificationService.remove(removeId, reason ?? undefined, cc)
+                  : reason
+                    ? SpecificationService.remove(removeId, reason)
+                    : SpecificationService.remove(removeId),
+              scope
+            );
             wrote = true;
           }
         }
@@ -324,7 +342,7 @@ function OpenSpecificationWizard({
         throw err;
       }
     },
-    [isEditing, editingSpec, item.id, onSuccess, onSaved]
+    [isEditing, editingSpec, item.id, gateRun, onSuccess, onSaved]
   );
 
   const saveAndNext = useCallback(
@@ -352,6 +370,7 @@ function OpenSpecificationWizard({
       : `spec-create-${item.id}-${activePreselectedTestCode ?? "any"}-${continuedState.seq}`;
 
   return (
+    <>
     <ConfigWizard
       open={open}
       title={isEditing ? t("specWizard.titleEdit") : t("specWizard.titleAdd")}
@@ -375,5 +394,7 @@ function OpenSpecificationWizard({
       saveAndNext={saveAndNext}
       onClose={onClose}
     />
+    {gate.prompt}
+    </>
   );
 }

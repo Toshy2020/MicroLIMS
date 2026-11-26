@@ -11,6 +11,7 @@ import { ConfirmationDialog } from "../../../../components/ConfirmationDialog";
 import { TestDefinitionOption } from "../../../../hooks/useTestDefinitions";
 import { MediaProductPicker } from "../../../../components/MediaProductPicker";
 import { useMediaProducts } from "../../../../hooks/useMediaProducts";
+import { ChangeControlPromptCancelled, useChangeControlGate } from "../../../../hooks/useChangeControlGate";
 import { masterDataOptions, incubationConditionLabel, MediaIncubationConditionOption } from "../../../../services/masterDataOptions";
 import { tableHeadSx } from "../../../../theme";
 import { EQUATION_TYPE_LABELS, PHENOTYPIC_TEST_TYPES, PHENOTYPIC_TEST_TYPE_LABELS, STEP_TYPES, STEP_TYPES_REQUIRING_ORGANISM, STEP_TYPES_SINGLE_MEDIA, STEP_TYPES_WITH_NO_MEDIA, StepFormState, StepMediaRow, WORKFLOW_TYPE_LABELS, WorkflowStepMediaItem, defaultStepForm, stage1Ranges, stepNeedsConfiguration, validateStepForm } from "./testMasterConstants";
@@ -95,6 +96,9 @@ export function WorkflowStepsSection({
   const [stepToDelete, setStepToDelete] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const stepNameInputRef = useRef<HTMLInputElement>(null);
+  // Workflow steps are gated writes (CONF-227): a refusal opens the change-control prompt for that one save.
+  const gate = useChangeControlGate({ sectionId: test.sectionId ?? null, recordKey: `test-${test.id}` });
+  const cancelledText = (e: unknown) => (e instanceof ChangeControlPromptCancelled ? e.message : undefined);
 
   const loadSteps = () => (isDraftMode ? Promise.resolve() : masterDataOptions.getTestWorkflowSteps(test.id).then(setSteps));
   useEffect(() => {
@@ -161,11 +165,13 @@ export function WorkflowStepsSection({
       return;
     }
     try {
-      await masterDataOptions.updateWorkflowType(test.id, workflowType, test.version);
+      await gate.run((cc) =>
+        cc ? masterDataOptions.updateWorkflowType(test.id, workflowType, test.version, cc) : masterDataOptions.updateWorkflowType(test.id, workflowType, test.version)
+      );
       onWorkflowTypeChanged();
     } catch (e: unknown) {
       const err = e as { response?: { data?: { message?: string } } };
-      setError(err?.response?.data?.message ?? t("testMaster.workflowSteps.errors.updateWorkflowTypeFailed"));
+      setError(cancelledText(e) ?? err?.response?.data?.message ?? t("testMaster.workflowSteps.errors.updateWorkflowTypeFailed"));
     }
   };
 
@@ -331,15 +337,18 @@ export function WorkflowStepsSection({
     }
     try {
       if (editingStepId) {
-        await masterDataOptions.updateTestWorkflowStep(editingStepId, payload, steps.find((s) => s.id === editingStepId)?.version);
+        const stepVersion = steps.find((s) => s.id === editingStepId)?.version;
+        await gate.run((cc) =>
+          cc ? masterDataOptions.updateTestWorkflowStep(editingStepId, payload, stepVersion, cc) : masterDataOptions.updateTestWorkflowStep(editingStepId, payload, stepVersion)
+        );
       } else {
-        await masterDataOptions.createTestWorkflowStep(test.id, payload);
+        await gate.run((cc) => (cc ? masterDataOptions.createTestWorkflowStep(test.id, payload, cc) : masterDataOptions.createTestWorkflowStep(test.id, payload)));
       }
       cancelEditStep();
       await loadSteps();
     } catch (e: unknown) {
       const err = e as { response?: { data?: { message?: string } } };
-      setError(err?.response?.data?.message ?? (editingStepId ? t("testMaster.workflowSteps.errors.updateStepFailed") : t("testMaster.workflowSteps.errors.addStepFailed")));
+      setError(cancelledText(e) ?? err?.response?.data?.message ?? (editingStepId ? t("testMaster.workflowSteps.errors.updateStepFailed") : t("testMaster.workflowSteps.errors.addStepFailed")));
     }
   };
 
@@ -356,11 +365,14 @@ export function WorkflowStepsSection({
     }
     try {
       // Move returns no version, so the reload is what gives the next action the server's current version.
-      await masterDataOptions.moveTestWorkflowStep(stepId, direction, steps.find((s) => s.id === stepId)?.version);
+      const stepVersion = steps.find((s) => s.id === stepId)?.version;
+      await gate.run((cc) =>
+        cc ? masterDataOptions.moveTestWorkflowStep(stepId, direction, stepVersion, cc) : masterDataOptions.moveTestWorkflowStep(stepId, direction, stepVersion)
+      );
       await loadSteps();
     } catch (e: unknown) {
       const err = e as { response?: { data?: { message?: string } } };
-      setError(err?.response?.data?.message ?? t("testMaster.workflowSteps.errors.reorderStepFailed"));
+      setError(cancelledText(e) ?? err?.response?.data?.message ?? t("testMaster.workflowSteps.errors.reorderStepFailed"));
     }
   };
 
@@ -377,11 +389,14 @@ export function WorkflowStepsSection({
       return;
     }
     try {
-      await masterDataOptions.deleteTestWorkflowStep(stepId, steps.find((s) => s.id === stepId)?.version);
+      const stepVersion = steps.find((s) => s.id === stepId)?.version;
+      await gate.run((cc) =>
+        cc ? masterDataOptions.deleteTestWorkflowStep(stepId, stepVersion, cc) : masterDataOptions.deleteTestWorkflowStep(stepId, stepVersion)
+      );
       await loadSteps();
     } catch (e: unknown) {
       const err = e as { response?: { data?: { message?: string } } };
-      setError(err?.response?.data?.message ?? t("testMaster.workflowSteps.errors.deleteStepFailed"));
+      setError(cancelledText(e) ?? err?.response?.data?.message ?? t("testMaster.workflowSteps.errors.deleteStepFailed"));
     }
   };
 
@@ -1068,6 +1083,7 @@ export function WorkflowStepsSection({
         }}
         onCancel={() => setStepToDelete(null)}
       />
+      {gate.prompt}
     </Box>
   );
 }

@@ -35,6 +35,7 @@ import {
 } from "../../specifications/services/SpecificationService";
 import { collapseGrades, gradesOf, siblingsOf } from "../../specifications/services/gradeGroups";
 import { ChangeReasonDialog } from "../../../../components/config/ChangeReasonDialog";
+import { useChangeControlGate } from "../../../../hooks/useChangeControlGate";
 import { parseClipboardTable } from "../../../../components/entry/parseClipboardTable";
 import { PastePreviewDialog, type PasteAcceptedRow } from "../../../../components/entry/PastePreviewDialog";
 import { PendingBatchList, type PendingBatchColumn } from "../../../../components/entry/PendingBatchList";
@@ -347,13 +348,25 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
     setPasteBarOpen(false);
   };
 
+  // Deleting, reinstating and creating specifications are gated writes (CONF-227). The number the server
+  // accepted is remembered for the specification being changed only (the batch counts as one session).
+  const gate = useChangeControlGate({
+    sectionId: null,
+    recordKey: pendingDelete?.id != null
+      ? `spec-${pendingDelete.id}`
+      : pendingReinstate?.id != null
+        ? `spec-${pendingReinstate.id}`
+        : `item-${item.id}-specs`
+  });
+  const sectionOfSpec = (testCode: string) => testDefinitionByCode[testCode]?.sectionId ?? null;
+
   const saveSpecsBatch = async () => {
     if (pendingSpecs.length === 0) return;
     setSavingBatch(true);
     setBatchError(null);
     try {
       const payload = pendingSpecs.map((row) => toCreateSpecificationPayload(item.id, row));
-      await SpecificationService.createSpecificationsBatch(payload);
+      await gate.run((cc) => (cc ? SpecificationService.createSpecificationsBatch(payload, cc) : SpecificationService.createSpecificationsBatch(payload)));
       const count = pendingSpecs.length;
       setPendingSpecs([]);
       setNotice(
@@ -414,7 +427,11 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
       let deletedCount = 0;
       for (const s of siblingsOf(pendingDelete)) {
         if (s.id != null) {
-          const res = await SpecificationService.remove(s.id, reason);
+          const specId = s.id;
+          const res = await gate.run(
+            (cc) => (cc ? SpecificationService.remove(specId, reason, cc) : SpecificationService.remove(specId, reason)),
+            { sectionId: sectionOfSpec(s.testCode) }
+          );
           if (res?.outcome === "retired") retiredCount += 1;
           else deletedCount += 1;
         }
@@ -453,7 +470,11 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
     try {
       for (const s of siblingsOf(pendingReinstate)) {
         if (s.id != null && s.isRetired) {
-          await SpecificationService.reinstate(s.id, reason);
+          const specId = s.id;
+          await gate.run(
+            (cc) => (cc ? SpecificationService.reinstate(specId, reason, cc) : SpecificationService.reinstate(specId, reason)),
+            { sectionId: sectionOfSpec(s.testCode) }
+          );
         }
       }
       setPendingReinstate(null);
@@ -1305,6 +1326,7 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
           onCancel={() => setPastePreviewCells(null)}
         />
       )}
+      {gate.prompt}
     </Box>
   );
 };

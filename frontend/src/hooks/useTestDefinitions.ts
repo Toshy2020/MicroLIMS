@@ -104,15 +104,22 @@ export function useTestDefinitions() {
   const addNew = async (
     codeOrPayload: string | CreateTestDefinitionPayload,
     displayName?: string,
-    sectionId?: number | null
+    sectionId?: number | null,
+    changeControl?: string
   ) => {
-    const created = await masterDataOptions.createTestDefinition(codeOrPayload, displayName, sectionId);
+    const created = changeControl
+      ? await masterDataOptions.createTestDefinition(codeOrPayload, displayName, sectionId, changeControl)
+      : await masterDataOptions.createTestDefinition(codeOrPayload, displayName, sectionId);
     await reload();
     return created as TestDefinitionOption;
   };
 
-  const addWithSteps = async (payload: SaveTestWithStepsPayload) => {
-    const created = await masterDataOptions.createTestWithSteps(payload);
+  // The trailing changeControl on the writes below is the approved change control number for a
+  // laboratory whose change-control gate is on (CONF-227).
+  const addWithSteps = async (payload: SaveTestWithStepsPayload, changeControl?: string) => {
+    const created = changeControl
+      ? await masterDataOptions.createTestWithSteps(payload, changeControl)
+      : await masterDataOptions.createTestWithSteps(payload);
     await reload();
     return created as TestDefinitionOption;
   };
@@ -123,23 +130,28 @@ export function useTestDefinitions() {
     displayName?: string,
     sectionId?: number | null,
     reason?: string,
-    versionOverride?: number
+    versionOverride?: number,
+    changeControl?: string
   ) => {
     const version = versionOverride ?? options.find((o) => o.id === id)?.version;
-    const updated = reason
-      ? await masterDataOptions.updateTestDefinition(id, codeOrPayload, displayName, sectionId, version, reason)
-      : await masterDataOptions.updateTestDefinition(id, codeOrPayload, displayName, sectionId, version);
+    const updated = changeControl
+      ? await masterDataOptions.updateTestDefinition(id, codeOrPayload, displayName, sectionId, version, reason, changeControl)
+      : reason
+        ? await masterDataOptions.updateTestDefinition(id, codeOrPayload, displayName, sectionId, version, reason)
+        : await masterDataOptions.updateTestDefinition(id, codeOrPayload, displayName, sectionId, version);
     await reload();
     return updated as TestDefinitionOption;
   };
 
-  const setActive = async (id: number, isActive: boolean, reason?: string) => {
+  const setActive = async (id: number, isActive: boolean, reason?: string, changeControl?: string) => {
     const version = options.find((o) => o.id === id)?.version;
     if (isActive) {
-      if (reason) await masterDataOptions.unfreezeTestDefinition(id, version, reason);
+      if (changeControl) await masterDataOptions.unfreezeTestDefinition(id, version, reason, changeControl);
+      else if (reason) await masterDataOptions.unfreezeTestDefinition(id, version, reason);
       else await masterDataOptions.unfreezeTestDefinition(id, version);
     } else {
-      if (reason) await masterDataOptions.freezeTestDefinition(id, version, reason);
+      if (changeControl) await masterDataOptions.freezeTestDefinition(id, version, reason, changeControl);
+      else if (reason) await masterDataOptions.freezeTestDefinition(id, version, reason);
       else await masterDataOptions.freezeTestDefinition(id, version);
     }
     await reload();

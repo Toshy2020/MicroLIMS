@@ -178,8 +178,11 @@ export const SpecificationService = {
       ? apiClient.post("/masterdata/specifications", payload, withChangeControl(undefined, changeControl))
       : apiClient.post("/masterdata/specifications", payload)
     ).then((r) => r.data.data),
-  createSpecificationsBatch: (payload: CreateSpecificationPayload[]): Promise<SpecificationDto[]> =>
-    apiClient.post("/masterdata/specifications/batch", payload).then((r) => r.data.data),
+  createSpecificationsBatch: (payload: CreateSpecificationPayload[], changeControl?: string): Promise<SpecificationDto[]> =>
+    (changeControl
+      ? apiClient.post("/masterdata/specifications/batch", payload, withChangeControl(undefined, changeControl))
+      : apiClient.post("/masterdata/specifications/batch", payload)
+    ).then((r) => r.data.data),
   update: (id: number, payload: UpdateSpecificationPayload, version?: number, reason?: string, changeControl?: string): Promise<SpecificationDto> =>
     apiClient.put(`/masterdata/specifications/${id}`, payload, withChangeControl(withChangeReason(version, reason), changeControl)).then((r) => r.data.data),
   remove: async (id: number, reason?: string, changeControl?: string): Promise<SpecificationDeleteOutcome> => {

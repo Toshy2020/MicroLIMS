@@ -34,6 +34,8 @@ import { PERMISSIONS } from "../../routes/routes";
 import { PathogenSessionDialog } from "./pathogenSession/PathogenSessionDialog";
 import { ItemDocumentsCard } from "./ItemDocumentsCard";
 import { AssignedTestCard } from "./components/AssignedTestCard";
+import { RaiseDeviationButton } from "../quality/components/RaiseDeviationButton";
+import { QualityRecordsPanel } from "../quality/components/QualityRecordsPanel";
 import { formatLabCalendarDate, formatDateTimeWithTimeZone } from "../../utils/formatDate";
 
 interface Props {
@@ -67,6 +69,7 @@ export function SelectedSampleTestingPanel({
   const theme = useTheme();
   const [openPathogenWorkflow, setOpenPathogenWorkflow] = React.useState(false);
   const [actionsMenuAnchor, setActionsMenuAnchor] = React.useState<HTMLElement | null>(null);
+  const [qualityRefreshKey, setQualityRefreshKey] = React.useState(0);
   const needsPreparation = sample.preparationStatus === "NeedsPreparation";
   // Pathogen tests are the ones with a TSB / broth-enrichment step; a sample
   // without one (e.g. Finished Product chemistry tests) has no pathogen workflow.
@@ -197,6 +200,13 @@ export function SelectedSampleTestingPanel({
               {t("selectedSample.prepareSample")}
             </Button>
           )}
+
+          <RaiseDeviationButton
+            targetType="Sample"
+            targetId={sample.sampleId}
+            sectionId={sample.labSectionId ?? null}
+            onRaised={() => setQualityRefreshKey((k) => k + 1)}
+          />
 
           <Button
             size="small"
@@ -486,6 +496,15 @@ export function SelectedSampleTestingPanel({
             ))}
           </Stack>
         )}
+
+        <Box sx={{ mt: 2 }}>
+          <QualityRecordsPanel
+            targetType="Sample"
+            targetId={sample.sampleId}
+            refreshKey={qualityRefreshKey}
+            compact
+          />
+        </Box>
       </Box>
 
       {/* Pathogen Testing Session Dialog */}

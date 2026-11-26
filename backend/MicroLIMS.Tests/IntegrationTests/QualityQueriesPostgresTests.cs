@@ -162,34 +162,34 @@ public sealed class QualityQueriesPostgresTests(PostgresTestFixture fixture)
         {
             var svc = QueryService(act, clock);
 
-            var byType = await svc.ListAsync(new QualityRecordFilter(Type: QualityRecordType.Deviation), qaId);
+            var byType = await svc.ListAsync(new QualityRecordFilter(From: Utc(2089, 3, 1, 0), To: Utc(2089, 3, 31, 0), Type: QualityRecordType.Deviation), qaId);
             Assert.Contains(byType.Items, x => x.Id == devId);
             Assert.DoesNotContain(byType.Items, x => x.Id == capaId);
 
-            var byStatus = await svc.ListAsync(new QualityRecordFilter(Status: "Investigation"), qaId);
+            var byStatus = await svc.ListAsync(new QualityRecordFilter(From: Utc(2089, 3, 1, 0), To: Utc(2089, 3, 31, 0), Status: "Investigation"), qaId);
             Assert.Contains(byStatus.Items, x => x.Id == devId);
             Assert.DoesNotContain(byStatus.Items, x => x.Id == capaId);
 
-            var byCancelled = await svc.ListAsync(new QualityRecordFilter(Status: "Cancelled"), qaId);
+            var byCancelled = await svc.ListAsync(new QualityRecordFilter(From: Utc(2089, 3, 1, 0), To: Utc(2089, 3, 31, 0), Status: "Cancelled"), qaId);
             Assert.Contains(byCancelled.Items, x => x.IsCancelled);
             Assert.DoesNotContain(byCancelled.Items, x => x.Id == devId);
 
-            var byClass = await svc.ListAsync(new QualityRecordFilter(ClassificationId: classId), qaId);
+            var byClass = await svc.ListAsync(new QualityRecordFilter(From: Utc(2089, 3, 1, 0), To: Utc(2089, 3, 31, 0), ClassificationId: classId), qaId);
             Assert.Contains(byClass.Items, x => x.Id == devId);
             Assert.DoesNotContain(byClass.Items, x => x.Id == capaId);
 
-            var bySec = await svc.ListAsync(new QualityRecordFilter(SectionId: secB), qaId);
+            var bySec = await svc.ListAsync(new QualityRecordFilter(From: Utc(2089, 3, 1, 0), To: Utc(2089, 3, 31, 0), SectionId: secB), qaId);
             Assert.Contains(bySec.Items, x => x.Id == capaId);
             Assert.DoesNotContain(bySec.Items, x => x.Id == devId);
 
-            var byOwner = await svc.ListAsync(new QualityRecordFilter(OwnerUserId: ownerA), qaId);
+            var byOwner = await svc.ListAsync(new QualityRecordFilter(From: Utc(2089, 3, 1, 0), To: Utc(2089, 3, 31, 0), OwnerUserId: ownerA), qaId);
             Assert.Contains(byOwner.Items, x => x.Id == devId);
 
-            var byOverdue = await svc.ListAsync(new QualityRecordFilter(Overdue: true), qaId);
+            var byOverdue = await svc.ListAsync(new QualityRecordFilter(From: Utc(2089, 3, 1, 0), To: Utc(2089, 3, 31, 0), Overdue: true), qaId);
             Assert.Contains(byOverdue.Items, x => x.Id == devId);
             Assert.DoesNotContain(byOverdue.Items, x => x.Id == capaId);
 
-            var byNotOverdue = await svc.ListAsync(new QualityRecordFilter(Overdue: false), qaId);
+            var byNotOverdue = await svc.ListAsync(new QualityRecordFilter(From: Utc(2089, 3, 1, 0), To: Utc(2089, 3, 31, 0), Overdue: false), qaId);
             Assert.Contains(byNotOverdue.Items, x => x.Id == capaId);
             Assert.DoesNotContain(byNotOverdue.Items, x => x.Id == devId);
 
@@ -270,7 +270,7 @@ public sealed class QualityQueriesPostgresTests(PostgresTestFixture fixture)
         await using (var actB = Context(clock, headB))
         {
             var svc = QueryService(actB, clock);
-            var list = await svc.ListAsync(new QualityRecordFilter(), headB);
+            var list = await svc.ListAsync(new QualityRecordFilter(From: Utc(2089, 3, 31, 0), To: Utc(2089, 4, 2, 0)), headB);
             Assert.DoesNotContain(list.Items, x => x.Id == devA1Id || x.Id == devA2Id);
 
             await Assert.ThrowsAsync<NotFoundException>(() => svc.GetDetailAsync(devA1Id, headB));
@@ -281,7 +281,7 @@ public sealed class QualityQueriesPostgresTests(PostgresTestFixture fixture)
         await using (var actAnalyst1 = Context(clock, analystA1))
         {
             var svc = QueryService(actAnalyst1, clock);
-            var list = await svc.ListAsync(new QualityRecordFilter(), analystA1);
+            var list = await svc.ListAsync(new QualityRecordFilter(From: Utc(2089, 3, 31, 0), To: Utc(2089, 4, 2, 0)), analystA1);
             Assert.Contains(list.Items, x => x.Id == devA1Id);
             Assert.DoesNotContain(list.Items, x => x.Id == devA2Id);
 
@@ -292,7 +292,7 @@ public sealed class QualityQueriesPostgresTests(PostgresTestFixture fixture)
         await using (var actAnalyst2 = Context(clock, analystA2))
         {
             var svc = QueryService(actAnalyst2, clock);
-            var list = await svc.ListAsync(new QualityRecordFilter(), analystA2);
+            var list = await svc.ListAsync(new QualityRecordFilter(From: Utc(2089, 3, 31, 0), To: Utc(2089, 4, 2, 0)), analystA2);
             Assert.DoesNotContain(list.Items, x => x.Id == devA1Id || x.Id == devA2Id);
         }
 

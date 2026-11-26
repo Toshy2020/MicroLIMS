@@ -332,5 +332,49 @@
       "loadCategories": "Failed to load cause categories.",
       "saveCategory": "Failed to save category."
     }
+  },
+  "trends": {
+    "title": "OOS Investigation Trends",
+    "subtitle": "Investigations grouped by product, test, analyst, instrument, cause category or conclusion, with the median working days to conclude.",
+    "openTrends": "Trends",
+    "loadError": "Failed to load the trend report.",
+    "retry": "Retry",
+    "empty": "No investigations match these filters.",
+    "sectionsSource": "Sections",
+    "period": "Period: {{from}} to {{to}}",
+    "filters": {
+      "groupBy": "Group by",
+      "kind": "Kind",
+      "allKinds": "All kinds"
+    },
+    "kinds": {
+      "Oos": "OOS",
+      "Excursion": "Excursion"
+    },
+    "groupBy": {
+      "product": "Product",
+      "test": "Test",
+      "analyst": "Analyst",
+      "instrument": "Instrument",
+      "cause": "Cause category",
+      "conclusion": "Conclusion"
+    },
+    "groupLabel": {
+      "product": "Product",
+      "test": "Test",
+      "analyst": "Analyst",
+      "instrument": "Instrument",
+      "cause": "Cause category",
+      "conclusion": "Conclusion"
+    },
+    "columns": {
+      "total": "Total",
+      "open": "Open",
+      "concluded": "Concluded",
+      "confirmed": "Confirmed",
+      "invalidated": "Invalidated",
+      "excursionClosed": "Excursion closed",
+      "median": "Median working days to conclude"
+    }
   }
 }

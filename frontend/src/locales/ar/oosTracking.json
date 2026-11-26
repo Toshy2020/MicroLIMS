@@ -340,5 +340,49 @@
       "loadCategories": "تعذّر تحميل فئات الأسباب.",
       "saveCategory": "تعذّر حفظ الفئة."
     }
+  },
+  "trends": {
+    "title": "اتجاهات تحقيقات OOS",
+    "subtitle": "التحقيقات مجمّعة حسب المنتج أو الاختبار أو المحلل أو الجهاز أو فئة السبب أو الخلاصة، مع وسيط أيام العمل حتى الاستنتاج.",
+    "openTrends": "الاتجاهات",
+    "loadError": "تعذّر تحميل تقرير الاتجاهات.",
+    "retry": "إعادة المحاولة",
+    "empty": "لا توجد تحقيقات تطابق هذه المرشحات.",
+    "sectionsSource": "الأقسام",
+    "period": "الفترة: من {{from}} إلى {{to}}",
+    "filters": {
+      "groupBy": "تجميع حسب",
+      "kind": "النوع",
+      "allKinds": "جميع الأنواع"
+    },
+    "kinds": {
+      "Oos": "خارج المواصفات",
+      "Excursion": "تجاوز"
+    },
+    "groupBy": {
+      "product": "المنتج",
+      "test": "اختبار",
+      "analyst": "محلل",
+      "instrument": "جهاز",
+      "cause": "فئة السبب",
+      "conclusion": "الخلاصة"
+    },
+    "groupLabel": {
+      "product": "المنتج",
+      "test": "اختبار",
+      "analyst": "محلل",
+      "instrument": "جهاز",
+      "cause": "فئة السبب",
+      "conclusion": "الخلاصة"
+    },
+    "columns": {
+      "total": "الإجمالي",
+      "open": "مفتوح",
+      "concluded": "مختتم",
+      "confirmed": "مؤكد",
+      "invalidated": "مُبطل",
+      "excursionClosed": "تجاوز مغلق",
+      "median": "وسيط أيام العمل حتى الاستنتاج"
+    }
   }
 }

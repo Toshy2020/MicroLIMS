@@ -64,7 +64,7 @@
 ### 3.8 Tasks, extensions, attachments and comments
 - **Tasks:** Complete change-control tasks you are responsible for in the **Actions** panel, with evidence.
 - **Extensions:** You can request a later due date for a record you own, or for an action you are responsible for. QA decides the request.
-- **Attachments, links and comments:** Add links, upload attachments and post comments on any record you can read, if you hold *Quality Raise*. You can remove a link or void an attachment only on a record you own, or with *Quality Investigate*, which a Section Head holds by default.
+- **Attachments, links and comments:** Add links (while the record is open), upload attachments and post comments on any record you can read, if you hold *Quality Raise*. On a closed, rejected or cancelled record, links are blocked while comments and attachments remain allowed as a dated addendum (**Added after closure**). You can remove a link (before the first signed step) or void an attachment only on a record you own, or with *Quality Investigate*, which a Section Head holds by default.
 
 ## 4. Quality Configuration *(Draft — pending approval)*
 

@@ -384,7 +384,7 @@ Scope of this section: the merged D2 Tasks 1 to 8, Task 9 (the master-data chang
 - **Change control:** Proposed → sign assessment → Assessed → Approve → ApprovedForImplementation → Close → Closed. Proposed or Assessed → Reject → Rejected (final).
 - **Complaint:** Received → request investigation → Investigation → sign lab report → LabReported → Conclude → Concluded → Close → Closed.
 - **Cancel:** `Quality.Approve` (QA by default), with reason and signature. Allowed from Raised, Investigation, LabConcluded and Approved (deviation; CONF-224); from any status except Closed and Cancelled (CAPA); from any status except Closed, Rejected and Cancelled (change control); from Received, Investigation, LabReported and Concluded (complaint). The record stays visible with `IsCancelled` and the reason (`QualityRecordCore.CancelAsync`).
-- **Terminal states:** `QualityConfigService.IsOpenExpression` treats as not open: any cancelled record, deviation Rejected, Closed or Cancelled, CAPA Closed or Cancelled, change control Closed, Rejected or Cancelled, and complaint Closed or Cancelled. Checklist answers and extension requests refuse a record that is not open (`Quality.RecordTerminal`). The type's state steps refuse a cancelled record with the type's wrong-state message. Links, attachments and comments do not check the state (CONF-238).
+- **Terminal states:** `QualityConfigService.IsOpenExpression` treats as not open: any cancelled record, deviation Rejected, Closed or Cancelled, CAPA Closed or Cancelled, change control Closed, Rejected or Cancelled, and complaint Closed or Cancelled. Checklist answers, extension requests and ordinary links (`QualityLinkService.AddAsync`) refuse a record that is not open (`Quality.RecordTerminal`). Comments and attachments remain allowed as a dated addendum (CONF-238).
 
 ### 15.2 Who may do each step
 - Permissions: `Quality.View` (read), `Quality.Raise`, `Quality.Investigate`, `Quality.LabConclude`, `Quality.Approve`. Defaults are in FS-QLT-017. `Quality.Approve` is held by QA only; `Quality.Investigate` and `Quality.LabConclude` may not be held by QA (`SegregationOfDutiesRules.QaOnlyCodes`, `GxpExecutionAndApprovalCodes`).
@@ -395,14 +395,14 @@ Scope of this section: the merged D2 Tasks 1 to 8, Task 9 (the master-data chang
 - Save the deviation investigation or complaint findings: the owner, or `Quality.Investigate` when the caller does not hold `Quality.Approve`.
 - Lab conclusion (deviation) and lab report (complaint): `Quality.LabConclude` (Section Head and QC Manager by default).
 - Save a CAPA plan and complete a CAPA action: the owner of the CAPA; the responsible person of the action.
-- Save and sign a change-control assessment: `Quality.Investigate` (Section Head by default; CONF-236). Complete a change task: the responsible person.
-- Request an extension: the record owner (record due date) or the action's responsible user (action due date) (CONF-237). Decide an extension: `Quality.Approve`.
+- Save and sign a change-control assessment: the named owner (Section Head or QC Manager) or a non-QA user with `Quality.Investigate` (CONF-236); QA (`Quality.Approve`) is refused. Complete a change task: the responsible person.
+- Request an extension: the record owner (record due date or action due date) or the action's responsible user (action due date) (CONF-237). Decide an extension: `Quality.Approve`.
 - Remove a link or void an attachment: the record owner or `Quality.Investigate`.
 - Save site checklist templates, classifications and due rules: `Quality.Approve`. Save a section checklist template: `Quality.Investigate` with configure scope for the section.
 - The role types allowed per endpoint are listed in `backend/MicroLIMS.Tests/ArchitectureTests/authorization-matrix.txt`. Policies are necessary but not sufficient: the service refuses where it makes the decision.
 
 ### 15.3 Separation rules
-- **Raiser or owner cannot approve or close.** `QualityRecordCore.EnsureNotRaiserOrOwner` refuses with `Quality.RaiserOrOwner` on: deviation approve, return and close; CAPA plan approve and return, completion verification and effectiveness check; change control approve, reject and close; complaint conclude and close. It is not applied to deviation assessment or rejection, to any cancellation, or to the extension decision (CONF-228, CONF-229).
+- **Raiser or owner cannot approve, close, cancel or decide extensions.** `QualityRecordCore.EnsureNotRaiserOrOwner` refuses with `Quality.RaiserOrOwner` on: deviation approve, return and close; CAPA plan approve and return, completion verification and effectiveness check; change control approve, reject and close; complaint conclude and close; cancellation of any of the four types (`QualityRecordCore.CancelAsync`); and extension decisions (`QualityConfigService.DecideAsync`) (CONF-228, CONF-229). It is not applied to deviation assessment or rejection.
 - A null `RaisedByUserId` never matches a user, so a record with no raising person (treated as "System") excludes no one.
 - **Owner cannot sign the laboratory part.** `Deviation.OwnerLabConclusion` and `Complaint.OwnerLabReport`. Another user holding `Quality.LabConclude` signs. QA approval does not replace the laboratory signature (specification section 9, item 4).
 - **Analyst cannot own a result-based deviation.** `Deviation.AnalystOwner`, when the analyst performed a linked test order or an investigated OOS order (`SegregationOfDutiesGuard`).
@@ -448,11 +448,11 @@ Scope of this section: the merged D2 Tasks 1 to 8, Task 9 (the master-data chang
 
 ### 15.9 Complaint rules
 - Receipt is by QA. The received date cannot be in the future (`Complaint.FutureReceivedOn`). An item, when given, must be active. The lot is free text (CONF-233).
-- The laboratory report needs findings and a signer who is not the owner. The conclusion needs an outcome (Justified, NotJustified or Inconclusive) and a summary. The conclusion does not record a follow-up deviation or CAPA (CONF-234).
+- The laboratory report needs findings and a signer who is not the owner. The conclusion needs an outcome (Justified, NotJustified or Inconclusive) and a summary. When the outcome is `Justified`, a linked non-cancelled follow-up deviation or CAPA is required (existing `QualityRecordLink` or `FollowUpRecordId` in `ConcludeComplaintRequest`, refused with `Complaint.FollowUpRequired`); it is optional for `NotJustified` and `Inconclusive` (CONF-234).
 - Closure needs no unfinished action.
 
 ### 15.10 Due dates, classifications and extensions
-- A due date is computed in working days from the rule for the record's type and classification, or the site rule. Working weekdays come from the monitoring settings and holidays from the laboratory calendar. With no rule, or an empty rule, there is no due date. A classification rule with an empty value does not fall back to the site rule (CONF-239).
+- A due date is computed in working days from the rule for the record's type and classification, or the site rule. Working weekdays come from the monitoring settings and holidays from the laboratory calendar. When a classification rule has an empty `WorkingDays`, it falls back to the site rule for that type (CONF-239). With no non-empty rule for either, there is no due date.
 - Classifications and due rules are set by `Quality.Approve`; every change is audited (CONF-225). Seeded classifications: Minor, Major, Critical.
 - An extension is requested with a reason and a later date. QA decides with a signature. Approval replaces the record's or the action's due date in the same transaction. The request and its decision are kept; a decided request cannot change.
 - Overdue listing (`ListOverdueAsync`): open records whose due date is before the laboratory date, and unfinished actions on approved-plan CAPAs (`PlanApproved`+) or approved change controls (`ApprovedForImplementation`+) whose due date is before it (O2). See 15.13 for overdue notifications.
@@ -462,7 +462,7 @@ Scope of this section: the merged D2 Tasks 1 to 8, Task 9 (the master-data chang
 - A link to a target the reader cannot read shows its number only.
 - Attachments: allowed types with a content check, at most 10 MB, SHA-256 stored. A download is audited, and an integrity failure blocks delivery and is audited. Voiding keeps the row and the reason. Nothing is deleted.
 - Comments: up to 2000 characters, no edit and no delete.
-- Links, attachments and comments are not refused on a closed or cancelled record (CONF-238).
+- On a closed, rejected or cancelled record: adding links is refused (`Quality.RecordTerminal`); comments and attachments are allowed as a dated addendum (derived from the terminal step timestamp vs the comment/attachment timestamp), marked "Added after closure" in the UI and PDF report; signed content never changes (CONF-238).
 
 ### 15.12 Reading scope
 - A user reads a quality record with `Quality.View` and when the record is site-wide or in a laboratory section the user may read. A user without `Quality.Investigate`, `Quality.LabConclude` or `Quality.Approve` whose role is Analyst reads only the records they raised, own, or hold an action in. A record outside that scope is reported as not found (`Quality.NotFound`).
@@ -482,4 +482,4 @@ Scope of this section: the merged D2 Tasks 1 to 8, Task 9 (the master-data chang
 - **Header.** `ChangeControlHeaderMiddleware` refuses a malformed `X-Change-Control` value with `ChangeControl.HeaderInvalid` on every endpoint, including when the gate is off (CONF-227, D4). With the gate off, a valid header is ignored.
 - **Gated writes.** Specification create, update, delete and reinstate (batch, copy and workbook imports route through create); test definition create, update, freeze and unfreeze; test workflow type update and workflow step create, update, move and delete; stage replicate create, update and delete. Water and environmental limits, chemistry limits, HPLC and ICP methods, and item test assignments are not gated in this release (CONF-227).
 - **Item deletion (CONF-227, D3).** `ItemService` refuses to delete an item while any of its specifications belongs to a test in a section whose gate is on, with the message "Delete or retire this item's specifications first; each specification change needs an approved change control."
-- **Status.** Decided under CONF-227. Orchestrator defaults D1 to D4 are pending user confirmation.
+- **Status.** Decided and confirmed under CONF-227 (user confirmed 2026-11-26).

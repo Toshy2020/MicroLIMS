@@ -63,7 +63,7 @@ QA approves, verifies, closes and cancels quality records. QA does not investiga
 1. On **Quality Events**, click **Receive complaint**.
 2. Enter **Title**, **Source**, **Date received** (not in the future), **Complaint text** and the laboratory section (or **Whole site**). Optionally enter the external reference, the product and the lot. Click **Receive**.
 3. On the complaint page, choose **Classification**, **Owner**, an optional **Due date** and **What to test**, then click **Request investigation** (not signed).
-4. After the owner's findings are signed by the laboratory, choose **Outcome** (**Justified**, **Not justified** or **Inconclusive**), write the **Summary of the conclusion** and click **Conclude and sign**. Then click **Close and sign**.
+4. After the owner's findings are signed by the laboratory, choose **Outcome** (**Justified**, **Not justified** or **Inconclusive**), choose a **Follow-up deviation or CAPA** (required when **Justified**), write the **Summary of the conclusion** and click **Conclude and sign**. Then click **Close and sign**.
 
 ### 6.3 Assess and approve a deviation
 1. When a deviation is **Raised**, open the **Assess the deviation** step. Choose **Classification** and **Owner**, optionally a **Due date**, then click **Accept and sign**. To reject it as not a deviation, click **Reject as not a deviation**, give a reason and sign.
@@ -96,4 +96,4 @@ QA approves, verifies, closes and cancels quality records. QA does not investiga
 - Investigate a deviation or complaint, or sign the laboratory conclusion or the laboratory report.
 - Own a CAPA, or be the responsible person for one of its actions.
 - Approve, verify, close or cancel a record that you raised or own.
-- Decide an extension that you requested.
+- Decide an extension that you requested, or an extension on a record you raised or own.

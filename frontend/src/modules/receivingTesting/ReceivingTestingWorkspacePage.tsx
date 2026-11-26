@@ -1180,7 +1180,7 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
         activeKey={workloadFilter}
         onSelect={handleSelectWorkload}
         onClear={() => setFilter("workload", null)}
-        allCount={workloadFilter || hasActiveFilters ? null : totalCount}
+        allCount={workloadFilter || hasActiveFilters || (records === null && workloadCounts === null) ? null : totalCount}
         canAssignAnalyst={permissions.includes(PERMISSIONS.SAMPLES_ASSIGN_ANALYST)}
       />
 

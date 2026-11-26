@@ -872,7 +872,8 @@
   "datePicker": {
     "clear": "مسح",
     "chooseDate": "اختر التاريخ",
-    "chooseDateSelected": "اختر التاريخ، التاريخ المحدد هو {{date}}"
+    "chooseDateSelected": "اختر التاريخ، التاريخ المحدد هو {{date}}",
+    "incomplete": "أدخل تاريخًا كاملًا (يوم/شهر/سنة) أو امسح الحقل."
   },
   "dateTime": {
     "time": "الوقت",

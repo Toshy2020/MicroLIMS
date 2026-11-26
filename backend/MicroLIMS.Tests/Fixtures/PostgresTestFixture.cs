@@ -236,9 +236,13 @@ public class PostgresTestFixture : IAsyncLifetime
 
         await using (var termCmd = adminConn.CreateCommand())
         {
+            // Client sessions only. An autovacuum worker may be attached to the test database and the
+            // least-privilege CI role is not allowed to terminate it (pg_signal_autovacuum_worker): the
+            // call raised, teardown swallowed it, and the database was left behind. DROP DATABASE itself
+            // stops autovacuum workers on the database, so they need no help from here.
             termCmd.CommandText =
                 "SELECT pg_terminate_backend(pid) FROM pg_stat_activity " +
-                "WHERE datname = @db AND pid <> pg_backend_pid();";
+                "WHERE datname = @db AND pid <> pg_backend_pid() AND backend_type = 'client backend';";
             termCmd.Parameters.AddWithValue("db", databaseName);
             await termCmd.ExecuteNonQueryAsync();
         }

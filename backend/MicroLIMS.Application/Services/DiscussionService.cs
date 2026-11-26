@@ -303,10 +303,7 @@ public class DiscussionService
         // half-created post behind.
         if (attachments is { Count: > 0 }
             && DiscussionAttachmentPolicy.Validate(attachments.Select(a => (a.FileName, a.Data)).ToList()) is { } attachmentProblem)
-            throw new BusinessRuleException(
-                MessageCodes.DiscussionAttachmentInvalid,
-                attachmentProblem,
-                new Dictionary<string, string> { ["message"] = attachmentProblem });
+            throw BusinessRuleException.FromDetails([attachmentProblem]);
 
         var post = new DiscussionPost
         {

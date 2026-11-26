@@ -21,6 +21,7 @@ import { SettingsService, type SystemSetting } from "./services/SettingsService"
 import { SsoAdminService, type SsoAdminOverview } from "./services/SsoAdminService";
 import { ImportDirectoryLinksDialog } from "./ImportDirectoryLinksDialog";
 import { i18n, useTranslation } from "../../i18n";
+import { SERVER_MESSAGES_NAMESPACE, translateServerDetail } from "../../i18n/serverMessages";
 
 const tl = (key: string, options?: Record<string, unknown>): string => i18n.t(key, { ns: "admin", ...options });
 
@@ -35,6 +36,7 @@ const showValue = (v: string | boolean | number | null, t: TFunction<"admin">): 
 export function CompanySignInPage() {
   const { t } = useTranslation("admin");
   const { t: tc } = useTranslation("common");
+  useTranslation(SERVER_MESSAGES_NAMESPACE, { useSuspense: false });
   const tEn = i18n.getFixedT("en", "admin");
   const theme = useTheme();
   const [overview, setOverview] = useState<SsoAdminOverview | null>(null);
@@ -174,7 +176,11 @@ export function CompanySignInPage() {
               <Typography variant="subtitle2" component="h3" sx={{ mb: 1 }}>{t("companySignIn.blockers")}</Typography>
               {blockers.length > 0 ? (
                 <Stack component="ul" spacing={0.5} aria-label={t("companySignIn.blockers")} sx={{ pl: 2.5, m: 0 }}>
-                  {blockers.map((b) => <Typography key={b} component="li" variant="body2">{b}</Typography>)}
+                  {overview.blockerDetails?.length
+                    ? overview.blockerDetails.map((detail) => (
+                      <Typography key={detail.code} component="li" variant="body2">{translateServerDetail(detail)}</Typography>
+                    ))
+                    : blockers.map((blocker) => <Typography key={blocker} component="li" variant="body2">{blocker}</Typography>)}
                 </Stack>
               ) : (
                 <ToneBadge tone="notDetected" label={t("companySignIn.noBlockers")} />

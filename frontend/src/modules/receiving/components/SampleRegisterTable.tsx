@@ -721,11 +721,11 @@ function SampleRegisterTableInner({
         return <Typography component="span" sx={ROW_CELL_SX}>{sample.sampledBy || "—"}</Typography>;
       case "batchControl":
         return sample.batchNumber ? (
-          <Box sx={{ fontSize: 12 }}>
-            <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.primary" }}>
+          <Box sx={{ fontSize: 12, minWidth: 0, overflowWrap: "anywhere" }}>
+            <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.primary", overflowWrap: "anywhere" }}>
               {t("register.batchPrefix")} <Ltr>{sample.batchNumber}</Ltr>
             </Typography>
-            <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
+            <Typography sx={{ fontSize: 12, color: "text.secondary", overflowWrap: "anywhere" }}>
               {t("register.controlPrefix")} <Ltr>{sample.controlNumber || "—"}</Ltr>
             </Typography>
           </Box>

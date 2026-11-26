@@ -12,6 +12,7 @@ using MicroLIMS.Domain.Enums;
 using MicroLIMS.Shared.Constants;
 using MicroLIMS.Shared.Exceptions;
 using MicroLIMS.Shared.Messages;
+using MicroLIMS.Shared.Responses;
 
 namespace MicroLIMS.Application.Services.Sso;
 
@@ -74,18 +75,18 @@ public sealed class SsoModeService
     public bool IsLocalLoginAllowed(SsoMode mode, User user) =>
         mode == SsoMode.Off || user.IsEmergencyAccount;
 
-    public async Task<IReadOnlyList<string>> GetSwitchOnBlockersAsync(
+    public async Task<IReadOnlyList<ApiError>> GetSwitchOnBlockersAsync(
         int actingUserId,
         SsoMode target,
         CancellationToken ct = default)
     {
         if (target == SsoMode.Off)
-            return Array.Empty<string>();
+            return Array.Empty<ApiError>();
 
-        var blockers = new List<string>(3);
+        var blockers = new List<ApiError>(3);
 
         if (await GetLastConnectionTestPassedAtAsync(target, ct) is null)
-            blockers.Add(BlockerConnectionTestRequired);
+            blockers.Add(new ApiError(MessageCodes.SettingsSsoConnectionTestRequired, null, BlockerConnectionTestRequired));
 
         var hasEmergencyAdmin = await _db.Users
             .AsNoTracking()
@@ -98,13 +99,13 @@ public sealed class SsoModeService
                      && _db.UserMfaCredentials.Any(c => c.UserId == u.Id && c.Status == MfaCredentialStatus.Active),
                 ct);
         if (!hasEmergencyAdmin)
-            blockers.Add(BlockerEmergencyAdminRequired);
+            blockers.Add(new ApiError(MessageCodes.SettingsSsoEmergencyAdminRequired, null, BlockerEmergencyAdminRequired));
 
         var actingUser = await _db.Users
             .AsNoTracking()
             .FirstOrDefaultAsync(u => u.Id == actingUserId, ct);
         if (actingUser is null || string.IsNullOrWhiteSpace(actingUser.DirectoryUsername))
-            blockers.Add(BlockerActingAdminNotLinked);
+            blockers.Add(new ApiError(MessageCodes.SettingsSsoActingAdminNotLinked, null, BlockerActingAdminNotLinked));
 
         return blockers;
     }

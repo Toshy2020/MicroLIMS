@@ -1,3 +1,7 @@
+using System.Globalization;
+using MicroLIMS.Shared.Messages;
+using MicroLIMS.Shared.Responses;
+
 namespace MicroLIMS.Application.Services;
 
 // Server-side file validation for uploaded material documents.
@@ -37,30 +41,48 @@ public class MaterialDocumentFileValidator
         _maxFileSizeBytes = maxFileSizeBytes;
     }
 
-    // Returns null on success, or a safe human-readable error message on failure.
-    public string? Validate(string originalFileName, string declaredContentType, long sizeBytes, byte[] firstBytes)
+    public string? Validate(string originalFileName, string declaredContentType, long sizeBytes, byte[] firstBytes) =>
+        ValidateCoded(originalFileName, declaredContentType, sizeBytes, firstBytes)?.Message;
+
+    // Returns the first refusal, or null on success.
+    public ApiError? ValidateCoded(string originalFileName, string declaredContentType, long sizeBytes, byte[] firstBytes)
     {
         // 1. File size
         if (sizeBytes > _maxFileSizeBytes)
-            return $"File exceeds the maximum allowed size of {_maxFileSizeBytes / 1024 / 1024} MB.";
+            return new ApiError(
+                MessageCodes.DocumentFileTooLarge,
+                new Dictionary<string, string> { ["maxMb"] = (_maxFileSizeBytes / 1024 / 1024).ToString(CultureInfo.InvariantCulture) },
+                $"File exceeds the maximum allowed size of {_maxFileSizeBytes / 1024 / 1024} MB.");
 
         if (sizeBytes == 0)
-            return "The uploaded file is empty.";
+            return new ApiError(
+                MessageCodes.DocumentFileEmpty,
+                null,
+                "The uploaded file is empty.");
 
         // 2. Extension
         var ext = Path.GetExtension(originalFileName).ToLowerInvariant();
         if (string.IsNullOrEmpty(ext) || !AllowedFormats.ContainsKey(ext))
-            return $"File type '{ext}' is not supported. Allowed types: PDF, JPG, JPEG, PNG, WEBP, TIFF.";
+            return new ApiError(
+                MessageCodes.DocumentFileExtensionUnsupported,
+                new Dictionary<string, string> { ["extension"] = ext },
+                $"File type '{ext}' is not supported. Allowed types: PDF, JPG, JPEG, PNG, WEBP, TIFF.");
 
         // 3. Declared MIME type
         var (allowedMimes, signatures) = AllowedFormats[ext];
         var normalizedMime = declaredContentType.Split(';')[0].Trim().ToLowerInvariant();
         if (!allowedMimes.Contains(normalizedMime))
-            return $"The declared content type '{normalizedMime}' does not match the file extension '{ext}'.";
+            return new ApiError(
+                MessageCodes.DocumentFileContentTypeMismatch,
+                new Dictionary<string, string> { ["contentType"] = normalizedMime, ["extension"] = ext },
+                $"The declared content type '{normalizedMime}' does not match the file extension '{ext}'.");
 
         // 4. Magic byte / content signature
         if (firstBytes.Length < 3)
-            return "The file content could not be validated because it is too short.";
+            return new ApiError(
+                MessageCodes.DocumentFileContentTooShort,
+                null,
+                "The file content could not be validated because it is too short.");
 
         // Special case: WEBP uses RIFF container. Bytes 0-3 are "RIFF", bytes 8-11 are "WEBP".
         if (ext == ".webp")
@@ -68,7 +90,10 @@ public class MaterialDocumentFileValidator
             if (firstBytes.Length < 12 ||
                 firstBytes[0] != 0x52 || firstBytes[1] != 0x49 || firstBytes[2] != 0x46 || firstBytes[3] != 0x46 ||
                 firstBytes[8] != 0x57 || firstBytes[9] != 0x45 || firstBytes[10] != 0x42 || firstBytes[11] != 0x50)
-                return "The file does not appear to be a valid WEBP image.";
+                return new ApiError(
+                    MessageCodes.DocumentFileInvalidWebp,
+                    null,
+                    "The file does not appear to be a valid WEBP image.");
             return null; // valid
         }
 
@@ -77,7 +102,10 @@ public class MaterialDocumentFileValidator
             (firstBytes.Length >= sig.Length && sig.SequenceEqual(firstBytes.Take(sig.Length))));
 
         if (!signatureMatch)
-            return $"The file content does not match the expected format for '{ext}'. The file may be corrupted or misnamed.";
+            return new ApiError(
+                MessageCodes.DocumentFileSignatureMismatch,
+                new Dictionary<string, string> { ["extension"] = ext },
+                $"The file content does not match the expected format for '{ext}'. The file may be corrupted or misnamed.");
 
         return null; // valid
     }

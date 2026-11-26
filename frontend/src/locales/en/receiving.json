@@ -370,6 +370,7 @@
     "subtitle": "Sample #<ltr>{{sampleId}}</ltr>: {{displayName}} (<ltr>{{referenceNumber}}</ltr>)",
     "loadFailed": "Failed to load the lookup lists. Close the dialog and try again.",
     "completeRequired": "Complete the required fields to sign.",
+    "incompleteDate": "Enter a complete date or clear the date field to sign.",
     "enterReason": "Enter a reason for correction to sign.",
     "cancel": "Cancel",
     "signAndSave": "Sign & Save",
@@ -455,7 +456,8 @@
       "machineRequired": "Machine is required",
       "causeRequired": "Cause of Testing is required",
       "sampledByRequired": "Sampled By is required",
-      "expAfterMfg": "Expiry Date must be after Manufacturing Date"
+      "expAfterMfg": "Expiry Date must be after Manufacturing Date",
+      "dateIncomplete": "Enter a complete date (DD/MM/YYYY) or clear the field."
     }
   },
   "grid": {

@@ -1,3 +1,4 @@
+import type { ServerErrorDetail } from "../../../i18n/serverMessages";
 import { apiClient } from "../../../services/apiClient";
 
 export type SsoMode = "Off" | "OpenIdConnect" | "ActiveDirectory";
@@ -14,6 +15,7 @@ export interface SsoAdminOverview {
   configuration: Record<string, string | boolean | number | null>;
   lastTestPassedAt: string | null;
   blockers: string[];
+  blockerDetails?: ServerErrorDetail[];
   unlinkedUsers: SsoUnlinkedUser[];
 }
 

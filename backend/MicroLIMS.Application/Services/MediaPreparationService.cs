@@ -56,6 +56,20 @@ public class MediaPreparationService
 
     private async Task<Media> PrepareCoreAsync(PrepareMediaRequest request)
     {
+        // The lot's preparation time is the server clock (Media.PreparedAt); the
+        // request cannot backdate it. A lot that expires before it is prepared
+        // is already expired, so refuse it before anything is consumed or saved.
+        var preparedOn = _time.GetUtcNow().UtcDateTime.Date;
+        if (request.ExpiryDate.Date < preparedOn)
+            throw new BusinessRuleException(
+                MessageCodes.MediaExpiryBeforePreparation,
+                $"The expiry date {request.ExpiryDate:yyyy-MM-dd} is before the preparation date {preparedOn:yyyy-MM-dd}.",
+                new Dictionary<string, string>
+                {
+                    ["expiryDate"] = request.ExpiryDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+                    ["preparedOn"] = preparedOn.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)
+                });
+
         var autoclave = await _db.Equipment.FirstOrDefaultAsync(e => e.Id == request.AutoclaveEquipmentId && e.Type == EquipmentType.Autoclave)
             ?? throw new BusinessRuleException(
                 MessageCodes.MediaInvalidAutoclave,

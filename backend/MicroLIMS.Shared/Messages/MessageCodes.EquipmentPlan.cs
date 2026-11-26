@@ -20,7 +20,6 @@ public static partial class MessageCodes
     public const string EquipmentPlanDocumentNotCertificate = "EquipmentPlan.DocumentNotCertificate";
     public const string EquipmentPlanDocumentNotFoundForEquipment = "EquipmentPlan.DocumentNotFoundForEquipment";
     public const string EquipmentPlanDocumentReadFailed = "EquipmentPlan.DocumentReadFailed";
-    public const string EquipmentPlanDocumentValidationFailed = "EquipmentPlan.DocumentValidationFailed";
     public const string EquipmentPlanDocumentVoidReasonRequired = "EquipmentPlan.DocumentVoidReasonRequired";
     public const string EquipmentPlanDuplicateEvent = "EquipmentPlan.DuplicateEvent";
     public const string EquipmentPlanEntryAlreadyRecorded = "EquipmentPlan.EntryAlreadyRecorded";
@@ -92,7 +91,6 @@ public static partial class MessageCodes
         [EquipmentPlanDocumentNotCertificate] = [],
         [EquipmentPlanDocumentNotFoundForEquipment] = ["documentId", "equipmentId"],
         [EquipmentPlanDocumentReadFailed] = [],
-        [EquipmentPlanDocumentValidationFailed] = ["message"],
         [EquipmentPlanDocumentVoidReasonRequired] = [],
         [EquipmentPlanDuplicateEvent] = [],
         [EquipmentPlanEntryAlreadyRecorded] = ["code", "date"],

@@ -53,6 +53,7 @@ public static partial class MessageCodes
     public const string MediaEquipmentNotInService = "Media.EquipmentNotInService";
     public const string MediaEvaluationNotFound = "Media.EvaluationNotFound";
     public const string MediaEvaluationTypeRequired = "Media.EvaluationTypeRequired";
+    public const string MediaExpiryBeforePreparation = "Media.ExpiryBeforePreparation";
     public const string MediaGroupedActionResultEntryBlocked = "Media.GroupedActionResultEntryBlocked";
     public const string MediaInactiveProductCannotConfigure = "Media.InactiveProductCannotConfigure";
     public const string MediaIncubationConditionDuplicate = "Media.IncubationConditionDuplicate";
@@ -155,6 +156,7 @@ public static partial class MessageCodes
         [MediaEquipmentNotInService] = ["code"],
         [MediaEvaluationNotFound] = ["id"],
         [MediaEvaluationTypeRequired] = [],
+        [MediaExpiryBeforePreparation] = ["expiryDate", "preparedOn"],
         [MediaGroupedActionResultEntryBlocked] = [],
         [MediaInactiveProductCannotConfigure] = ["name"],
         [MediaIncubationConditionDuplicate] = ["productName", "minH", "maxH", "tMin", "tMax"],

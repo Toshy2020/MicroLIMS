@@ -71,6 +71,8 @@ The interface is now translated module by module. `frontend/src/locales/glossary
 
 The password templates reuse the account password checklist. The monitoring templates reuse the frequency form's terms for التكرار (frequency), يوم أخذ العينات (sampling weekday), أسبوع الشهر (week of the month), and الشهر الأول من الدورة (anchor month). Please review the new `User.Password*` and `Monitoring.Frequency*` validation sentences in `frontend/src/locales/ar/serverMessages.json`, including الفاصل الزمني للتكرار for frequency interval.
 
+Please review the batch 15 `Document.File*`, `Discussion.Attachment*` and `Settings.Sso*` templates for file and attachment validation and for SSO readiness. In particular, review نوع المحتوى المصرّح به (declared content type), امتداد الملف (file extension), حساب مسؤول طوارئ (emergency administrator account), and عامل ثانٍ للمصادقة (second factor).
+
 ## 5. What stays English by design
 
 - Printed and exported records (certificate of analysis, sample report, media and cryovial reports, equipment history, CSV and PDF exports), because the English record is the regulated one.

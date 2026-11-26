@@ -117,10 +117,9 @@ public class EquipmentDocumentService
 
         // Server-side file validation.
         var firstBytes = request.Content.Take(16).ToArray();
-        var error = _validator.Validate(request.OriginalFileName, request.DeclaredContentType, request.Content.Length, firstBytes);
+        var error = _validator.ValidateCoded(request.OriginalFileName, request.DeclaredContentType, request.Content.Length, firstBytes);
         if (error != null)
-            throw new BusinessRuleException(MessageCodes.EquipmentPlanDocumentValidationFailed, error,
-                new Dictionary<string, string> { ["message"] = error });
+            throw BusinessRuleException.FromDetails([error]);
 
         var ext = Path.GetExtension(request.OriginalFileName).ToLowerInvariant();
         var sha256 = Convert.ToHexString(SHA256.HashData(request.Content));
@@ -231,10 +230,9 @@ public class EquipmentDocumentService
             throw new BusinessRuleException(MessageCodes.EquipmentPlanVoidedDocumentCannotBeSuperseded, "A voided document cannot be superseded. Upload a new document instead.");
 
         var firstBytes = request.Content.Take(16).ToArray();
-        var error = _validator.Validate(request.OriginalFileName, request.DeclaredContentType, request.Content.Length, firstBytes);
+        var error = _validator.ValidateCoded(request.OriginalFileName, request.DeclaredContentType, request.Content.Length, firstBytes);
         if (error != null)
-            throw new BusinessRuleException(MessageCodes.EquipmentPlanDocumentValidationFailed, error,
-                new Dictionary<string, string> { ["message"] = error });
+            throw BusinessRuleException.FromDetails([error]);
 
         var ext = Path.GetExtension(request.OriginalFileName).ToLowerInvariant();
         var sha256 = Convert.ToHexString(SHA256.HashData(request.Content));

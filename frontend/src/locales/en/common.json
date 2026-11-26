@@ -824,7 +824,8 @@
   "datePicker": {
     "clear": "Clear",
     "chooseDate": "Choose date",
-    "chooseDateSelected": "Choose date, selected date is {{date}}"
+    "chooseDateSelected": "Choose date, selected date is {{date}}",
+    "incomplete": "Enter a complete date (DD/MM/YYYY) or clear the field."
   },
   "dateTime": {
     "time": "Time",

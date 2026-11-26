@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { PinnedLightTheme } from "../../theme/PinnedLightTheme";
 import { AuthProvider } from "../../contexts/AuthContext";
+import { renderInArabic, resetLanguage } from "../../i18n/testUtils";
 
 const http = vi.hoisted(() => ({
   get: vi.fn(),
@@ -317,5 +318,32 @@ describe("QualityRegisterPage", () => {
     expect(await screen.findByText("DEV-2026-0001")).toBeTruthy();
     expect(await screen.findByText("Some data could not be loaded: classifications.")).toBeTruthy();
     expect(screen.getByRole("tab", { name: "CAPAs" })).toBeTruthy();
+  });
+});
+
+describe("QualityRegisterPage in Arabic", () => {
+  afterEach(async () => {
+    cleanup();
+    localStorage.clear();
+    vi.clearAllMocks();
+    await resetLanguage();
+  });
+
+  it("shows the title, tabs, filters and the status in Arabic", async () => {
+    setAuth();
+    serve();
+    await renderInArabic(
+      <AuthProvider>
+        <MemoryRouter initialEntries={["/quality"]}>
+          <QualityRegisterPage />
+        </MemoryRouter>
+      </AuthProvider>,
+      ["common", "quality"]
+    );
+
+    expect(await screen.findByRole("heading", { level: 1, name: "أحداث الجودة" })).toBeTruthy();
+    expect(screen.getByRole("tab", { name: "الانحرافات" })).toBeTruthy();
+    expect(screen.getByRole("checkbox", { name: "المتأخرة فقط" })).toBeTruthy();
+    expect(await screen.findByText("DEV-2026-0001")).toBeTruthy();
   });
 });

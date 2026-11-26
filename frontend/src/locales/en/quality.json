@@ -68,7 +68,6 @@
     "overdue": "Overdue",
     "cancelledNotice": "This record was cancelled. Reason: {{reason}}",
     "header": {
-      "classification": "Classification",
       "section": "Section",
       "raisedBy": "Raised by",
       "owner": "Owner",
@@ -83,7 +82,6 @@
       "comments": "comments",
       "extensions": "extension requests"
     },
-    "panelUnavailable": "This section could not be loaded.",
     "timelineEmpty": "Nobody has signed this record yet.",
     "typeActionsLabel": "Actions for this record",
     "loading": "Loading the quality record",
@@ -158,7 +156,6 @@
     "unavailable": "Links could not be loaded.",
     "restricted": "Restricted",
     "restrictedHelp": "You may not open this record, so only its number is shown.",
-    "open": "Open {{label}}",
     "add": "Add link",
     "searchLabel": "Search for a record to link",
     "searchHint": "Type at least 2 characters. You can link samples, tests, equipment, media lots, documents and items.",
@@ -193,7 +190,6 @@
     "responsible": "Responsible",
     "dueDate": "Due {{date}}",
     "completedLine": "Completed by {{name}} · {{date}}",
-    "evidence": "Evidence",
     "complete": "Complete",
     "completeAria": "Complete action: {{description}}",
     "requestExtension": "Request extension",
@@ -217,7 +213,6 @@
     "formats": "PDF, images, Office files, TXT or CSV; up to 10 MB each",
     "note": "Uploads and voids are kept in the audit trail.",
     "uploadFailed": "The file could not be uploaded.",
-    "uploadedToast": "Attachment uploaded.",
     "download": "Download",
     "downloadAria": "Download {{name}}",
     "downloadFailed": "The file could not be downloaded.",
@@ -229,7 +224,6 @@
     "voidSubmit": "Void attachment",
     "voided": "Voided",
     "voidedLine": "Voided {{date}}: {{reason}}",
-    "unavailable": "Attachments could not be loaded.",
     "voidFailed": "The attachment could not be voided."
   },
   "comments": {

@@ -302,6 +302,25 @@ describe("Microbiology solutions menu entries", () => {
   });
 });
 
+describe("Quality Events menu entry", () => {
+  const qualityGroupFor = (permissions: string[]) =>
+    getGroupedMenu({ role: "SectionHead", permissions, labCodes: [] }).find((g) => g.groupName === "QUALITY & COMPLIANCE");
+
+  it("is shown in QUALITY & COMPLIANCE, after OOS Tracking, to anyone holding Quality.View", () => {
+    const labels = qualityGroupFor([PERMISSIONS.OOS_VIEW, PERMISSIONS.QUALITY_VIEW])?.items.map((i) => i.label);
+
+    expect(labels).toEqual(["Document Control", "Reports", "OOS Tracking", "Quality Events"]);
+    const item = qualityGroupFor([PERMISSIONS.QUALITY_VIEW])?.items.find((i) => i.label === "Quality Events");
+    expect(item?.path).toBe("/quality");
+  });
+
+  it("is hidden without Quality.View, even with the other quality permissions", () => {
+    const group = qualityGroupFor([PERMISSIONS.QUALITY_RAISE, PERMISSIONS.QUALITY_APPROVE]);
+
+    expect(group?.items.map((i) => i.label) ?? []).not.toContain("Quality Events");
+  });
+});
+
 describe("Label Formats menu entry", () => {
   const labItemsFor = (permissions: string[]) =>
     getGroupedMenu({

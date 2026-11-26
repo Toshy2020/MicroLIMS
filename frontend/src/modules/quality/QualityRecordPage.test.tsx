@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { PinnedLightTheme } from "../../theme/PinnedLightTheme";
 import { AuthProvider } from "../../contexts/AuthContext";
+import { renderInArabic, resetLanguage } from "../../i18n/testUtils";
 
 const http = vi.hoisted(() => ({
   get: vi.fn(),
@@ -375,5 +376,34 @@ describe("QualityRecordPage detail types", () => {
 
     expect(await screen.findByRole("link", { name: "DEV-2026-0001" })).toBeTruthy();
     expect(screen.getByText("No drift for 90 days")).toBeTruthy();
+  });
+});
+
+describe("QualityRecordPage in Arabic", () => {
+  afterEach(async () => {
+    cleanup();
+    localStorage.clear();
+    vi.clearAllMocks();
+    await resetLanguage();
+  });
+
+  it("shows the panels and the path announcement in Arabic and keeps the record number readable", async () => {
+    setAuth(RAISE);
+    serve();
+    await renderInArabic(
+      <AuthProvider>
+        <MemoryRouter initialEntries={["/quality/1"]}>
+          <Routes>
+            <Route path="/quality/:id" element={<QualityRecordPage />} />
+          </Routes>
+        </MemoryRouter>
+      </AuthProvider>,
+      ["common", "quality"]
+    );
+
+    expect(await screen.findByRole("heading", { level: 1, name: /DEV-2026-0001/ })).toBeTruthy();
+    expect(screen.getByRole("group", { name: "مسار السجل" })).toBeTruthy();
+    expect(screen.getByText("الخطوة الحالية: Investigation (الخطوة 2 من 3)")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "إضافة رابط" })).toBeTruthy();
   });
 });

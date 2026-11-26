@@ -84,6 +84,8 @@ export const HELP_MAP: Record<string, HelpTarget> = {
   "/reports": { chapterId: "34-reports-kpis" },
   "/monitoring-plan": { chapterId: "23-environmental-monitoring" },
   "/oos-tracking": { chapterId: "20-oos-tracking" },
+  // No guide chapter on quality events exists yet; the OOS chapter covers the deviation requests they start from.
+  "/quality": { chapterId: "20-oos-tracking" },
 
   // Administration
   "/admin/users": { chapterId: "39-users-roles-administration" },

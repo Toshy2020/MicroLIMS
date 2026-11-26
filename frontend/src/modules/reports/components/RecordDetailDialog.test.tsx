@@ -43,7 +43,7 @@ const sampleRecord: ResultRecordItem = {
   resultEnteredAt: "2026-11-20T09:00:00Z",
   resultEnteredByUserId: 5,
   resultEnteredByName: "Analyst One",
-  sampleStatus: "Approved",
+  sampleStatus: "UnderApproval",
   approvalStatus: "Approved",
   approvedByUserId: 2,
   approvedByName: "Section Head",
@@ -148,4 +148,30 @@ describe("RecordDetailDialog excursion review", () => {
     );
     expect(screen.queryByRole("button", { name: /Open excursion review/i })).toBeNull();
   });
+
+  it.each(["Approved", "Rejected", "Cancelled", "Voided"])(
+    "gates the excursion review with a stated reason when the sample is %s",
+    (status) => {
+      localStorage.setItem("microlims_permissions", JSON.stringify([PERMISSIONS.OOS_CONTRIBUTE]));
+      render(
+        <AuthProvider>
+          <PinnedLightTheme>
+            <MemoryRouter>
+              <RecordDetailDialog
+                open
+                record={{ ...sampleRecord, sampleStatus: status as ResultRecordItem["sampleStatus"] }}
+                onClose={vi.fn()}
+              />
+            </MemoryRouter>
+          </PinnedLightTheme>
+        </AuthProvider>
+      );
+
+      const button = screen.getByRole("button", { name: /Open excursion review/i });
+      expect(button.hasAttribute("disabled")).toBe(true);
+      expect(screen.getByText(/already decided or cancelled/i)).toBeTruthy();
+      expect(screen.queryByRole("button", { name: /Confirm Excursion Review/i })).toBeNull();
+      expect(oosInvestigationService.openManualExcursion).not.toHaveBeenCalled();
+    }
+  );
 });

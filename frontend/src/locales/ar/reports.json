@@ -689,6 +689,7 @@
     "openExcursionReview": "فتح مراجعة تجاوز",
     "excursionReason": "السبب",
     "confirmExcursionReview": "تأكيد مراجعة التجاوز",
+    "excursionSampleClosed": "لا يمكن فتح مراجعة تجاوز لعيّنة تم البت فيها أو إلغاؤها.",
     "excursionError": "تعذّر فتح مراجعة التجاوز."
   },
   "compare": {

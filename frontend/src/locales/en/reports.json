@@ -681,6 +681,7 @@
     "openExcursionReview": "Open excursion review",
     "excursionReason": "Reason",
     "confirmExcursionReview": "Confirm Excursion Review",
+    "excursionSampleClosed": "An excursion review cannot be opened for a sample that is already decided or cancelled.",
     "excursionError": "Failed to open excursion review."
   },
   "compare": {

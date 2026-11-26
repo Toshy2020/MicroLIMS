@@ -521,6 +521,150 @@ public class CompetencySettingsAndMatrixPostgresTests(PostgresTestFixture fixtur
     }
 
     [PostgresFact]
+    public async Task SetReminderDays_validates_range_persists_with_audit_and_enforces_version_and_scope()
+    {
+        var setup = await ArrangeBaseAsync();
+
+        await using (var act = fixture.CreateDbContext(_clock))
+        {
+            var created = await Settings(act).SetReminderDaysAsync(setup.SectionId, 14, null, setup.HeadId);
+            Assert.Equal(14, created.ReminderDaysBeforeExpiry);
+            Assert.False(created.GateEnabled);
+            Assert.NotEqual(0u, created.Version);
+        }
+
+        await using (var verify = fixture.CreateDbContext())
+        {
+            var row = await verify.CompetencySectionSettings.AsNoTracking()
+                .SingleAsync(s => s.SectionId == setup.SectionId);
+            Assert.Equal(14, row.ReminderDaysBeforeExpiry);
+            var audit = await verify.AuditLogs.AsNoTracking().SingleAsync(a =>
+                a.EntityName == nameof(CompetencySectionSetting) && a.EntityId == setup.SectionId.ToString() && a.Action == "Create");
+            Assert.Equal(setup.HeadId, audit.UserId);
+        }
+
+        uint currentVersion;
+        await using (var read = fixture.CreateDbContext())
+            currentVersion = await read.CompetencySectionSettings.AsNoTracking()
+                .Where(s => s.SectionId == setup.SectionId).Select(s => s.Version).SingleAsync();
+
+        await using (var act = fixture.CreateDbContext(_clock))
+        {
+            var stale = await Assert.ThrowsAsync<BusinessRuleException>(() =>
+                Settings(act).SetReminderDaysAsync(setup.SectionId, 30, currentVersion + 5, setup.HeadId));
+            Assert.Equal("Competency.GateVersionStale", stale.Code);
+
+            var tooLow = await Assert.ThrowsAsync<BusinessRuleException>(() =>
+                Settings(act).SetReminderDaysAsync(setup.SectionId, 0, currentVersion, setup.HeadId));
+            Assert.Equal("Competency.ReminderDaysInvalid", tooLow.Code);
+
+            var tooHigh = await Assert.ThrowsAsync<BusinessRuleException>(() =>
+                Settings(act).SetReminderDaysAsync(setup.SectionId, 366, currentVersion, setup.HeadId));
+            Assert.Equal("Competency.ReminderDaysInvalid", tooHigh.Code);
+
+            await Assert.ThrowsAsync<CodedAccessDeniedException>(() =>
+                Settings(act).SetReminderDaysAsync(setup.SectionId, 10, currentVersion, setup.AnalystIds[0]));
+            await Assert.ThrowsAsync<CodedAccessDeniedException>(() =>
+                Settings(act).SetReminderDaysAsync(setup.SectionId, 10, currentVersion, setup.OtherHeadId));
+
+            var cleared = await Settings(act).SetReminderDaysAsync(setup.SectionId, null, currentVersion, setup.HeadId);
+            Assert.Null(cleared.ReminderDaysBeforeExpiry);
+        }
+    }
+
+    [PostgresFact]
+    public async Task ExportMatrixCsv_logs_DataExportLog_and_respects_section_scope_and_analyst_self_only()
+    {
+        var setup = await ArrangeBaseAsync();
+        await AddQualificationAsync(setup.AnalystIds[0], setup.TestId, LabToday.AddMonths(2), setup.HeadId);
+
+        await using (var act = fixture.CreateDbContext(_clock))
+        {
+            var (fileName, bytes) = await Matrix(act).ExportCsvAsync(setup.SectionId, new MatrixFilters(), setup.HeadId);
+            Assert.EndsWith(".csv", fileName);
+            var csv = System.Text.Encoding.UTF8.GetString(bytes);
+            Assert.Contains(setup.TestCode, csv);
+            Assert.Contains("Analyst A", csv);
+            Assert.Contains("Analyst B", csv);
+            Assert.Contains("Qualified", csv);
+        }
+
+        await using (var verify = fixture.CreateDbContext())
+        {
+            var log = await verify.DataExportLogs.AsNoTracking()
+                .Where(l => l.UserId == setup.HeadId && l.ExportType == "CompetencyMatrixCsv")
+                .OrderByDescending(l => l.Id)
+                .FirstOrDefaultAsync();
+            Assert.NotNull(log);
+            Assert.True(log.RowCount >= 5);
+        }
+
+        await using (var analystAct = fixture.CreateDbContext(_clock))
+        {
+            var (_, analystBytes) = await Matrix(analystAct).ExportCsvAsync(setup.SectionId, new MatrixFilters(), setup.AnalystIds[0]);
+            var analystCsv = System.Text.Encoding.UTF8.GetString(analystBytes);
+            Assert.Contains("Analyst A", analystCsv);
+            Assert.DoesNotContain("Analyst B", analystCsv);
+
+            await Assert.ThrowsAsync<CodedAccessDeniedException>(() =>
+                Matrix(analystAct).ExportCsvAsync(setup.SectionId, new MatrixFilters(), setup.OtherHeadId));
+        }
+    }
+
+    [PostgresFact]
+    public async Task GetMatrix_and_GetMy_include_Reviewers_and_SectionHeads()
+    {
+        var setup = await ArrangeBaseAsync();
+        int reviewerId;
+        await using (var arrange = fixture.CreateDbContext())
+        {
+            var reviewerRoleId = await arrange.Roles.AsNoTracking()
+                .Where(r => r.Type == RoleType.Reviewer).Select(r => r.Id).FirstAsync();
+            var key = NewCode();
+            var reviewer = new User
+            {
+                RoleId = reviewerRoleId, FullName = $"Reviewer {key}",
+                Username = $"reviewer-{key}", IsActive = true
+            };
+            arrange.Users.Add(reviewer);
+            await arrange.SaveChangesAsync();
+            var viewId = await arrange.Permissions.AsNoTracking()
+                .Where(p => p.Code == PermissionConstants.CompetencyView).Select(p => p.Id).SingleAsync();
+            if (!await arrange.RolePermissions.AnyAsync(rp => rp.RoleId == reviewerRoleId && rp.PermissionId == viewId))
+                arrange.RolePermissions.Add(new RolePermission { RoleId = reviewerRoleId, PermissionId = viewId });
+            arrange.UserOrgMemberships.Add(new UserOrgMembership
+            {
+                UserId = reviewer.Id, DepartmentId = fixture.SeededDepartmentId, SectionId = setup.SectionId
+            });
+            await arrange.SaveChangesAsync();
+            reviewerId = reviewer.Id;
+        }
+
+        await using var act = fixture.CreateDbContext();
+        var sectionMatrix = await Matrix(act).GetMatrixAsync(setup.SectionId, new MatrixFilters(), setup.HeadId);
+        Assert.Contains(sectionMatrix.Analysts, r => r.UserId == setup.HeadId);
+        Assert.Contains(sectionMatrix.Analysts, r => r.UserId == reviewerId);
+
+        var reviewerOwn = await Matrix(act).GetMyAsync(reviewerId);
+        var ownRow = Assert.Single(reviewerOwn.Analysts);
+        Assert.Equal(reviewerId, ownRow.UserId);
+    }
+
+    [PostgresFact]
+    public async Task MatrixCell_includes_version_for_qualified_cell()
+    {
+        var setup = await ArrangeBaseAsync();
+        var qualId = await AddQualificationAsync(setup.AnalystIds[0], setup.TestId, LabToday.AddMonths(2), setup.HeadId);
+
+        await using var act = fixture.CreateDbContext();
+        var matrix = await Matrix(act).GetMatrixAsync(setup.SectionId, new MatrixFilters(), setup.HeadId);
+        var cell = matrix.Analysts.Single(r => r.UserId == setup.AnalystIds[0]).Cells.Single(c => c.TestDefinitionId == setup.TestId);
+        Assert.Equal(qualId, cell.QualificationId);
+        Assert.NotNull(cell.Version);
+        Assert.NotEqual(0u, cell.Version!.Value);
+    }
+
+    [PostgresFact]
     public async Task Reminder_query_skips_an_analyst_whose_latest_record_is_withdrawn()
     {
         var setup = await ArrangeBaseAsync();

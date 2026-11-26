@@ -368,7 +368,69 @@
         "owner": "Owner",
         "submit": "Create CAPA",
         "failed": "The CAPA could not be created."
+      },
+      "plan": {
+        "title": "CAPA plan",
+        "save": "Save plan",
+        "needsFields": "Fill in every action and the effectiveness check to save the plan.",
+        "saveFailed": "The plan could not be saved.",
+        "withOwner": "The plan is written by the owner of this CAPA.",
+        "criteria": "What will be checked",
+        "criteriaHelp": "The effectiveness criteria QA will judge the CAPA by.",
+        "method": "How it will be checked",
+        "plannedDate": "Planned date of the effectiveness check",
+        "plannedDateHelp": "Must be after the due date of the last action."
+      },
+      "decision": {
+        "title": "Plan approval",
+        "intro": "Approve the saved plan, or return it to the owner with a comment.",
+        "approve": "Approve plan and sign",
+        "return": "Return plan to owner",
+        "planNotSaved": "The owner has not saved a complete plan yet.",
+        "returnNeedsComment": "Write a comment to return the plan.",
+        "returnFailed": "The plan could not be returned.",
+        "comment": "Comment",
+        "commentHelp": "Required to return the plan."
+      },
+      "verify": {
+        "title": "Completion verification",
+        "intro": "Confirm that every action is done and its evidence is acceptable. Responsible people complete their actions in the actions list.",
+        "verify": "Verify completion and sign",
+        "unfinished": "Complete every action first. Unfinished: {{description}}"
+      },
+      "implementation": {
+        "title": "Implementation",
+        "text": "The responsible people are carrying out the actions. Each one completes theirs in the actions list below."
+      },
+      "effectiveness": {
+        "title": "Effectiveness check",
+        "waitingForQa": "Waiting for QA to check the effectiveness.",
+        "criteria": "To be checked: {{criteria}}",
+        "planned": "Planned date: {{date}}",
+        "noDate": "not set",
+        "early": "The effectiveness check cannot be signed before its planned date ({{date}}).",
+        "result": "Result",
+        "effective": "Effective",
+        "notEffective": "Not effective",
+        "findings": "Findings",
+        "createSuccessor": "Create successor CAPA",
+        "successor": "Successor CAPA: {{number}}",
+        "sign": "Sign effectiveness check",
+        "chooseResult": "Choose whether the CAPA was effective.",
+        "needsFindings": "Write the findings first.",
+        "needsSuccessor": "A not-effective CAPA needs a new CAPA created from this one. Create it first."
       }
+    },
+    "rows": {
+      "actionLabel": "Action {{number}}",
+      "taskLabel": "Task {{number}}",
+      "remove": "Remove {{label}}",
+      "kind": "Kind",
+      "description": "Description",
+      "responsible": "Responsible person",
+      "dueDate": "Due date",
+      "add_action": "Add action",
+      "add_task": "Add task"
     }
   }
 }

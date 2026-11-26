@@ -1372,3 +1372,12 @@ Locations for CONF-001 to CONF-008 were added on 2026-11-12 from the area worker
 - **Question:** Combining several retest results (averaging, rounding, and eligibility rules) on an origin certificate after OOS invalidation.
 - **Current behavior:** R3 supports one named reportable retest (`OosRetestPlan.ReportableRetestNumber` / `ReportableSampleId`, per CONF-220). Combining several retest results needs a formula, rounding rule, and eligibility specification from the approved documents before implementation.
 - **Date:** 2026-11-26
+
+### CONF-243
+- **Area:** MDM / RPT (D5 pre-capture SOP display)
+- **Status:** Decided (user confirmed 2026-11-26)
+- **What the code did:** Item-based test orders that pre-date SOP revision capture (`SopCaptureStatus` is null) fell through to plain `"SOP not recorded"` in `ReportDocumentMapper.SopCaptureText` and `SopMethodDetails.tsx`.
+- **What the other source says:** D5 specification section 3: "Tests recorded before this package: they stay without a captured revision and show 'Not recorded (before {release date})'."
+- **Question:** What date should `{date}` be, where is it stored, and who can edit it?
+- **Decision:** Pre-capture test orders must show `"Not recorded (before {date})"` in the laboratory time zone, where `{date}` is the date this update was installed on that database, stored automatically once by migration `RecordSopCaptureStartDate` in `SystemSettings` (`sopCapture.startDateUtc`) and never editable or listed as editable in the settings UI. `NoSopNumber`, `NotFound`, `NoEffectiveRevision`, and `Ambiguous` keep their existing `"SOP not recorded: {reason}"` wording.
+- **Date:** 2026-11-26

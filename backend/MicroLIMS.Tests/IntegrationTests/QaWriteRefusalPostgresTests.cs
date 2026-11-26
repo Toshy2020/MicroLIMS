@@ -1,10 +1,15 @@
 using System.Reflection;
 using MicroLIMS.API.Controllers;
+using MicroLIMS.API.Controllers.Quality;
 using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.DTOs.Responses;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Application.Services.Competency;
+using MicroLIMS.Application.Services.Quality;
+using MicroLIMS.Domain.Entities;
+using MicroLIMS.Domain.Entities.Quality;
+using MicroLIMS.Shared.Messages;
 using MicroLIMS.Application.Workflows;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Persistence.DbContext;
@@ -59,12 +64,11 @@ public sealed class QaWriteRefusalPostgresTests
             .Where(c => c != PermissionConstants.DocumentsReview && c != PermissionConstants.DocumentsApprove)
             .OrderBy(c => c, StringComparer.Ordinal)
             .ToList();
-        Assert.Equal(30, expectedCodes.Count);
+        Assert.Equal(32, expectedCodes.Count);
 
-        // Oos.Contribute is provisioned in D1 Task 4. Its first endpoint follows in Task 5.
-        var endpointCodes = expectedCodes.Except([PermissionConstants.OosContribute]);
         var descriptors = BuildWriteDescriptors();
-        Assert.Equal(endpointCodes, descriptors.Select(d => d.PermissionCode).OrderBy(c => c, StringComparer.Ordinal));
+        // Several endpoints may share one code; every code must be covered by at least one descriptor.
+        Assert.Equal(expectedCodes, descriptors.Select(d => d.PermissionCode).Distinct().OrderBy(c => c, StringComparer.Ordinal));
 
         // 1) Fresh DB check: the QA role holds none of the GxP execution/approval codes
         await using (var assertDb = _fixture.CreateDbContext())
@@ -477,6 +481,103 @@ public sealed class QaWriteRefusalPostgresTests
                 await AssertNoNewAuditLogAsync(w.QaUserId, beforeAuditId);
             }),
 
+        // --- Oos.Contribute / Quality.Investigate / Quality.LabConclude (added by R3 D1/D2) ---
+        new(
+            PermissionConstants.OosContribute,
+            typeof(OosInvestigationsController),
+            nameof(OosInvestigationsController.AddAnalystStatement),
+            "OosInvestigationService.AddAnalystStatementAsync",
+            RefusalMechanism.ServiceScopeCheck,
+            async (actDb, w) =>
+            {
+                var id = await SeedOosInvestigationAsync(w, w.SampleAId);
+                await AssertOosRefusedAsync(w, id, () =>
+                    TestServiceFactory.OosInvestigation(actDb).AddAnalystStatementAsync(id, "QA statement", w.QaUserId));
+            }),
+
+        new(
+            PermissionConstants.OosContribute,
+            typeof(OosInvestigationsController),
+            nameof(OosInvestigationsController.AnswerChecklist),
+            "OosInvestigationService.AnswerChecklistAsync",
+            RefusalMechanism.ServiceScopeCheck,
+            async (actDb, w) =>
+            {
+                var id = await SeedOosInvestigationAsync(w, w.ApprovalSampleAId);
+                await AssertOosRefusedAsync(w, id, () =>
+                    TestServiceFactory.OosInvestigation(actDb)
+                        .AnswerChecklistAsync(id, 1, "any-item", OosChecklistAnswer.Yes, "QA answer", w.QaUserId));
+            }),
+
+        new(
+            PermissionConstants.QualityInvestigate,
+            typeof(ChangeControlsController),
+            nameof(ChangeControlsController.SaveAssessment),
+            "ChangeControlService.SaveAssessmentAsync",
+            RefusalMechanism.ServiceScopeCheck,
+            async (actDb, w) =>
+            {
+                var recordId = await SeedChangeControlAsync(w);
+                var before = await ReadQualityStateAsync(recordId);
+                var beforeAuditId = await MaxAuditLogIdAsync();
+                var request = new SaveChangeControlAssessmentRequest("QA impact summary", []);
+                var denied = await Assert.ThrowsAsync<CodedAccessDeniedException>(() =>
+                    NewChangeControlService(actDb).SaveAssessmentAsync(recordId, request, before.Version, w.QaUserId));
+                Assert.Equal(MessageCodes.QualityAccessDenied, denied.Code);
+                await AssertQualityUnchangedAsync(w, recordId, before, beforeAuditId);
+            }),
+
+        new(
+            PermissionConstants.QualityInvestigate,
+            typeof(ChangeControlsController),
+            nameof(ChangeControlsController.SignAssessment),
+            "ChangeControlService.SignAssessmentAsync",
+            RefusalMechanism.ServiceScopeCheck,
+            async (actDb, w) =>
+            {
+                var recordId = await SeedChangeControlAsync(w);
+                var before = await ReadQualityStateAsync(recordId);
+                var beforeAuditId = await MaxAuditLogIdAsync();
+                var denied = await Assert.ThrowsAsync<CodedAccessDeniedException>(() =>
+                    NewChangeControlService(actDb).SignAssessmentAsync(recordId, Password, before.Version, w.QaUserId));
+                Assert.Equal(MessageCodes.QualityAccessDenied, denied.Code);
+                await AssertQualityUnchangedAsync(w, recordId, before, beforeAuditId);
+            }),
+
+        new(
+            PermissionConstants.QualityLabConclude,
+            typeof(DeviationsController),
+            nameof(DeviationsController.SignLabConclusion),
+            "DeviationService.SignLabConclusionAsync",
+            RefusalMechanism.ServiceScopeCheck,
+            async (actDb, w) =>
+            {
+                var recordId = await SeedDeviationAsync(w);
+                var before = await ReadQualityStateAsync(recordId);
+                var beforeAuditId = await MaxAuditLogIdAsync();
+                var denied = await Assert.ThrowsAsync<CodedAccessDeniedException>(() =>
+                    NewDeviationService(actDb).SignLabConclusionAsync(recordId, Password, before.Version, w.QaUserId));
+                Assert.Equal(MessageCodes.QualityAccessDenied, denied.Code);
+                await AssertQualityUnchangedAsync(w, recordId, before, beforeAuditId);
+            }),
+
+        new(
+            PermissionConstants.QualityLabConclude,
+            typeof(ComplaintsController),
+            nameof(ComplaintsController.SignLabReport),
+            "ComplaintService.SignLabReportAsync",
+            RefusalMechanism.ServiceScopeCheck,
+            async (actDb, w) =>
+            {
+                var recordId = await SeedComplaintAsync(w);
+                var before = await ReadQualityStateAsync(recordId);
+                var beforeAuditId = await MaxAuditLogIdAsync();
+                var denied = await Assert.ThrowsAsync<CodedAccessDeniedException>(() =>
+                    NewComplaintService(actDb).SignLabReportAsync(recordId, Password, before.Version, w.QaUserId));
+                Assert.Equal(MessageCodes.QualityAccessDenied, denied.Code);
+                await AssertQualityUnchangedAsync(w, recordId, before, beforeAuditId);
+            }),
+
         // --- Controller policy + controller section write scope (7 codes, no write-scope check inside service) ---
         new(
             PermissionConstants.SamplesCorrect,
@@ -590,6 +691,122 @@ public sealed class QaWriteRefusalPostgresTests
             RefusalMechanism.EndpointPolicyOnly,
             null),
     };
+
+    private sealed record QualityState(uint Version, int StepCount, string? Status);
+
+    private static QualityRecordCore NewQualityCore(MicroLimsDbContext db) =>
+        new(db, new PermissionService(db), new UserSectionScopeService(db),
+            new ReferenceNumberGenerator(db, TimeProvider.System), new ElectronicSignatureService(db, TimeProvider.System),
+            TimeProvider.System);
+
+    private static ChangeControlService NewChangeControlService(MicroLimsDbContext db)
+    {
+        var permissions = new PermissionService(db);
+        var scope = new UserSectionScopeService(db);
+        var core = NewQualityCore(db);
+        var config = new QualityConfigService(db, core, permissions, scope, TimeProvider.System);
+        return new(db, core, permissions, scope, LabClock.Default, new QualityDueDateService(db), config);
+    }
+
+    private static DeviationService NewDeviationService(MicroLimsDbContext db) =>
+        new(db, NewQualityCore(db), new PermissionService(db), new UserSectionScopeService(db),
+            new SegregationOfDutiesGuard(db), LabClock.Default, new QualityDueDateService(db));
+
+    private static ComplaintService NewComplaintService(MicroLimsDbContext db) =>
+        new(db, NewQualityCore(db), new PermissionService(db), new UserSectionScopeService(db),
+            LabClock.Default, new QualityDueDateService(db));
+
+    private async Task<int> SeedQualityRecordAsync(World w, QualityRecordType type, Action<QualityRecord> detail)
+    {
+        await using var arrangeDb = _fixture.CreateDbContext();
+        var record = new QualityRecord
+        {
+            Number = "QAR-" + Guid.NewGuid().ToString("N")[..10].ToUpperInvariant(),
+            Type = type,
+            Title = "QA refusal fixture",
+            Description = "Seeded to prove QA cannot act on it",
+            SectionId = w.SectionAId,
+            RaisedByUserId = w.AnalystAId,
+            OwnerUserId = w.AnalystAId,
+            RaisedAtUtc = DateTime.UtcNow
+        };
+        detail(record);
+        arrangeDb.QualityRecords.Add(record);
+        await arrangeDb.SaveChangesAsync();
+        return record.Id;
+    }
+
+    private Task<int> SeedChangeControlAsync(World w) => SeedQualityRecordAsync(w, QualityRecordType.ChangeControl, r =>
+        r.ChangeControlDetail = new ChangeControlDetail { Status = ChangeControlStatus.Proposed, Reason = "Fixture" });
+
+    private Task<int> SeedDeviationAsync(World w) => SeedQualityRecordAsync(w, QualityRecordType.Deviation, r =>
+        r.DeviationDetail = new DeviationDetail
+        {
+            Status = QualityDeviationStatus.Investigation, OccurredAtUtc = DateTime.UtcNow.AddDays(-1),
+            ImmediateAction = "Fixture", ImpactAssessment = "Impact", RootCauseDescription = "Cause", ProposedActions = "Actions"
+        });
+
+    private Task<int> SeedComplaintAsync(World w) => SeedQualityRecordAsync(w, QualityRecordType.Complaint, r =>
+        r.ComplaintDetail = new ComplaintDetail
+        {
+            Status = ComplaintStatus.Investigation, Source = "Customer", ReceivedOn = DateOnly.FromDateTime(DateTime.UtcNow),
+            ComplaintText = "Fixture", Findings = "Findings"
+        });
+
+    private async Task<QualityState> ReadQualityStateAsync(int recordId)
+    {
+        await using var db = _fixture.CreateDbContext();
+        var record = await db.QualityRecords.AsNoTracking().SingleAsync(r => r.Id == recordId);
+        var steps = await db.QualityRecordSteps.AsNoTracking().CountAsync(s => s.RecordId == recordId);
+        var status = await db.ChangeControlDetails.AsNoTracking().Where(d => d.RecordId == recordId).Select(d => d.Status.ToString()).FirstOrDefaultAsync()
+            ?? await db.DeviationDetails.AsNoTracking().Where(d => d.RecordId == recordId).Select(d => d.Status.ToString()).FirstOrDefaultAsync()
+            ?? await db.ComplaintDetails.AsNoTracking().Where(d => d.RecordId == recordId).Select(d => d.Status.ToString()).FirstOrDefaultAsync();
+        return new QualityState(record.Version, steps, status);
+    }
+
+    private async Task AssertQualityUnchangedAsync(World w, int recordId, QualityState before, long beforeAuditId)
+    {
+        Assert.Equal(before, await ReadQualityStateAsync(recordId));
+        await using var db = _fixture.CreateDbContext();
+        Assert.False(await db.QualityRecordSteps.AsNoTracking().AnyAsync(s => s.RecordId == recordId && s.SignedByUserId == w.QaUserId));
+        await AssertNoNewAuditLogAsync(w.QaUserId, beforeAuditId);
+    }
+
+    private async Task<int> SeedOosInvestigationAsync(World w, int sampleId)
+    {
+        await using var arrangeDb = _fixture.CreateDbContext();
+        var investigation = new OosInvestigation
+        {
+            Number = "OOS-QAR-" + Guid.NewGuid().ToString("N")[..10].ToUpperInvariant(),
+            Kind = OosInvestigationKind.Oos,
+            Status = OosInvestigationStatus.PhaseOne,
+            SampleId = sampleId,
+            SectionId = w.SectionAId,
+            OpenedAtUtc = DateTime.UtcNow,
+            OpenedByUserId = w.AnalystAId,
+            TemplateSnapshotJson = "{}"
+        };
+        arrangeDb.OosInvestigations.Add(investigation);
+        await arrangeDb.SaveChangesAsync();
+        return investigation.Id;
+    }
+
+    private async Task AssertOosRefusedAsync(World w, int investigationId, Func<Task> act)
+    {
+        uint versionBefore;
+        await using (var db = _fixture.CreateDbContext())
+            versionBefore = (await db.OosInvestigations.AsNoTracking().SingleAsync(i => i.Id == investigationId)).Version;
+        var beforeAuditId = await MaxAuditLogIdAsync();
+
+        var denied = await Assert.ThrowsAsync<CodedAccessDeniedException>(act);
+        Assert.Equal(MessageCodes.OosInvestigationAccessDenied, denied.Code);
+
+        await using var assertDb = _fixture.CreateDbContext();
+        var after = await assertDb.OosInvestigations.AsNoTracking().SingleAsync(i => i.Id == investigationId);
+        Assert.Equal(versionBefore, after.Version);
+        Assert.False(await assertDb.OosInvestigationEntrys.AsNoTracking().AnyAsync(e => e.InvestigationId == investigationId));
+        await AssertNoNewAuditLogAsync(w.QaUserId, beforeAuditId);
+    }
 
     private async Task<long> MaxAuditLogIdAsync()
     {

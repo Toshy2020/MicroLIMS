@@ -182,6 +182,7 @@ public class AgentAuditAttributionTests
             JwtTokenServiceTests.TestSigningKey, "MicroLIMS", "MicroLIMS.Client", TimeSpan.FromMinutes(15)));
         builder.Services.AddMicroLimsAgentAuthentication();
         builder.Services.AddMicroLimsAuthorization();
+        builder.Services.AddMicroLimsAuditPipelineServices();
         builder.Services.AddControllers().AddApplicationPart(typeof(AgentAuditProbeController).Assembly);
         await using var app = builder.Build();
         app.UseAuthentication();

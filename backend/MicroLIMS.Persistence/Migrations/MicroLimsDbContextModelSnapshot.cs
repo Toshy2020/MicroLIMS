@@ -2555,10 +2555,6 @@ namespace MicroLIMS.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CompanyDocumentCode")
-                        .IsUnique()
-                        .HasFilter("\"RecordStatus\" = 1");
-
                     b.HasIndex("CreatedByUserId");
 
                     b.HasIndex("CurrentEffectiveRevisionId");

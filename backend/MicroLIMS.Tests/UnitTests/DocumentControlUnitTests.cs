@@ -168,7 +168,8 @@ public class DocumentControlUnitTests
             await _masterService.RegisterDocumentMasterAsync(request2, _authorUserId);
         });
 
-        Assert.Contains("already exists and is active", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(MicroLIMS.Shared.Messages.MessageCodes.DocumentCompanyCodeAlreadyExists, ex.Code);
+        Assert.Contains("ignoring upper and lower case", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

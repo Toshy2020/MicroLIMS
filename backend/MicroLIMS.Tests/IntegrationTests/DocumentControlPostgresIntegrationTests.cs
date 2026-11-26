@@ -271,7 +271,7 @@ public class DocumentControlPostgresIntegrationTests
     }
 
     [PostgresFact]
-    public async Task UniqueCompanyCode_EnforcedAcrossActive_ReleasedAcrossVoid()
+    public async Task UniqueCompanyCode_EnforcedAcrossAllStatuses_NeverReleasedOnVoid()
     {
         await using var db = _fixture.CreateDbContext();
 
@@ -295,11 +295,11 @@ public class DocumentControlPostgresIntegrationTests
         db.DocumentMasters.Add(doc1);
         await db.SaveChangesAsync();
 
-        // Attempt second active document with duplicate CompanyDocumentCode -> Must fail
+        // Attempt second active document with case-variant CompanyDocumentCode -> Must fail
         var doc2 = new DocumentMaster
         {
             MicroLimsDocumentId = $"DOC-{Guid.NewGuid():N}".Substring(0, 15),
-            CompanyDocumentCode = companyCode,
+            CompanyDocumentCode = companyCode.ToLowerInvariant(),
             Title = "Duplicate Active Document",
             DocumentTypeId = _fixture.SeededDocTypeId,
             DepartmentId = _fixture.SeededDepartmentId,
@@ -329,12 +329,12 @@ public class DocumentControlPostgresIntegrationTests
         doc1.VoidReason = "Superseded by new revision flow";
         await db.SaveChangesAsync();
 
-        // Now inserting doc2 with the same company code must succeed
+        // CONF-212: voiding does NOT release the CompanyDocumentCode; reuse must still fail at DB level.
         var doc3 = new DocumentMaster
         {
             MicroLimsDocumentId = $"DOC-{Guid.NewGuid():N}".Substring(0, 15),
             CompanyDocumentCode = companyCode,
-            Title = "New Active Document Reusing Code",
+            Title = "Attempted Reuse Of Voided Code",
             DocumentTypeId = _fixture.SeededDocTypeId,
             DepartmentId = _fixture.SeededDepartmentId,
             SectionId = _fixture.SeededSectionId,
@@ -346,9 +346,9 @@ public class DocumentControlPostgresIntegrationTests
             CreatedAt = DateTime.UtcNow
         };
         db.DocumentMasters.Add(doc3);
-        await db.SaveChangesAsync();
-
-        Assert.True(doc3.Id > 0);
+        var reuseEx = await Assert.ThrowsAsync<DbUpdateException>(() => db.SaveChangesAsync());
+        var pgEx = Assert.IsType<PostgresException>(reuseEx.InnerException);
+        Assert.Equal(PostgresErrorCodes.UniqueViolation, pgEx.SqlState);
     }
 
     [PostgresFact]

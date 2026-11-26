@@ -34,8 +34,7 @@ public class SopRevisionCapturePostgresTests(PostgresTestFixture fixture)
                 ("effective", SopCaptureStatus.Captured),
                 ("blank", SopCaptureStatus.NoSopNumber),
                 ("missing", SopCaptureStatus.NotFound),
-                ("draft", SopCaptureStatus.NoEffectiveRevision),
-                ("ambiguous", SopCaptureStatus.Ambiguous)
+                ("draft", SopCaptureStatus.NoEffectiveRevision)
             },
             c => ResolverStatusCaseAsync(c.Scenario, c.Expected));
 
@@ -474,15 +473,12 @@ public class SopRevisionCapturePostgresTests(PostgresTestFixture fixture)
         {
             code = scenario == "blank" ? "   " : NewCode();
             itemId = (await AddItemAsync(db, code)).Id;
-            if (scenario is "effective" or "draft" or "ambiguous")
+            if (scenario is "effective" or "draft")
             {
                 master = await AddMasterAsync(db, fixture, code);
-                if (scenario == "ambiguous")
-                    await AddMasterAsync(db, fixture, code.ToLowerInvariant());
-                else
-                    revision = await AddRevisionAsync(db, fixture, master, 3,
-                        scenario == "draft" ? DocumentRevisionStatus.Draft : DocumentRevisionStatus.Effective,
-                        current: true);
+                revision = await AddRevisionAsync(db, fixture, master, 3,
+                    scenario == "draft" ? DocumentRevisionStatus.Draft : DocumentRevisionStatus.Effective,
+                    current: true);
             }
         }
 

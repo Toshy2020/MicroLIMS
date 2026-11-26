@@ -1110,12 +1110,12 @@ Locations for CONF-001 to CONF-008 were added on 2026-11-12 from the area worker
 
 ### CONF-212
 - **Area:** DCM
-- **Status:** Open
+- **Status:** Decided
 - **What the code does:** Two active document masters can differ only by code case although FS-1a-120 requires case-insensitive uniqueness. The database index compares the stored codes. Item STM uses the first case-insensitive match.
-- **What the other source says:** `documents/DocumentControl/ML-DC-FRS-1A-001.md` FS-1a-120 requires company document codes to be case-insensitively unique among active masters.
+- **What the other source says:** `documents/DocumentControl/ML-DC-FRS-1A-001.md` FS-1a-120 requires company document codes to be case-insensitively unique.
 - **Question:** How should existing case-variant active codes be reconciled before enforcing case-insensitive uniqueness in the database?
-- **Decision:** Database enforcement remains open. For D4 Task 2, Item STM retains its first-match behavior and the competency guard reports that the SOP was not checked when more than one active master matches (orchestrator, 2026-11-20).
-- **Date:** 2026-11-20
+- **Decision:** User decision: "The code shall not be repeated even in lower case." Company document codes (`DocumentMaster.CompanyDocumentCode`) are unique case-insensitively across ALL document masters (active, withdrawn, obsolete, any `RecordStatus`), so a code is never reused. If an existing database holds codes that differ only by case (or exact duplicates among non-active masters), the migration refuses to install and lists the clashing code groups; nothing is renamed automatically (user, 2026-11-26).
+- **Date:** 2026-11-26
 
 ### CONF-213
 - **Area:** REV

@@ -102,8 +102,9 @@ public class CompetencyAssignmentPostgresTests(PostgresTestFixture fixture)
             .GetAssignmentOptionsAsync(setup.Sample.Id, setup.Head.Id);
         var first = options.Tests.Single(t => t.TestOrderId == setup.Orders[0].Id);
         Assert.Equal(setup.Analyst.Id, first.EligibleUserIds[0]);
-        var refusal = Assert.Single(first.CompetencyRefusals);
-        Assert.Equal(setup.Head.Id, refusal.UserId);
+        // The section is shared with other test classes, so only this test's own users are asserted on.
+        var refusal = Assert.Single(first.CompetencyRefusals, r => r.UserId == setup.Head.Id);
+        Assert.DoesNotContain(first.CompetencyRefusals, r => r.UserId == setup.Analyst.Id);
         Assert.Equal("Competency.AssigneeNotQualified", refusal.Code);
         Assert.Equal(setup.Orders[0].TestCode, refusal.Params["test"]);
         Assert.Contains(setup.Head.FullName, refusal.Reason);

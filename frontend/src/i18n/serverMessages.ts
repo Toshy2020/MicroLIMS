@@ -66,3 +66,9 @@ export async function translateServerErrorBody(body: unknown): Promise<string | 
   }
   return primary;
 }
+
+export function hasServerErrorCodePrefix(err: unknown, prefix: string): boolean {
+  const data = (err as { response?: { data?: ErrorBody } } | null)?.response?.data;
+  const details = Array.isArray(data?.errorDetails) ? data.errorDetails.filter(isDetail) : [];
+  return details.some((d) => d.code.startsWith(prefix));
+}

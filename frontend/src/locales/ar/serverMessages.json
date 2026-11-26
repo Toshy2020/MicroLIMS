@@ -206,6 +206,7 @@
   "Competency.AttachmentNameTooLong": "يجب ألا يتجاوز اسم المرفق 255 حرفًا.",
   "Competency.GateReasonRequired": "يلزم إدخال سبب لتغيير بوابة الكفاءة.",
   "Competency.GateVersionStale": "تغيرت إعدادات الكفاءة بعد تحميلها. أعد التحميل وحاول مرة أخرى.",
+  "Competency.ReminderDaysInvalid": "يجب أن تكون نافذة التذكير قبل انتهاء الصلاحية بين 1 و365 يومًا، أو فارغة.",
   "Competency.IntervalInvalid": "أدخل فترة إعادة تأهيل من شهر واحد إلى 120 شهرًا، أو اتركها فارغة.",
   "Competency.OverridePermissionRequired": "ليست لديك صلاحية منح تجاوز لمتطلبات الكفاءة.",
   "Competency.OverrideSelf": "لا يمكنك تجاوز متطلبات كفاءتك.",

@@ -206,6 +206,7 @@
   "Competency.AttachmentNameTooLong": "Attachment names may contain at most 255 characters.",
   "Competency.GateReasonRequired": "A reason is required to change the competency gate.",
   "Competency.GateVersionStale": "The competency settings changed after they were loaded. Reload and try again.",
+  "Competency.ReminderDaysInvalid": "Expiry reminder window must be between 1 and 365 days, or empty.",
   "Competency.IntervalInvalid": "Use a requalification interval from 1 to 120 months, or leave it empty.",
   "Competency.OverridePermissionRequired": "You do not have permission to grant a competency override.",
   "Competency.OverrideSelf": "You cannot override your own competency.",

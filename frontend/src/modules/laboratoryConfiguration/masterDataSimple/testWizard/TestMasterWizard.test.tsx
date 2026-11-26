@@ -454,14 +454,36 @@ describe("TestMasterWizard", () => {
     expect(onSaved).toHaveBeenCalledTimes(1);
   });
 
-  it("includes RequalificationMonths when creating a test definition", async () => {
+  it("loads and updates RequalificationMonths when editing a test definition", async () => {
+    const editingTest: TestDefinitionOption = {
+      id: 71,
+      version: 2,
+      code: "PH",
+      displayName: "pH",
+      sectionId: 1,
+      workflowType: "Measurement",
+      equationType: "Measurement",
+      replicateCount: 2,
+      evaluationBasis: "Mean",
+      physchemArea: "FinishedProduct",
+      requalificationMonths: 6,
+      isActive: true
+    };
     const user = userEvent.setup();
-    const { onCreateWithSteps } = renderWizard();
+    const { onUpdateTest } = renderWizard({
+      lab: "fp",
+      area: "fp",
+      defaultSectionId: 1,
+      sections: [fpSection],
+      mySections: [fpSection],
+      editingTest
+    });
 
     const dialog = await screen.findByRole("dialog");
-    await user.type(await within(dialog).findByLabelText(/^Test Code/i), "TAMC_REQ");
-    await user.type(within(dialog).getByLabelText(/^Display Name/i), "TAMC Requal");
-    await user.type(within(dialog).getByLabelText(/Requalification interval/i), "12");
+    const reqInput = (await within(dialog).findByLabelText(/Requalification interval/i)) as HTMLInputElement;
+    expect(reqInput.value).toBe("6");
+    await user.clear(reqInput);
+    await user.type(reqInput, "12");
 
     await user.click(within(dialog).getByRole("button", { name: /^Next$/i }));
     await user.click(within(dialog).getByRole("button", { name: /^Next$/i }));
@@ -471,10 +493,9 @@ describe("TestMasterWizard", () => {
     await waitFor(() => expect(saveBtn.disabled).toBe(false));
     await user.click(saveBtn);
 
-    await waitFor(() => expect(onCreateWithSteps).toHaveBeenCalledTimes(1));
-    expect(onCreateWithSteps.mock.calls[0][0]).toEqual(
+    await waitFor(() => expect(onUpdateTest).toHaveBeenCalledTimes(1));
+    expect(onUpdateTest.mock.calls[0][1]).toEqual(
       expect.objectContaining({
-        code: "TAMC_REQ",
         requalificationMonths: 12
       })
     );

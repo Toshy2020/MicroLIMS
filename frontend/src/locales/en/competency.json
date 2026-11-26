@@ -21,7 +21,9 @@
     "loadError": "Failed to load qualification matrix.",
     "outageSections": "laboratory sections",
     "outageSettings": "competency gate settings",
-    "outageMatrix": "qualification matrix"
+    "outageMatrix": "qualification matrix",
+    "exportCsv": "Export CSV",
+    "exportFailed": "Failed to export qualification matrix."
   },
   "qualify": {
     "title": "Qualify Analyst",
@@ -78,7 +80,13 @@
     "enabledToast": "Competency gate enabled.",
     "disabledToast": "Competency gate disabled.",
     "loadError": "Failed to load competency gate settings.",
-    "impactError": "Failed to load impact preview."
+    "impactError": "Failed to load impact preview.",
+    "reminderDaysLabel": "Expiry reminder window (days)",
+    "reminderDaysPlaceholder": "Leave empty for no reminder",
+    "reminderDaysInvalid": "Enter a whole number between 1 and 365, or leave empty.",
+    "saveReminderButton": "Save reminder",
+    "reminderSavedToast": "Expiry reminder window saved.",
+    "reminderSaveError": "Failed to save expiry reminder window."
   },
   "my": {
     "title": "My Qualifications",

@@ -10,6 +10,7 @@ import {
 export interface WithdrawDialogProps {
   open: boolean;
   qualificationId: number;
+  version?: number | null;
   analystName: string;
   testLabel: string;
   onClose: () => void;
@@ -19,6 +20,7 @@ export interface WithdrawDialogProps {
 export function WithdrawDialog({
   open,
   qualificationId,
+  version,
   analystName,
   testLabel,
   onClose,
@@ -33,10 +35,11 @@ export function WithdrawDialog({
   };
 
   const handleConfirm = async (password: string) => {
-    const updated = await competencyService.withdraw(qualificationId, {
-      reason: reason.trim(),
-      password
-    });
+    const payload = { reason: reason.trim(), password };
+    const updated =
+      version != null
+        ? await competencyService.withdraw(qualificationId, payload, version)
+        : await competencyService.withdraw(qualificationId, payload);
     toast.success(t("withdraw.success"));
     setReason("");
     onWithdrawn(updated);

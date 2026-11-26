@@ -51,10 +51,10 @@ import { resolveWorkflowPanelKind } from "./utils/workflowPanelMapping";
 import { SopMethodDetails } from "./components/SopMethodDetails";
 import type { TestOrderSop } from "./types/sopCaptureTypes";
 import { formatDateTimeWithTimeZone } from "../../utils/formatDate";
+import { hasServerErrorCodePrefix } from "../../i18n/serverMessages";
 
 function isCompetencyRefusalError(e: unknown): boolean {
-  const resp = (e as { response?: { data?: { code?: string } } } | null)?.response;
-  return Boolean(resp?.data?.code?.startsWith("Competency."));
+  return hasServerErrorCodePrefix(e, "Competency.");
 }
 
 type StepMediaRow = TestWorkflowStepDto["stepMedia"][number];

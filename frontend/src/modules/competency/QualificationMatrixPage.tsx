@@ -22,6 +22,7 @@ import {
 import { LabPage, EmptyState, PartialOutageBanner } from "../../components/lab";
 import { StatusBadge } from "../../components/StatusBadge";
 import { Ltr } from "../../components/Ltr";
+import { toast } from "sonner";
 import { useAuth } from "../../contexts/AuthContext";
 import { useTranslation } from "../../i18n";
 import { PERMISSIONS } from "../../routes/routes";
@@ -59,6 +60,7 @@ interface QualifyTarget {
 
 interface WithdrawTarget {
   qualificationId: number;
+  version: number | null;
   analystName: string;
   testLabel: string;
 }
@@ -86,6 +88,7 @@ export function QualificationMatrixPage() {
   const [loading, setLoading] = useState(true);
   const [qualifyTarget, setQualifyTarget] = useState<QualifyTarget | null>(null);
   const [withdrawTarget, setWithdrawTarget] = useState<WithdrawTarget | null>(null);
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -184,6 +187,30 @@ export function QualificationMatrixPage() {
     void loadMatrix();
   };
 
+  const handleExportCsv = async () => {
+    if (sectionId === "") return;
+    setExporting(true);
+    try {
+      const blob = await competencyService.exportMatrix(sectionId, {
+        analystSearch: debouncedAnalystSearch.trim() || undefined,
+        testSearch: debouncedTestSearch.trim() || undefined,
+        status: statusFilter === "ALL" ? undefined : statusFilter
+      });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `competency-matrix-section-${sectionId}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    } catch {
+      toast.error(t("matrix.exportFailed"));
+    } finally {
+      setExporting(false);
+    }
+  };
+
   return (
     <LabPage
       title={t("matrix.title")}
@@ -244,6 +271,15 @@ export function QualificationMatrixPage() {
               ))}
             </Select>
           </FormControl>
+
+          <Button
+            variant="outlined"
+            size="small"
+            disabled={sectionId === "" || exporting}
+            onClick={() => void handleExportCsv()}
+          >
+            {t("matrix.exportCsv")}
+          </Button>
         </Stack>
       }
     >
@@ -360,6 +396,7 @@ export function QualificationMatrixPage() {
                                       onClick={() =>
                                         setWithdrawTarget({
                                           qualificationId,
+                                          version: cell?.version ?? null,
                                           analystName: row.analystName,
                                           testLabel
                                         })
@@ -414,6 +451,7 @@ export function QualificationMatrixPage() {
         <WithdrawDialog
           open
           qualificationId={withdrawTarget.qualificationId}
+          version={withdrawTarget.version}
           analystName={withdrawTarget.analystName}
           testLabel={withdrawTarget.testLabel}
           onClose={() => setWithdrawTarget(null)}

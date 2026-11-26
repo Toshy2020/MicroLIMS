@@ -214,8 +214,7 @@ export function QualityRecordPage() {
     setExtensionMode({ kind: "request", actionId: action.id, actionDescription: action.description, currentDueDate: action.dueDate });
 
   // A panel whose request has not answered yet shows a placeholder, not an "unavailable" message.
-  const panel = (key: SecondaryKey, content: ReactNode) =>
-    secondary[key] === "loading" ? <Skeleton variant="rounded" height={96} aria-busy="true" /> : content;
+  const placeholder = <Skeleton variant="rounded" height={96} aria-busy="true" />;
 
   return (
     <Stack spacing={2.5}>
@@ -297,8 +296,9 @@ export function QualityRecordPage() {
         onRequestExtension={openActionExtension}
       />
 
-      {panel(
-        "extensions",
+      {secondary.extensions === "loading" ? (
+        placeholder
+      ) : (
         <ExtensionsPanel
           extensions={extensions}
           actions={detail.actions}
@@ -311,8 +311,9 @@ export function QualityRecordPage() {
         />
       )}
 
-      {panel(
-        "links",
+      {secondary.links === "loading" ? (
+        placeholder
+      ) : (
         <LinksPanel recordId={detail.id} recordVersion={detail.version} links={links} canEdit={can.raise} onChanged={reload} />
       )}
 
@@ -324,8 +325,9 @@ export function QualityRecordPage() {
         onChanged={reload}
       />
 
-      {panel(
-        "comments",
+      {secondary.comments === "loading" ? (
+        placeholder
+      ) : (
         <CommentsPanel
           recordId={detail.id}
           recordVersion={detail.version}

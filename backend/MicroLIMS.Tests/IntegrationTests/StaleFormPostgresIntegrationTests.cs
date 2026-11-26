@@ -119,14 +119,16 @@ public class StaleFormPostgresIntegrationTests
 
     // ---- The If-Match header ----
 
-    [Theory]
-    [InlineData("\"123\"", 123u)]
-    [InlineData("123", 123u)]
-    [InlineData(null, null)]
-    [InlineData("*", null)]
-    [InlineData("W/\"123\"", null)]
-    [InlineData("-5", null)]
-    public async Task IfMatch_IsReadOntoTheDbContext(string? header, uint? expected)
+    [PostgresFact]
+    public Task IfMatch_IsReadOntoTheDbContext() =>
+        PostgresCases.RunAsync(
+            new (string? Header, uint? Expected)[]
+            {
+                ("\"123\"", 123u), ("123", 123u), (null, null), ("*", null), ("W/\"123\"", null), ("-5", null)
+            },
+            c => IfMatchCaseAsync(c.Header, c.Expected));
+
+    private static async Task IfMatchCaseAsync(string? header, uint? expected)
     {
         var builder = WebApplication.CreateBuilder();
         builder.WebHost.UseTestServer();

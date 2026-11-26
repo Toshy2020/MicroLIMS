@@ -877,7 +877,7 @@ public class TableViewPostgresTests
         Assert.Equal("Section A view", (await LoadAsync(view.Id)).Name);
     }
 
-    [Fact]
+    [PostgresFact]
     public void Controller_RequiresSignIn_AndHasNoAnonymousAction()
     {
         Assert.NotEmpty(typeof(TableViewsController).GetCustomAttributes(typeof(AuthorizeAttribute), true));

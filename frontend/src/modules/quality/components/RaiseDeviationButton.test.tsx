@@ -200,4 +200,54 @@ describe("RaiseDeviationButton", () => {
       9
     );
   });
+
+  it("raises from an audit finding with the finding's version, and only for Quality.Approve", async () => {
+    seedAuth([PERMISSIONS.QUALITY_VIEW, PERMISSIONS.QUALITY_RAISE, PERMISSIONS.QUALITY_INVESTIGATE]);
+    const view = render(
+      <PinnedLightTheme>
+        <AuthProvider>
+          <MemoryRouter>
+            <RaiseDeviationButton sourceKind="auditFinding" sourceId={301} sourceVersion={0} initialTitle="Finding 301" />
+          </MemoryRouter>
+        </AuthProvider>
+      </PinnedLightTheme>
+    );
+    expect(screen.queryByRole("button", { name: /raise deviation/i })).toBeNull();
+    view.unmount();
+
+    seedAuth([PERMISSIONS.QUALITY_VIEW, PERMISSIONS.QUALITY_APPROVE]);
+    vi.mocked(qualityEntryService.raiseFromAuditFinding).mockResolvedValue(createdDeviation);
+    const onRaised = vi.fn();
+    const user = userEvent.setup();
+    render(
+      <PinnedLightTheme>
+        <AuthProvider>
+          <MemoryRouter>
+            <RaiseDeviationButton
+              sourceKind="auditFinding"
+              sourceId={301}
+              sourceVersion={0}
+              initialTitle="Finding 301"
+              initialDescription="Missing comment on correction"
+              onRaised={onRaised}
+            />
+          </MemoryRouter>
+        </AuthProvider>
+      </PinnedLightTheme>
+    );
+
+    await user.click(screen.getByRole("button", { name: /raise deviation/i }));
+    expect(screen.getByText("Missing comment on correction")).toBeTruthy();
+    await user.type(screen.getByLabelText(/immediate action/i), "Entry reviewed with the author");
+    await user.click(screen.getByRole("button", { name: /^raise deviation$/i }));
+
+    await waitFor(() => expect(qualityEntryService.raiseFromAuditFinding).toHaveBeenCalledTimes(1));
+    expect(qualityEntryService.raiseFromAuditFinding).toHaveBeenCalledWith(
+      301,
+      expect.objectContaining({ title: "Finding 301", immediateAction: "Entry reviewed with the author" }),
+      0
+    );
+    expect(qualityEntryService.raiseDeviation).not.toHaveBeenCalled();
+    expect(onRaised).toHaveBeenCalledWith(createdDeviation);
+  });
 });

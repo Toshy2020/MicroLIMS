@@ -7,7 +7,7 @@ import ArrowBackOutlinedIcon from "@mui/icons-material/ArrowBackOutlined";
 import PictureAsPdfOutlinedIcon from "@mui/icons-material/PictureAsPdfOutlined";
 import VerifiedUserOutlinedIcon from "@mui/icons-material/VerifiedUserOutlined";
 import axios from "axios";
-import { Link as RouterLink, useParams } from "react-router-dom";
+import { Link as RouterLink, useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { EmptyState, FormDialog, LabPage, RegisterTable, type RegisterColumn } from "../../components/lab";
 import { LoadErrorAlert } from "../../components/LoadErrorAlert";
@@ -16,7 +16,7 @@ import { SignatureDialog } from "../../components/SignatureDialog";
 import { StatusBadge } from "../../components/StatusBadge";
 import { TableSkeleton } from "../../components/TableSkeleton";
 import { useAuth } from "../../contexts/AuthContext";
-import { PERMISSIONS } from "../../routes/routes";
+import { APP_ROUTES, PERMISSIONS } from "../../routes/routes";
 import {
   auditTrailReviewService,
   type AuditTrailReviewDto,
@@ -26,6 +26,7 @@ import { tableHeadSx } from "../../theme";
 import { monospaceFontFamily } from "../../theme/palette";
 import { getErrorMessage, serverMessage } from "../../utils/errorMessage";
 import type { AuditLogItem } from "../auditSearch/types/auditTypes";
+import { RaiseDeviationButton } from "../quality/components/RaiseDeviationButton";
 import { FindingDialog } from "./FindingDialog";
 import { formatDateTimeWithZone, formatReviewScope } from "./formatAuditDate";
 import { useBreadcrumb } from "../../components/breadcrumbContext";
@@ -45,6 +46,9 @@ export function AuditTrailReviewDetailPage() {
   const theme = useTheme();
   const { permissions, userId } = useAuth();
   const canReview = permissions.includes(PERMISSIONS.AUDIT_REVIEW);
+  // The server also requires Quality.Approve to raise a deviation from a finding; this only decides whether to offer it.
+  const canRaiseDeviation = permissions.includes(PERMISSIONS.QUALITY_APPROVE);
+  const navigate = useNavigate();
 
   const [review, setReview] = useState<AuditTrailReviewDto | null>(null);
   const [reviewLoading, setReviewLoading] = useState(true);
@@ -558,7 +562,7 @@ export function AuditTrailReviewDetailPage() {
                         <TableCell>{t("detail.recordedBy")}</TableCell>
                         <TableCell>{t("common.status")}</TableCell>
                         <TableCell>{t("detail.closure")}</TableCell>
-                        {canReview && !isSigned && <TableCell align="right">{t("common.actions")}</TableCell>}
+                        {((canReview && !isSigned) || canRaiseDeviation) && <TableCell align="right">{t("common.actions")}</TableCell>}
                       </TableRow>
                     </TableHead>
                     <TableBody>
@@ -595,9 +599,21 @@ export function AuditTrailReviewDetailPage() {
                               "—"
                             )}
                           </TableCell>
-                          {canReview && !isSigned && (
+                          {((canReview && !isSigned) || canRaiseDeviation) && (
                             <TableCell align="right">
-                              {f.status === "Open" && (
+                              <Stack direction="row" spacing={1} sx={{ justifyContent: "flex-end", flexWrap: "wrap" }}>
+                              {canRaiseDeviation && (
+                                <RaiseDeviationButton
+                                  sourceKind="auditFinding"
+                                  sourceId={f.id}
+                                  sourceVersion={f.version}
+                                  initialTitle={t("detail.raiseDeviationTitle", { id: f.id })}
+                                  initialDescription={f.note}
+                                  ariaLabel={t("detail.raiseDeviationAria", { id: f.id })}
+                                  onRaised={(deviation) => navigate(APP_ROUTES.QUALITY_DETAIL(deviation.id))}
+                                />
+                              )}
+                              {canReview && !isSigned && f.status === "Open" && (
                                 <Button
                                   size="small"
                                   variant="outlined"
@@ -612,6 +628,7 @@ export function AuditTrailReviewDetailPage() {
                                   {t("detail.closeFinding")}
                                 </Button>
                               )}
+                              </Stack>
                             </TableCell>
                           )}
                         </TableRow>

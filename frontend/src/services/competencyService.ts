@@ -1,4 +1,4 @@
-import { apiClient, withVersion } from "./apiClient";
+import { apiClient } from "./apiClient";
 
 export type QualificationBasis =
   | "ObservedPractice"
@@ -187,7 +187,7 @@ export const competencyService = {
     signal?: AbortSignal
   ): Promise<AnalystQualificationDto> => {
     const res = await apiClient.post(`/competency/qualifications/${id}/withdraw`, payload, {
-      ...withVersion(version),
+      ...(version != null ? { headers: { "If-Match": `"${version}"` } } : {}),
       signal
     });
     return res.data.data;

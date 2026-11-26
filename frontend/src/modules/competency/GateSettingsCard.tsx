@@ -238,7 +238,7 @@ export function GateSettingsCard({ sectionId, onChanged, onLoadError }: GateSett
               onChange={(e) => setReminderInput(e.target.value)}
               error={Boolean(reminderError)}
               helperText={reminderError ?? undefined}
-              inputProps={{ min: 1, max: 365 }}
+              slotProps={{ htmlInput: { min: 1, max: 365 } }}
               sx={{ minWidth: 240 }}
             />
             <Button

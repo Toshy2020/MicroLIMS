@@ -135,6 +135,7 @@ public class QualityRecordCore(
     public async Task<QualityRecordDto> ReadDtoAsync(int id, int userId, CancellationToken ct = default)
     {
         var records = await ReadableRecordsAsync(userId, ct);
+        var terminalAtUtc = await GetTerminalAtUtcAsync(id, ct);
         return await records.Where(r => r.Id == id)
             .Select(r => new QualityRecordDto(r.Id, r.Number, r.Type, r.Title, r.Description, r.SectionId,
                 r.RaisedByUserId, r.RaisedAtUtc, r.OwnerUserId, r.Version)
@@ -143,7 +144,8 @@ public class QualityRecordCore(
                     a.OriginalFileName, a.ContentType, a.FileSizeBytes, a.UploadedByUserId, a.UploadedAtUtc,
                     a.VoidedAtUtc, a.VoidedByUserId, a.VoidReason,
                     db.Users.Where(u => u.Id == a.UploadedByUserId).Select(u => u.FullName).FirstOrDefault() ?? string.Empty,
-                    a.VoidedByUserId == null ? null : db.Users.Where(u => u.Id == a.VoidedByUserId).Select(u => u.FullName).FirstOrDefault())).ToList()
+                    a.VoidedByUserId == null ? null : db.Users.Where(u => u.Id == a.VoidedByUserId).Select(u => u.FullName).FirstOrDefault(),
+                    terminalAtUtc != null && a.UploadedAtUtc > terminalAtUtc)).ToList()
             }).SingleOrDefaultAsync(ct) ?? throw Missing();
     }
 

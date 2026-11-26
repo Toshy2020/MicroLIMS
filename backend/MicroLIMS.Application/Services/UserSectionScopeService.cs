@@ -378,12 +378,22 @@ public class UserSectionScopeService : IUserSectionScopeService
         var scope = await ScopeAsync(userId, access, ct);
         if (scope is null) return;
 
-        var groupSections = await _db.TestOrders.AsNoTracking()
-            .Where(t => t.Sample!.OosGroupCode == oosGroupCode && t.Sample.OriginSampleId != null)
-            .Select(t => t.SectionId)
+        var groupSections = await _db.OosInvestigations.AsNoTracking()
+            .Where(i => i.Number == oosGroupCode)
+            .Select(i => i.SectionId)
             .Distinct()
             .ToListAsync(ct);
-        if (groupSections.Count == 0) return; // unknown group - left to not-found handling
+
+        if (groupSections.Count == 0)
+        {
+            var sampleSectionsQuery = _db.Samples.AsNoTracking().Where(s => s.OosGroupCode == oosGroupCode);
+            var retests = sampleSectionsQuery.Where(s => s.OriginSampleId != null);
+            var scopedSamples = await retests.AnyAsync(ct) ? retests : sampleSectionsQuery;
+            groupSections = await scopedSamples
+                .SelectMany(s => s.TestOrders.Select(o => o.SectionId))
+                .Distinct()
+                .ToListAsync(ct);
+        }
 
         if (!groupSections.Any(scope.Contains))
             throw new UnauthorizedAccessException("This OOS investigation belongs to a laboratory section you are not assigned to.");

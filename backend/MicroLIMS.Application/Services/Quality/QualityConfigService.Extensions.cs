@@ -69,19 +69,11 @@ public sealed partial class QualityConfigService
         comment = comment is null ? null : QualityRecordCore.RequiredText(comment, 4000);
         if (approve) EnsureLater(request.RequestedDueDate, previousDueDate);
 
-        void ApplyApprovedDate()
+        void ApplyApprovedRecordDate()
         {
-            if (!approve) return;
-            if (action is null)
-            {
-                record.DueDate = request.RequestedDueDate;
-                db.SetNextAuditReason(record, comment ?? request.Reason);
-            }
-            else
-            {
-                action.DueDate = request.RequestedDueDate;
-                db.SetNextAuditReason(action, comment ?? request.Reason);
-            }
+            if (!approve || action is not null) return;
+            record.DueDate = request.RequestedDueDate;
+            db.SetNextAuditReason(record, comment ?? request.Reason);
         }
 
         QualityRecordStep step;
@@ -93,7 +85,7 @@ public sealed partial class QualityConfigService
                     RequestId = request.Id, request.ActionId, request.RequestedByUserId, request.RequestedAtUtc,
                     request.Reason, request.RequestedDueDate, PreviousDueDate = previousDueDate,
                     DueDate = approve ? request.RequestedDueDate : previousDueDate, Decision = decision, Comment = comment
-                }, password, comment, userId, ip, ct, afterVerification: ApplyApprovedDate);
+                }, password, comment, userId, ip, ct, afterVerification: ApplyApprovedRecordDate);
         }
         catch (SignatureVerificationException)
         {
@@ -106,6 +98,13 @@ public sealed partial class QualityConfigService
         request.SignatureId = step.SignatureId;
         db.SetNextAuditReason(request, comment ?? request.Reason);
         await db.SaveChangesAsync(ct);
+
+        if (approve && action is not null)
+        {
+            action.DueDate = request.RequestedDueDate;
+            db.SetNextAuditReason(action, comment ?? request.Reason);
+            await db.SaveChangesAsync(ct);
+        }
         var requestedByName = await db.Users.AsNoTracking()
             .Where(u => u.Id == request.RequestedByUserId).Select(u => u.FullName).FirstOrDefaultAsync(ct) ?? string.Empty;
         var decidedByName = await db.Users.AsNoTracking()

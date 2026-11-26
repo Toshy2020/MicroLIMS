@@ -14,28 +14,43 @@ namespace MicroLIMS.Application.Services.Quality;
 public class QualityAttachmentService(IMicroLimsDbContext db, QualityRecordCore core, IFileStorageService storage,
     IAuditEventService audit, TimeProvider clock)
 {
-    public Task<QualityAttachmentDto> UploadAsync(int recordId, uint version, string fileName, byte[] bytes,
-        int userId, CancellationToken ct = default) => core.MutateAsync(recordId, version, userId, false, async _ =>
+    public async Task<QualityAttachmentDto> UploadAsync(int recordId, uint version, string fileName, byte[] bytes,
+        int userId, CancellationToken ct = default)
     {
         var name = Path.GetFileName(fileName.Replace('\\', '/'));
         if (name.Length > 255 || name.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0 ||
             DiscussionAttachmentPolicy.Validate([(name, bytes)]) is not null)
             throw InvalidAttachment();
 
-        var attachment = new QualityAttachment
+        var storageKey = await storage.SaveAsync($"quality/{recordId}/{Guid.NewGuid():N}_{name}", bytes);
+        try
         {
-            RecordId = recordId, OriginalFileName = name, ContentType = DiscussionAttachmentPolicy.ContentTypeFor(name),
-            FileExtension = Path.GetExtension(name).ToLowerInvariant(), FileSizeBytes = bytes.LongLength,
-            ContentSha256 = Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant(),
-            UploadedByUserId = userId, UploadedAtUtc = clock.GetUtcNow().UtcDateTime,
-            StorageKey = await storage.SaveAsync($"quality/{recordId}/{Guid.NewGuid():N}_{name}", bytes)
-        };
-        db.QualityAttachments.Add(attachment);
-        await db.SaveChangesAsync(ct);
-        var terminalAt = await core.GetTerminalAtUtcAsync(recordId, ct);
-        var uploadedByName = await UserNameAsync(userId, ct);
-        return ToDto(attachment, uploadedByName, null, terminalAt is DateTime t && attachment.UploadedAtUtc > t);
-    }, ct);
+            return await core.MutateAsync(recordId, version, userId, false, async _ =>
+            {
+                var attachment = new QualityAttachment
+                {
+                    RecordId = recordId, OriginalFileName = name, ContentType = DiscussionAttachmentPolicy.ContentTypeFor(name),
+                    FileExtension = Path.GetExtension(name).ToLowerInvariant(), FileSizeBytes = bytes.LongLength,
+                    ContentSha256 = Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant(),
+                    UploadedByUserId = userId, UploadedAtUtc = clock.GetUtcNow().UtcDateTime,
+                    StorageKey = storageKey
+                };
+                db.QualityAttachments.Add(attachment);
+                await db.SaveChangesAsync(ct);
+                var terminalAt = await core.GetTerminalAtUtcAsync(recordId, ct);
+                var uploadedByName = await UserNameAsync(userId, ct);
+                return ToDto(attachment, uploadedByName, null, terminalAt is DateTime t && attachment.UploadedAtUtc > t);
+            }, ct);
+        }
+        catch
+        {
+            if (storage is IStorageDiagnostics diagnostics)
+            {
+                try { await diagnostics.DeleteAsync(storageKey); } catch { /* best-effort cleanup */ }
+            }
+            throw;
+        }
+    }
 
     public async Task<QualityAttachmentContent> GetContentAsync(int recordId, int attachmentId, int userId,
         CancellationToken ct = default)

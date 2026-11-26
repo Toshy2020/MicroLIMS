@@ -892,6 +892,121 @@ public sealed class OosReadAndReportPostgresTests(PostgresTestFixture fixture) :
     }
 
     [PostgresFact]
+    public async Task OosDocumentWriteEndpoints_EnforceSectionScope_BeforeRetest_And_SupportSecondSectionAndExcursion()
+    {
+        var labA = await _seed.SectionAsync();
+        var labB = await _seed.SectionAsync();
+        var headA = await _seed.UserAsync(RoleType.SectionHead, HeadOosCodes, labA);
+        var headB = await _seed.UserAsync(RoleType.SectionHead, HeadOosCodes, labB);
+
+        var multiSectionSample = await _seed.SampleAsync(labA, SampleStatus.InTesting, ApprovalStatus.Pending, WorkflowStep.Running);
+        var excursionSample = await _seed.SampleAsync(labA, SampleStatus.InTesting, ApprovalStatus.Pending, WorkflowStep.Running);
+        var oosA = $"OOS-A-{Guid.NewGuid():N}"[..18];
+        var oosB = $"OOS-B-{Guid.NewGuid():N}"[..18];
+        var excCode = $"EXC-{Guid.NewGuid():N}"[..18];
+        var opened = new DateTime(2031, 6, 10, 9, 0, 0, DateTimeKind.Utc);
+        var pdfBytes = "%PDF-1.4\n%%EOF"u8.ToArray();
+
+        await using (var arrange = fixture.CreateDbContext())
+        {
+            // First-section OOS sets OosGroupCode = oosA; second-section OOS on the same sample does NOT overwrite it.
+            var sampleEntity = await arrange.Samples.SingleAsync(s => s.Id == multiSectionSample.Sample.Id);
+            sampleEntity.OosGroupCode = oosA;
+
+            var orderB = new TestOrder { SampleId = multiSectionSample.Sample.Id, SectionId = labB.Id };
+            arrange.TestOrders.Add(orderB);
+            await arrange.SaveChangesAsync();
+
+            arrange.OosInvestigations.AddRange(
+                new OosInvestigation
+                {
+                    Number = oosA, Kind = OosInvestigationKind.Oos, Status = OosInvestigationStatus.PhaseOne,
+                    SampleId = multiSectionSample.Sample.Id, SectionId = labA.Id,
+                    OpenedAtUtc = opened, OpenedByUserId = headA.Id, TemplateSnapshotJson = """{"items":[]}""",
+                    Results = { new OosInvestigationResult { TestOrderId = multiSectionSample.Orders[0].Id, OutcomeAtOpening = OosOutcomeClass.Fails, ResultSummaryAtOpening = "OOS A", AddedAtUtc = opened } }
+                },
+                new OosInvestigation
+                {
+                    Number = oosB, Kind = OosInvestigationKind.Oos, Status = OosInvestigationStatus.PhaseOne,
+                    SampleId = multiSectionSample.Sample.Id, SectionId = labB.Id,
+                    OpenedAtUtc = opened, OpenedByUserId = headB.Id, TemplateSnapshotJson = """{"items":[]}""",
+                    Results = { new OosInvestigationResult { TestOrderId = orderB.Id, OutcomeAtOpening = OosOutcomeClass.Fails, ResultSummaryAtOpening = "OOS B", AddedAtUtc = opened } }
+                },
+                new OosInvestigation
+                {
+                    Number = excCode, Kind = OosInvestigationKind.Excursion, Status = OosInvestigationStatus.PhaseOne,
+                    SampleId = excursionSample.Sample.Id, SectionId = labA.Id,
+                    OpenedAtUtc = opened, OpenedByUserId = headA.Id, TemplateSnapshotJson = """{"items":[]}""",
+                    Results = { new OosInvestigationResult { TestOrderId = excursionSample.Orders[0].Id, OutcomeAtOpening = OosOutcomeClass.AlertLimitExceeded, ResultSummaryAtOpening = "Alert", AddedAtUtc = opened } }
+                });
+            await arrange.SaveChangesAsync();
+        }
+
+        var storage = new InMemoryFileStorageService();
+        static IFormFile FormPdf(string name, byte[] bytes) =>
+            new FormFile(new MemoryStream(bytes), 0, bytes.Length, "file", name)
+            {
+                Headers = new HeaderDictionary(),
+                ContentType = "application/pdf"
+            };
+
+        // Other-section Oos.Manage user (headB) must be refused on Upload before any retest exists, and on unknown group (fail closed).
+        await using (var act = fixture.CreateDbContext())
+        {
+            var cB = Documents(act, storage, headB.Id);
+            await Assert.ThrowsAsync<UnauthorizedAccessException>(() => cB.Upload(oosA, FormPdf("intruder.pdf", pdfBytes)));
+            await Assert.ThrowsAsync<UnauthorizedAccessException>(() => cB.Upload("OOS-UNKNOWN-999", FormPdf("intruder.pdf", pdfBytes)));
+        }
+
+        await using (var check = fixture.CreateDbContext())
+        {
+            Assert.Empty(storage.Files);
+            Assert.False(await check.OosInvestigationDocuments.AsNoTracking().AnyAsync(d => d.OosGroupCode == oosA));
+            Assert.False(await check.AuditLogs.AsNoTracking().AnyAsync(a => a.EntityName == nameof(OosInvestigationDocument) && a.UserId == headB.Id));
+        }
+
+        // Own-section user (headA) can upload to oosA; other-section user (headB) is refused on Supersede and Void.
+        int docAId;
+        await using (var act = fixture.CreateDbContext())
+        {
+            var cA = Documents(act, storage, headA.Id);
+            var ok = Assert.IsType<OkObjectResult>(await cA.Upload(oosA, FormPdf("reportA.pdf", pdfBytes)));
+            var resp = Assert.IsType<MicroLIMS.Shared.Responses.ApiResponse<object>>(ok.Value);
+            docAId = Assert.IsType<OosInvestigationDocumentDto>(resp.Data).Id;
+        }
+
+        await using (var act = fixture.CreateDbContext())
+        {
+            var cB = Documents(act, storage, headB.Id);
+            await Assert.ThrowsAsync<UnauthorizedAccessException>(() => cB.Supersede(docAId, oosA, FormPdf("replace.pdf", pdfBytes), "Intruder"));
+            await Assert.ThrowsAsync<UnauthorizedAccessException>(() => cB.Void(docAId, oosA, new VoidOosInvestigationDocumentRequest("Intruder")));
+        }
+
+        // Own-section user (headA) can supersede and void oosA.
+        int docA2Id;
+        await using (var act = fixture.CreateDbContext())
+        {
+            var cA = Documents(act, storage, headA.Id);
+            var supOk = Assert.IsType<OkObjectResult>(await cA.Supersede(docAId, oosA, FormPdf("reportA_v2.pdf", pdfBytes), "Updated"));
+            docA2Id = Assert.IsType<OosInvestigationDocumentDto>(Assert.IsType<MicroLIMS.Shared.Responses.ApiResponse<object>>(supOk.Value).Data).Id;
+            var voidOk = Assert.IsType<OkObjectResult>(await cA.Void(docA2Id, oosA, new VoidOosInvestigationDocumentRequest("Cleanup")));
+            Assert.Equal(MaterialDocumentStatus.Voided, Assert.IsType<OosInvestigationDocumentDto>(Assert.IsType<MicroLIMS.Shared.Responses.ApiResponse<object>>(voidOk.Value).Data).Status);
+        }
+
+        // Second-section OOS investigation (oosB by headB) and excursion (excCode by headA) upload both succeed.
+        await using (var act = fixture.CreateDbContext())
+        {
+            var cB = Documents(act, storage, headB.Id);
+            var okB = Assert.IsType<OkObjectResult>(await cB.Upload(oosB, FormPdf("reportB.pdf", pdfBytes)));
+            Assert.Equal(oosB, Assert.IsType<OosInvestigationDocumentDto>(Assert.IsType<MicroLIMS.Shared.Responses.ApiResponse<object>>(okB.Value).Data).OosGroupCode);
+
+            var cA = Documents(act, storage, headA.Id);
+            var okExc = Assert.IsType<OkObjectResult>(await cA.Upload(excCode, FormPdf("excursion.pdf", pdfBytes)));
+            Assert.Equal(excCode, Assert.IsType<OosInvestigationDocumentDto>(Assert.IsType<MicroLIMS.Shared.Responses.ApiResponse<object>>(okExc.Value).Data).OosGroupCode);
+        }
+    }
+
+    [PostgresFact]
     public Task Certificate_omits_a_non_superseded_invalidated_simple_result_without_a_replacement() =>
         AssertCertificateHasNoReportableResultsAsync(locationBased: false);
 

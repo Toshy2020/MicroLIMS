@@ -396,4 +396,14 @@ public sealed class QualityFollowUpDtosPostgresTests(PostgresTestFixture fixture
         Assert.Single(env2.Data!.Items);
         Assert.Equal(3, env2.Data.TotalCount);
     }
+
+    [Fact]
+    public void QualityRecordsController_ForTarget_uses_plan_route()
+    {
+        var method = typeof(QualityRecordsController).GetMethod(nameof(QualityRecordsController.ForTarget));
+        Assert.NotNull(method);
+        var attr = Assert.Single(method!.GetCustomAttributes(typeof(Microsoft.AspNetCore.Mvc.HttpGetAttribute), false)
+            .Cast<Microsoft.AspNetCore.Mvc.HttpGetAttribute>());
+        Assert.Equal("for/{type}/{targetId:int}", attr.Template);
+    }
 }

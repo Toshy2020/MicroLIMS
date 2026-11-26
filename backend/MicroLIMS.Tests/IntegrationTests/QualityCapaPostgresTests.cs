@@ -739,4 +739,70 @@ public class QualityCapaPostgresTests(PostgresTestFixture fixture)
             Assert.Contains("completion fields cannot be modified or cleared", clearEx.Message);
         }
     }
+
+    private static QualityConfigService Config(MicroLimsDbContext db, MutableClock clock)
+    {
+        var permissions = new PermissionService(db);
+        var scope = new UserSectionScopeService(db);
+        var core = new QualityRecordCore(db, permissions, scope, new ReferenceNumberGenerator(db, clock),
+            new ElectronicSignatureService(db, clock), clock);
+        return new(db, core, permissions, scope, clock);
+    }
+
+    [PostgresFact]
+    public async Task Approved_capa_action_extension_approved_updates_due_date_and_keeps_planned_fields_locked()
+    {
+        var clock = new MutableClock(BaseNow);
+        var w = await ArrangeAsync(clock);
+        var created = await CreateAsync(clock, w);
+        var planned = await SavePlanAsync(clock, w, created, actions:
+        [
+            new(QualityActionKind.Corrective, "Retrain analysts", w.Responsible, Today.AddDays(5)),
+            new(QualityActionKind.Preventive, "Update SOP", w.Responsible, Today.AddDays(6))
+        ]);
+        var approved = await ApprovePlanAsync(clock, w, planned);
+        var extendedActionId = approved.Actions[0].Id;
+        var untouchedActionId = approved.Actions[1].Id;
+        var originalDueDate = approved.Actions[0].DueDate;
+        var requestedDueDate = originalDueDate.AddDays(4);
+
+        QualityExtensionDto pending;
+        await using (var act = Context(clock, w.Responsible))
+            pending = await Config(act, clock).RequestAsync(approved.Id, extendedActionId, requestedDueDate, "Lab backlog", approved.Version, w.Responsible);
+
+        QualityExtensionDto decided;
+        await using (var act = Context(clock, w.Qa))
+            decided = await Config(act, clock).DecideAsync(pending.Id, true, "Approved by QA", Password, pending.Version, w.Qa);
+
+        Assert.Equal(QualityExtensionDecision.Approved, decided.Decision);
+        Assert.NotNull(decided.SignatureId);
+
+        await using (var check = Context(clock))
+        {
+            var action = await check.QualityActions.AsNoTracking().SingleAsync(a => a.Id == extendedActionId);
+            Assert.Equal(requestedDueDate, action.DueDate);
+            var req = await check.QualityExtensionRequests.AsNoTracking().SingleAsync(e => e.Id == pending.Id);
+            Assert.Equal(QualityExtensionDecision.Approved, req.Decision);
+            Assert.Equal(decided.SignatureId, req.SignatureId);
+            var audit = await check.AuditLogs.AsNoTracking().SingleAsync(a => a.EntityName == nameof(QualityAction)
+                && a.EntityId == extendedActionId.ToString() && a.UserId == w.Qa && a.Action == "Update");
+            Assert.Contains(originalDueDate.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture), audit.PreviousValue);
+            Assert.Contains(requestedDueDate.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture), audit.NewValue);
+        }
+
+        await using (var tamperDb = Context(clock))
+        {
+            var wrongDateEx = await Assert.ThrowsAsync<PostgresException>(() => tamperDb.Database.ExecuteSqlInterpolatedAsync(
+                $"UPDATE \"QualityActions\" SET \"DueDate\" = {requestedDueDate.AddDays(2)} WHERE \"Id\" = {extendedActionId}"));
+            Assert.Equal("P0001", wrongDateEx.SqlState);
+
+            var noRequestEx = await Assert.ThrowsAsync<PostgresException>(() => tamperDb.Database.ExecuteSqlInterpolatedAsync(
+                $"UPDATE \"QualityActions\" SET \"DueDate\" = {Today.AddDays(15)} WHERE \"Id\" = {untouchedActionId}"));
+            Assert.Equal("P0001", noRequestEx.SqlState);
+
+            var descEx = await Assert.ThrowsAsync<PostgresException>(() => tamperDb.Database.ExecuteSqlInterpolatedAsync(
+                $"UPDATE \"QualityActions\" SET \"Description\" = 'Tampered' WHERE \"Id\" = {extendedActionId}"));
+            Assert.Equal("P0001", descEx.SqlState);
+        }
+    }
 }

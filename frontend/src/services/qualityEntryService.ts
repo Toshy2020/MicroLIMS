@@ -73,7 +73,7 @@ export const qualityEntryService = {
     signal?: AbortSignal
   ): Promise<QualityRecordRefDto[]> {
     return (
-      await apiClient.get(`/quality/for-target/${targetType}/${targetId}`, {
+      await apiClient.get(`/quality/for/${targetType}/${targetId}`, {
         params: { offset, pageSize },
         signal
       })

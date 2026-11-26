@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Services;
@@ -625,5 +626,65 @@ public class QualityChangeControlPostgresTests(PostgresTestFixture fixture)
         var exClosed = await Assert.ThrowsAsync<BusinessRuleException>(() => ActAsync(clock, w.Qa, s =>
             s.CancelAsync(closed.Id, "Cancel", Password, closed.Version, w.Qa)));
         Assert.Equal(MessageCodes.ChangeControlFinalCancellation, exClosed.Code);
+    }
+
+    [PostgresFact]
+    public async Task Approved_change_control_task_extension_approved_updates_due_date_and_keeps_planned_fields_locked()
+    {
+        var clock = new MutableClock(BaseNow);
+        var w = await ArrangeAsync(clock);
+        var proposed = await ProposeAsync(clock, w);
+        var saved = await ActAsync(clock, w.Assessor, s => s.SaveAssessmentAsync(proposed.Id,
+            new("Moderate impact on test execution",
+                [
+                    new("Update test method SOP", w.TaskOwner, Today.AddDays(3)),
+                    new("Train analysts", w.TaskOwner, Today.AddDays(4))
+                ], null),
+            proposed.Version, w.Assessor));
+        var assessed = await SignAssessmentAsync(clock, w, saved);
+        var approved = await ApproveAsync(clock, w, assessed);
+        var extendedTaskId = approved.Tasks[0].Id;
+        var untouchedTaskId = approved.Tasks[1].Id;
+        var originalDueDate = approved.Tasks[0].DueDate;
+        var requestedDueDate = originalDueDate.AddDays(5);
+
+        QualityExtensionDto pending;
+        await using (var act = Context(clock, w.TaskOwner))
+            pending = await Config(act, clock).RequestAsync(approved.Id, extendedTaskId, requestedDueDate, "Vendor delay", approved.Version, w.TaskOwner);
+
+        QualityExtensionDto decided;
+        await using (var act = Context(clock, w.Qa))
+            decided = await Config(act, clock).DecideAsync(pending.Id, true, "Approved by QA", Password, pending.Version, w.Qa);
+
+        Assert.Equal(QualityExtensionDecision.Approved, decided.Decision);
+        Assert.NotNull(decided.SignatureId);
+
+        await using (var check = Context(clock))
+        {
+            var task = await check.QualityActions.AsNoTracking().SingleAsync(a => a.Id == extendedTaskId);
+            Assert.Equal(requestedDueDate, task.DueDate);
+            var req = await check.QualityExtensionRequests.AsNoTracking().SingleAsync(e => e.Id == pending.Id);
+            Assert.Equal(QualityExtensionDecision.Approved, req.Decision);
+            Assert.Equal(decided.SignatureId, req.SignatureId);
+            var audit = await check.AuditLogs.AsNoTracking().SingleAsync(a => a.EntityName == nameof(QualityAction)
+                && a.EntityId == extendedTaskId.ToString() && a.UserId == w.Qa && a.Action == "Update");
+            Assert.Contains(originalDueDate.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture), audit.PreviousValue);
+            Assert.Contains(requestedDueDate.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture), audit.NewValue);
+        }
+
+        await using (var tamperDb = Context(clock))
+        {
+            var wrongDateEx = await Assert.ThrowsAsync<PostgresException>(() => tamperDb.Database.ExecuteSqlInterpolatedAsync(
+                $"UPDATE \"QualityActions\" SET \"DueDate\" = {requestedDueDate.AddDays(2)} WHERE \"Id\" = {extendedTaskId}"));
+            Assert.Equal("P0001", wrongDateEx.SqlState);
+
+            var noRequestEx = await Assert.ThrowsAsync<PostgresException>(() => tamperDb.Database.ExecuteSqlInterpolatedAsync(
+                $"UPDATE \"QualityActions\" SET \"DueDate\" = {Today.AddDays(15)} WHERE \"Id\" = {untouchedTaskId}"));
+            Assert.Equal("P0001", noRequestEx.SqlState);
+
+            var descEx = await Assert.ThrowsAsync<PostgresException>(() => tamperDb.Database.ExecuteSqlInterpolatedAsync(
+                $"UPDATE \"QualityActions\" SET \"Description\" = 'Tampered' WHERE \"Id\" = {extendedTaskId}"));
+            Assert.Equal("P0001", descEx.SqlState);
+        }
     }
 }

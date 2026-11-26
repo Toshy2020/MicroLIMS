@@ -102,7 +102,8 @@ public class OosInvestigationDocumentService
 
     private async Task<OosInvestigationDocumentDto> UploadCoreAsync(string oosGroupCode, UploadOosInvestigationDocumentRequest request, int uploadingUserId)
     {
-        var groupExists = await _db.Samples.AnyAsync(s => s.OosGroupCode == oosGroupCode);
+        var groupExists = await _db.OosInvestigations.AnyAsync(i => i.Number == oosGroupCode)
+            || await _db.Samples.AnyAsync(s => s.OosGroupCode == oosGroupCode);
         if (!groupExists)
             throw new NotFoundException(
                 MessageCodes.OosGroupNotFound,

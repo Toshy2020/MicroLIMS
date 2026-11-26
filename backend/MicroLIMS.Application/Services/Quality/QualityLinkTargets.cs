@@ -188,9 +188,9 @@ internal sealed class QualityLinkTargets(IMicroLimsDbContext db, PermissionServi
             QualityLinkTargetType.Item => db.Items.AsNoTracking().Where(x => ids.Contains(x.Id))
                 .Select(x => new Target(x.Id, x.Code, x.Name, RecordNavigationTargets.Item(), null)),
             QualityLinkTargetType.Specification => db.Specifications.AsNoTracking().Where(x => ids.Contains(x.Id))
-                .Select(x => new Target(x.Id, x.TestCode, x.ParameterName, "/laboratory-configuration/specifications?id=" + FormatId(x.Id), null)),
+                .Select(x => new Target(x.Id, x.TestCode, x.ParameterName, RecordNavigationTargets.Specification(x.Id), null)),
             QualityLinkTargetType.TestDefinition => db.TestDefinitions.AsNoTracking().Where(x => ids.Contains(x.Id))
-                .Select(x => new Target(x.Id, x.Code, x.DisplayName, TestDefinitionRoute(x.PhyschemArea, x.Id), x.SectionId)),
+                .Select(x => new Target(x.Id, x.Code, x.DisplayName, RecordNavigationTargets.TestDefinition(x.PhyschemArea, x.Id), x.SectionId)),
             QualityLinkTargetType.DocumentMaster => db.DocumentMasters.AsNoTracking().Where(x => ids.Contains(x.Id))
                 .Select(x => new Target(x.Id, x.MicroLimsDocumentId, x.Title, "/document-control/documents/" + FormatId(x.Id), null, DocumentStatus: x.RecordStatus)),
             QualityLinkTargetType.DocumentRevision => db.DocumentRevisions.AsNoTracking().Where(x => ids.Contains(x.Id))
@@ -203,16 +203,5 @@ internal sealed class QualityLinkTargets(IMicroLimsDbContext db, PermissionServi
             _ => throw new BusinessRuleException(MessageCodes.QualityInvalidTarget, "Unknown quality link target type.")
         };
         return query.ToListAsync(ct);
-    }
-
-    private static string TestDefinitionRoute(PhyschemArea? area, int id)
-    {
-        var path = area switch
-        {
-            PhyschemArea.RawPackaging => "rm-pm-test-master",
-            PhyschemArea.FinishedProduct or PhyschemArea.Both => "fp-test-master",
-            _ => "test-master"
-        };
-        return $"/laboratory-configuration/{path}?id={id}";
     }
 }

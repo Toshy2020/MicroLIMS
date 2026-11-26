@@ -13,6 +13,7 @@ const FILE_TO_TABLE_KEYS: Record<string, string[]> = {
   "/src/modules/documentControl/pages/DocumentLibraryPage.tsx": ["documentControl.library"],
   "/src/modules/notifications/NotificationsPage.tsx": ["notifications.centre"],
   "/src/modules/oosTracking/OosTrackingPage.tsx": ["oosTracking.register"],
+  "/src/modules/quality/QualityRegisterPage.tsx": ["quality.register"],
   "/src/modules/hplcWorkspace/history/HplcRunHistoryTable.tsx": ["hplc.runHistory"],
   "/src/modules/hplcWorkspace/run/HplcInstrumentWorkspace.tsx": ["hplc.mobilePhases"],
   "/src/modules/hplcWorkspace/samples/SampleAssignmentPanel.tsx": ["hplc.runSamples"],

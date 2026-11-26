@@ -1,5 +1,4 @@
 {
-  "Deviation.RaiseRoute": "Raise the deviation with its occurrence and immediate action.",
   "Deviation.OccurrenceUtc": "Enter the deviation occurrence time in UTC.",
   "Deviation.UseReject": "Use the rejection step to reject a deviation.",
   "Deviation.Classification": "Select an active deviation classification.",
@@ -34,7 +33,7 @@
   "ChangeControl.InvalidAffectedType": "Affected records must be an item, specification, test definition, equipment, or controlled document.",
   "ChangeControl.InvalidAffectedTarget": "Specify an existing record or a new record code for each affected item.",
   "ChangeControl.DuplicateAffected": "This affected record is already listed.",
-  "ChangeControl.AffectedFrozen": "Affected records cannot be added after change control approval.",
+  "ChangeControl.AffectedFrozen": "Affected records cannot be added after the impact assessment is signed.",
   "ChangeControl.TaskResponsibleInvalid": "Select an active laboratory user in the change control's section as the task owner.",
   "ChangeControl.TaskPastDueDate": "A task due date cannot be before the current laboratory date.",
   "ChangeControl.TaskCannotBeRemoved": "Existing change control tasks cannot be removed.",

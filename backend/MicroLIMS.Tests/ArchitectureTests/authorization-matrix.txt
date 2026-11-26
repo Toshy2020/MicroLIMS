@@ -602,7 +602,6 @@ QualityConfigController.SaveTemplate(QualityRecordType, Nullable`1, SaveQualityT
 QualityConfigController.SetSectionSetting(Int32, UpdateQualitySectionSettingRequest, CancellationToken): Qa
 QualityRecordsController.AddComment(Int32, AddQualityCommentRequest, CancellationToken): SectionHead,Reviewer,Analyst,QcManager,Qa
 QualityRecordsController.AddLink(Int32, QualityLinkRequest, CancellationToken): SectionHead,Reviewer,Analyst,QcManager,Qa
-QualityRecordsController.Create(QualityRecordType, CreateQualityRecordRequest, CancellationToken): SectionHead,Reviewer,Analyst,QcManager,Qa
 QualityRecordsController.DownloadAttachment(Int32, Int32, CancellationToken): SectionHead,Reviewer,Analyst,QcManager,Qa
 QualityRecordsController.ForTarget(QualityLinkTargetType, Int32, Int32, Int32, CancellationToken): SectionHead,Reviewer,Analyst,QcManager,Qa
 QualityRecordsController.GetById(Int32, CancellationToken): SectionHead,Reviewer,Analyst,QcManager,Qa

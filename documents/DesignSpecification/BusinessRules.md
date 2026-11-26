@@ -378,7 +378,7 @@ Scope of this section: the merged D2 Tasks 1 to 8. Master-data change-control ga
 
 ### 15.1 Types, numbers and status paths
 - Four types, one root row (`QualityRecord`) and one detail row each (`DeviationDetail`, `CapaDetail`, `ChangeControlDetail`, `ComplaintDetail`). Numbers are `DEV-`, `CAPA-`, `CC-` and `CMP-` followed by the laboratory year and a four-digit sequence, counted per type and year under a per-type advisory lock (`ReferenceNumberGenerator.GenerateQualityNumberAsync`).
-- The typed services create their records. The generic route `POST api/quality/{type}` also accepts Capa, ChangeControl and Complaint and writes no detail row (CONF-230); it is not a supported path.
+- Each type is created only by its typed service (`DeviationService` raise routes, `CapaService.CreateAsync`, `ChangeControlService.ProposeAsync`, `ComplaintService.ReceiveAsync`). There is no generic create route; `POST api/quality/{type}` was removed (CONF-230).
 - **Deviation:** Raised → Assess → Investigation → lab conclusion → LabConcluded → Approve → Approved → Close → Closed. Raised → Reject → Rejected (final). LabConcluded → Return → Investigation.
 - **CAPA:** Plan → approve plan → PlanApproved → verify completion → CompletionVerified → effectiveness check → Closed (for either result). Plan → return plan → Plan.
 - **Change control:** Proposed → sign assessment → Assessed → Approve → ApprovedForImplementation → Close → Closed. Proposed or Assessed → Reject → Rejected (final).

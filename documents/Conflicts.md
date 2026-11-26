@@ -1257,21 +1257,21 @@ Locations for CONF-001 to CONF-008 were added on 2026-11-12 from the area worker
 
 ### CONF-230
 - **Area:** Quality records
-- **Status:** Open
+- **Status:** Decided
 - **What the code does:** `QualityRecordsController.Create` (`POST api/quality/{type}`, policy `Quality.View`) accepts the types Capa, ChangeControl and Complaint. Only Deviation is refused (`Deviation.RaiseRoute`). `QualityRecordCore.CreateAsync` writes only the `QualityRecords` row. It writes no `CapaDetails`, `ChangeControlDetails` or `ComplaintDetails` row and sets no owner. Later typed steps then refuse with `QualityRecordCore.Missing()`, because `CapaService.ChangeAsync`, `ChangeControlService.ChangeAsync` and `ComplaintService.ChangeAsync` each require the detail row. The typed creates are `CapaService.CreateAsync`, `ChangeControlService.ProposeAsync` and `ComplaintService.ReceiveAsync`.
 - **What the other source says:** Specification section 3 and section 5.1 fix the four types and their paths. Plan Task 2 routes each type through its own service.
 - **Question:** Should the generic route be removed, or should it refuse every type except the four typed creates?
-- **Decision:** Not decided. This entry records a defect found while documenting the code. No code was changed.
-- **Date:** 2026-11-25
+- **Decision:** Remove the generic create endpoint `POST api/quality/{type}` and its authorization-matrix line. Each type is created only through its typed service (`DeviationService` raise routes, `CapaService.CreateAsync`, `ChangeControlService.ProposeAsync`, `ComplaintService.ReceiveAsync`). `QualityRecordCore.CreateAsync` stays as an internal entry point for those services; `CreateDtoAsync` was removed. The message code `Deviation.RaiseRoute` became unused and was removed from `MessageCodes` and both locale files.
+- **Date:** 2026-11-26
 
 ### CONF-231
 - **Area:** Quality records (Change control)
-- **Status:** Open
+- **Status:** Decided
 - **What the code does:** `ChangeControlService.AddAffectedAsync` and `QualityLinkService.AddAsync` (with `isAffectedByChange`) refuse additions when the status is not `Proposed`, using `MessageCodes.ChangeControlAffectedFrozen`. The C# default text reads "Affected records cannot be added after the impact assessment is signed." The English value of `ChangeControl.AffectedFrozen` in `frontend/src/locales/en/serverMessages.json` reads "Affected records cannot be added after change control approval." The Arabic value in `frontend/src/locales/ar/serverMessages.json` says the same (after approval).
 - **What the other source says:** CONF-226 (decided 2026-11-25) freezes the affected list once the impact assessment is signed, not only after approval.
 - **Question:** Should the English and Arabic texts be changed to match the assessment wording?
-- **Decision:** Not decided. The text change is outside this documentation task.
-- **Date:** 2026-11-25
+- **Decision:** The English text of `ChangeControl.AffectedFrozen` is now "Affected records cannot be added after the impact assessment is signed." The Arabic text uses the glossary terms for the signed impact assessment.
+- **Date:** 2026-11-26
 
 ### CONF-232
 - **Area:** Quality records (Change control)

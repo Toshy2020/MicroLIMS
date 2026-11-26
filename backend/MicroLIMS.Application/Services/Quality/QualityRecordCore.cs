@@ -20,10 +20,7 @@ public class QualityRecordCore(
     IElectronicSignatureService signatures,
     TimeProvider clock)
 {
-    public async Task<QualityRecordDto> CreateDtoAsync(QualityRecordType type, CreateQualityRecordRequest request,
-        int userId, CancellationToken ct = default) => QualityRecordDto.From(await CreateAsync(type, request, userId, ct));
-
-    public Task<QualityRecord> CreateAsync(QualityRecordType type, CreateQualityRecordRequest request, int userId,
+    internal Task<QualityRecord> CreateAsync(QualityRecordType type, CreateQualityRecordRequest request, int userId,
         CancellationToken ct = default) => CreateAsync(type, request, userId, ct, null, false);
 
     internal Task<QualityRecord> CreateAsync(QualityRecordType type, CreateQualityRecordRequest request, int userId,

@@ -453,4 +453,30 @@ describe("TestMasterWizard", () => {
     expect(onUpdateTest.mock.calls[1][3]).toBe(8);
     expect(onSaved).toHaveBeenCalledTimes(1);
   });
+
+  it("includes RequalificationMonths when creating a test definition", async () => {
+    const user = userEvent.setup();
+    const { onCreateWithSteps } = renderWizard();
+
+    const dialog = await screen.findByRole("dialog");
+    await user.type(await within(dialog).findByLabelText(/^Test Code/i), "TAMC_REQ");
+    await user.type(within(dialog).getByLabelText(/^Display Name/i), "TAMC Requal");
+    await user.type(within(dialog).getByLabelText(/Requalification interval/i), "12");
+
+    await user.click(within(dialog).getByRole("button", { name: /^Next$/i }));
+    await user.click(within(dialog).getByRole("button", { name: /^Next$/i }));
+    await user.click(within(dialog).getByRole("button", { name: /^Next$/i }));
+
+    const saveBtn = (await within(dialog).findByRole("button", { name: /^Save$/i })) as HTMLButtonElement;
+    await waitFor(() => expect(saveBtn.disabled).toBe(false));
+    await user.click(saveBtn);
+
+    await waitFor(() => expect(onCreateWithSteps).toHaveBeenCalledTimes(1));
+    expect(onCreateWithSteps.mock.calls[0][0]).toEqual(
+      expect.objectContaining({
+        code: "TAMC_REQ",
+        requalificationMonths: 12
+      })
+    );
+  });
 });

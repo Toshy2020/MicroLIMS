@@ -113,7 +113,10 @@ describe("MeasurementPanel recording refusal", () => {
         statusText: "Forbidden",
         headers: {},
         config: {} as never,
-        data: { code: "Competency.NotQualified", message: "You are not qualified for PH." }
+        data: {
+          message: "You are not qualified for PH.",
+          errorDetails: [{ code: "Competency.NotQualified", message: "You are not qualified for PH." }]
+        }
       } as AxiosResponse)
     );
 

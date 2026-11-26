@@ -99,6 +99,52 @@ describe("ExtensionsPanel", () => {
     expect(onRequest).toHaveBeenCalledTimes(1);
   });
 
+  it("disables Decide with a reason when the signed-in user requested the extension, or raised or owns the record", () => {
+    render(
+      <PinnedLightTheme>
+        <ExtensionsPanel
+          extensions={[
+            extension({ id: 1, requestedByUserId: 9, requestedDueDate: "2026-12-20" }),
+            extension({ id: 2, requestedByUserId: 12, requestedDueDate: "2026-12-25" })
+          ]}
+          actions={[]}
+          canRequest={false}
+          canDecide={true}
+          currentUserId={9}
+          raisedByUserId={7}
+          ownerUserId={8}
+          onRequest={vi.fn()}
+          onDecide={vi.fn()}
+        />
+      </PinnedLightTheme>
+    );
+
+    const items = screen.getAllByRole("listitem");
+    expect((within(items[0]).getByRole("button", { name: "Decide the extension request to 2026-12-20" }) as HTMLButtonElement).disabled).toBe(true);
+    expect(within(items[0]).getByText("You cannot decide your own extension request.")).toBeTruthy();
+    expect((within(items[1]).getByRole("button", { name: "Decide the extension request to 2026-12-25" }) as HTMLButtonElement).disabled).toBe(false);
+
+    cleanup();
+    render(
+      <PinnedLightTheme>
+        <ExtensionsPanel
+          extensions={[extension({ id: 3, requestedByUserId: 12, requestedDueDate: "2026-12-28" })]}
+          actions={[]}
+          canRequest={false}
+          canDecide={true}
+          currentUserId={8}
+          raisedByUserId={7}
+          ownerUserId={8}
+          onRequest={vi.fn()}
+          onDecide={vi.fn()}
+        />
+      </PinnedLightTheme>
+    );
+
+    expect((screen.getByRole("button", { name: "Decide the extension request to 2026-12-28" }) as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.getByText("You raised or own this record, so you cannot approve or close it.")).toBeTruthy();
+  });
+
   it("is read-only without the permissions: nothing to request or decide", () => {
     renderPanel({ extensions: [extension()], canRequest: false, canDecide: false });
 

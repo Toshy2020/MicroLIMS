@@ -258,7 +258,11 @@
     "decidedLine": "{{decision}} by {{name}} · {{date}}",
     "decidedLineNoName": "{{decision}} · {{date}}",
     "decide": "Decide",
-    "decideAria": "Decide the extension request to {{date}}"
+    "decideAria": "Decide the extension request to {{date}}",
+    "selfDecision": "You cannot decide your own extension request."
+  },
+  "addendum": {
+    "badge": "Added after closure"
   },
   "extensionDialog": {
     "requestTitle": "Request a due-date extension",
@@ -592,6 +596,10 @@
           "Inconclusive": "Inconclusive"
         },
         "summary": "Summary of the conclusion",
+        "followUp": "Follow-up deviation or CAPA",
+        "followUpOptional": "Follow-up deviation or CAPA (optional)",
+        "followUpNone": "None",
+        "needsFollowUp": "A justified complaint needs a linked deviation or CAPA.",
         "sign": "Conclude and sign",
         "needsFields": "Choose an outcome and write the summary."
       },

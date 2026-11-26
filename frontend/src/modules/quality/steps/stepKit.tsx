@@ -254,11 +254,12 @@ const cancelCall: Record<QualityRecordType, typeof qualityService.cancelDeviatio
 interface CancelRecordActionProps {
   record: QualityRecordDetailDto;
   canApprove: boolean;
+  currentUserId?: number | null;
   onChanged: () => Promise<void>;
 }
 
-// Any open record can be cancelled by QA with a reason and a signature; it stays visible as cancelled.
-export function CancelRecordAction({ record, canApprove, onChanged }: CancelRecordActionProps) {
+// Any open record can be cancelled by QA (except its raiser or owner) with a reason and a signature; it stays visible as cancelled.
+export function CancelRecordAction({ record, canApprove, currentUserId = null, onChanged }: CancelRecordActionProps) {
   const { t } = useTranslation("quality");
   if (!canApprove || !isOpenRecord(record)) return null;
   return (
@@ -268,6 +269,7 @@ export function CancelRecordAction({ record, canApprove, onChanged }: CancelReco
       confirmMessage={t("steps.common.cancelConfirmMessage", { number: record.number })}
       reasonLabel={t("steps.common.cancelReason")}
       meaning="QualityCancelled"
+      lockedReason={isRaiserOrOwner(record, currentUserId) ? t("steps.common.raiserOrOwner") : null}
       onSign={async (password, reason) => {
         await cancelCall[record.type](record.id, { reason, password }, record.version);
         await onChanged();

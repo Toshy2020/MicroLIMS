@@ -47,7 +47,7 @@ export function DeviationActions({ record, permissions, currentUserId, onChanged
       {status === "Approved" && (
         <DeviationCloseStep record={record} permissions={permissions} currentUserId={currentUserId} onChanged={onChanged} />
       )}
-      <CancelRecordAction record={record} canApprove={permissions.approve} onChanged={onChanged} />
+      <CancelRecordAction record={record} canApprove={permissions.approve} currentUserId={currentUserId} onChanged={onChanged} />
     </Stack>
   );
 }

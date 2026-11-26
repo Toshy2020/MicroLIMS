@@ -121,6 +121,7 @@ export interface QualityAttachmentDto {
   voidedByName: string | null;
   voidReason: string | null;
   isVoided: boolean;
+  isAddendum?: boolean;
 }
 
 export interface QualityDeviationDetailDto {
@@ -243,6 +244,7 @@ export interface QualityCommentDto {
   authorUserId: number;
   authorName: string;
   createdAtUtc: string;
+  isAddendum?: boolean;
 }
 
 export interface QualityClassificationDto {
@@ -450,6 +452,7 @@ export interface ConcludeComplaintRequest {
   outcome: ComplaintOutcome;
   summary: string;
   password: string;
+  followUpRecordId?: number | null;
 }
 
 // QualityChecklistTemplateDto / QualityChecklistItemDto / QualityAnswerDto (QualityConfigDtos.cs).

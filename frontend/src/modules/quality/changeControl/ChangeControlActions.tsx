@@ -35,7 +35,7 @@ export function ChangeControlActions({ record, permissions, currentUserId, onCha
     <Stack spacing={2}>
       {status === "Proposed" && (
         <>
-          <ChangeControlAssessmentForm record={record} permissions={permissions} onChanged={onChanged} />
+          <ChangeControlAssessmentForm record={record} permissions={permissions} currentUserId={currentUserId} onChanged={onChanged} />
           {permissions.approve && (
             <PanelFrame title={t("steps.changeControl.decision.rejectTitle")}>
               <RejectChangeControl record={record} lockedReason={rejectLock} onChanged={onChanged} />
@@ -55,7 +55,7 @@ export function ChangeControlActions({ record, permissions, currentUserId, onCha
         ) : (
           <Waiting title={t("steps.changeControl.implementation.title")} text={t("steps.changeControl.implementation.text")} />
         ))}
-      <CancelRecordAction record={record} canApprove={permissions.approve} onChanged={onChanged} />
+      <CancelRecordAction record={record} canApprove={permissions.approve} currentUserId={currentUserId} onChanged={onChanged} />
     </Stack>
   );
 }

@@ -67,6 +67,7 @@
   "Complaint.UnfinishedActions": "أكمل الإجراء غير المنجز قبل الإغلاق: {{action}}",
   "Complaint.WrongState": "هذه الخطوة غير متاحة في الحالة الحالية للشكوى.",
   "Complaint.FinalCancellation": "لا يمكن إلغاء شكوى مغلقة.",
+  "Complaint.FollowUpRequired": "تتطلب الشكوى المبررة ربطها بانحراف أو إجراء تصحيحي ووقائي.",
   "Quality.NotFound": "لم يتم العثور على سجل الجودة أو المورد المرتبط به.",
   "Quality.AccessDenied": "ليس لديك إذن لتنفيذ هذه العملية على سجل الجودة.",
   "Quality.DuplicateItem": "يجب أن تكون مفاتيح بنود قائمة التحقق فريدة.",

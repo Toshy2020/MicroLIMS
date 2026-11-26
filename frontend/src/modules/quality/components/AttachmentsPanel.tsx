@@ -102,6 +102,7 @@ export function AttachmentsPanel({ recordId, recordVersion, attachments, canEdit
                   <Typography variant="body2" sx={{ fontWeight: 600, wordBreak: "break-all" }}>
                     {attachment.fileName}
                   </Typography>
+                  {attachment.isAddendum && <ToneBadge tone="info" label={t("addendum.badge")} />}
                   {attachment.isVoided && <ToneBadge tone="detected" label={t("attachments.voided")} />}
                 </Stack>
                 <Typography variant="caption" color="text.secondary" sx={{ display: "block", fontVariantNumeric: "tabular-nums" }}>

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Alert, Box, Button, List, ListItem, Stack, TextField, Typography } from "@mui/material";
 import { useTranslation } from "../../../i18n";
+import { ToneBadge } from "../../../components/StatusBadge";
 import { getErrorMessage } from "../../../utils/errorMessage";
 import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
 import { qualityService, type QualityCommentDto } from "../../../services/qualityService";
@@ -54,12 +55,15 @@ export function CommentsPanel({ recordId, recordVersion, comments, currentUserId
           <List disablePadding>
             {comments.map((entry) => (
               <ListItem key={entry.id} divider sx={{ display: "block", px: 0 }}>
-                <Typography variant="caption" color="text.secondary" sx={{ display: "block", fontVariantNumeric: "tabular-nums" }}>
-                  {t("comments.line", {
-                    author: entry.authorUserId === currentUserId ? t("comments.you") : entry.authorName,
-                    date: formatDateTimeWithTimeZone(entry.createdAtUtc)
-                  })}
-                </Typography>
+                <Stack direction="row" spacing={1} sx={{ alignItems: "center", flexWrap: "wrap" }}>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontVariantNumeric: "tabular-nums" }}>
+                    {t("comments.line", {
+                      author: entry.authorUserId === currentUserId ? t("comments.you") : entry.authorName,
+                      date: formatDateTimeWithTimeZone(entry.createdAtUtc)
+                    })}
+                  </Typography>
+                  {entry.isAddendum && <ToneBadge tone="info" label={t("addendum.badge")} />}
+                </Stack>
                 <Typography variant="body2" sx={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
                   {entry.text}
                 </Typography>

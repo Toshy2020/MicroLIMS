@@ -50,7 +50,7 @@ export function CapaActions({ record, permissions, currentUserId, onChanged }: Q
         ) : (
           <Waiting title={t("steps.capa.effectiveness.title")} text={t("steps.capa.effectiveness.waitingForQa")} />
         ))}
-      <CancelRecordAction record={record} canApprove={permissions.approve} onChanged={onChanged} />
+      <CancelRecordAction record={record} canApprove={permissions.approve} currentUserId={currentUserId} onChanged={onChanged} />
     </Stack>
   );
 }

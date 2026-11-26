@@ -1,8 +1,9 @@
-import { Button, List, ListItem, Stack, Typography } from "@mui/material";
+import { Box, Button, List, ListItem, Stack, Typography } from "@mui/material";
 import { useTranslation } from "../../../i18n";
 import { MetaBadge, ToneBadge } from "../../../components/StatusBadge";
 import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
 import type { QualityActionDetailDto, QualityExtensionDto } from "../../../services/qualityService";
+import { GatedButton } from "../steps/stepKit";
 import { PanelFrame } from "./PanelFrame";
 
 interface ExtensionsPanelProps {
@@ -13,11 +14,24 @@ interface ExtensionsPanelProps {
   canRequest: boolean;
   // Quality.Approve: decide a pending request with a signature.
   canDecide: boolean;
+  currentUserId?: number | null;
+  raisedByUserId?: number | null;
+  ownerUserId?: number | null;
   onRequest: () => void;
   onDecide: (extension: QualityExtensionDto) => void;
 }
 
-export function ExtensionsPanel({ extensions, actions, canRequest, canDecide, onRequest, onDecide }: ExtensionsPanelProps) {
+export function ExtensionsPanel({
+  extensions,
+  actions,
+  canRequest,
+  canDecide,
+  currentUserId = null,
+  raisedByUserId = null,
+  ownerUserId = null,
+  onRequest,
+  onDecide
+}: ExtensionsPanelProps) {
   const { t } = useTranslation("quality");
 
   const scopeOf = (extension: QualityExtensionDto): string => {
@@ -94,15 +108,22 @@ export function ExtensionsPanel({ extensions, actions, canRequest, canDecide, on
                   </Typography>
                 )}
                 {!decided && canDecide && (
-                  <Button
-                    size="small"
-                    variant="contained"
-                    sx={{ mt: 1 }}
-                    aria-label={t("extensions.decideAria", { date: extension.requestedDueDate })}
-                    onClick={() => onDecide(extension)}
-                  >
-                    {t("extensions.decide")}
-                  </Button>
+                  <Box sx={{ mt: 1 }}>
+                    <GatedButton
+                      size="small"
+                      variant="contained"
+                      label={t("extensions.decide")}
+                      aria-label={t("extensions.decideAria", { date: extension.requestedDueDate })}
+                      lockedReason={
+                        currentUserId !== null && extension.requestedByUserId === currentUserId
+                          ? t("extensions.selfDecision")
+                          : currentUserId !== null && (raisedByUserId === currentUserId || ownerUserId === currentUserId)
+                            ? t("steps.common.raiserOrOwner")
+                            : null
+                      }
+                      onClick={() => onDecide(extension)}
+                    />
+                  </Box>
                 )}
               </ListItem>
             );

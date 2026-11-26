@@ -13,14 +13,15 @@ import { useChecklist } from "./useChecklist";
 interface ChangeControlAssessmentFormProps {
   record: QualityRecordDetailDto;
   permissions: QualityTypeActionsProps["permissions"];
+  currentUserId?: number | null;
   onChanged: () => Promise<void>;
 }
 
 const ANSWERS: QualityChecklistAnswerValue[] = ["Yes", "No", "NotApplicable"];
 
-// While the change control is proposed: affected records can still be added, and the Section Head records the impact
+// While the change control is proposed: affected records can still be added, and the Section Head / named owner records the impact
 // assessment (summary, checklist answers, implementation tasks) and signs it. Signing freezes the affected list.
-export function ChangeControlAssessmentForm({ record, permissions, onChanged }: ChangeControlAssessmentFormProps) {
+export function ChangeControlAssessmentForm({ record, permissions, currentUserId = null, onChanged }: ChangeControlAssessmentFormProps) {
   const { t } = useTranslation("quality");
   const users = useUserOptions();
   const checklist = useChecklist(record.id, record.sectionId);
@@ -39,7 +40,8 @@ export function ChangeControlAssessmentForm({ record, permissions, onChanged }: 
   const saver = useStepRunner(onChanged);
   const adder = useStepRunner(onChanged);
 
-  const canAssess = permissions.investigate;
+  const isOwner = currentUserId !== null && record.ownerUserId === currentUserId;
+  const canAssess = !permissions.approve && (permissions.investigate || isOwner);
   const saved = Boolean(record.changeControl?.impactSummary?.trim());
   const unanswered = checklist.items.filter((item) => !checklist.answers[item.key]?.answer);
   const complete = Boolean(summary.trim()) && rows.every(isCompleteRow);

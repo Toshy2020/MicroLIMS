@@ -85,7 +85,9 @@
     },
     "panelUnavailable": "This section could not be loaded.",
     "timelineEmpty": "Nobody has signed this record yet.",
-    "typeActionsLabel": "Actions for this record"
+    "typeActionsLabel": "Actions for this record",
+    "loading": "Loading the quality record",
+    "summaryLabel": "Record summary"
   },
   "path": {
     "title": "Record path",

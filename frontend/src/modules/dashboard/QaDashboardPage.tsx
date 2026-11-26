@@ -170,7 +170,7 @@ export function QaDashboardPage() {
             tone: "info" as const,
             icon: <ListAltOutlinedIcon />,
             hint: t("qualityTiles.myOpenHint"),
-            to: "/quality"
+            to: "/quality?owner=me"
           },
           {
             label: t("qualityTiles.overdue"),

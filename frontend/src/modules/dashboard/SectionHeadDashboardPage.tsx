@@ -211,7 +211,7 @@ export function SectionHeadDashboardPage() {
                   tone: "info" as const,
                   icon: <RateReviewOutlinedIcon />,
                   hint: t("qualityTiles.myOpenHint"),
-                  to: "/quality"
+                  to: "/quality?owner=me"
                 },
                 {
                   label: t("qualityTiles.overdue"),

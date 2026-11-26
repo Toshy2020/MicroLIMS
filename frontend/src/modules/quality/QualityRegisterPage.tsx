@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Alert, Box, Button, Checkbox, FormControlLabel, MenuItem, Stack, Tab, Tabs, TextField, Typography } from "@mui/material";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "../../i18n";
 import { useAuth } from "../../contexts/AuthContext";
 import { PageHeader } from "../../components/PageHeader";
@@ -41,6 +41,63 @@ const STATUSES_BY_TAB: Record<RegisterTab, readonly string[]> = {
 // The server clamps list sizes to 100.
 const LOOKUP_PAGE_SIZE = 100;
 
+interface RegisterUrlFilters {
+  tab: RegisterTab;
+  status: string;
+  classificationId: number | "";
+  sectionId: number | "";
+  ownedByMe: boolean;
+  overdueOnly: boolean;
+  fromDate: string;
+  toDate: string;
+  page: number; // zero-based; the URL carries it one-based
+}
+
+const positiveInt = (raw: string | null): number | "" => {
+  if (raw === null || !/^[1-9]\d{0,9}$/.test(raw)) return "";
+  return Number(raw);
+};
+
+const isoDate = (raw: string | null): string => {
+  if (raw === null || !/^\d{4}-\d{2}-\d{2}$/.test(raw)) return "";
+  const parsed = new Date(`${raw}T00:00:00.000Z`);
+  return Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== raw ? "" : raw;
+};
+
+// Invalid values fall back to the default (never reach the server); the server stays the authority.
+function readFilters(params: URLSearchParams): RegisterUrlFilters {
+  const rawTab = params.get("type");
+  const tab = TABS.find((value) => value !== "all" && value === rawTab) ?? "all";
+  const rawStatus = params.get("status");
+  const status = rawStatus !== null && STATUSES_BY_TAB[tab].includes(rawStatus) ? rawStatus : "";
+  const page = positiveInt(params.get("page"));
+  return {
+    tab,
+    status,
+    classificationId: positiveInt(params.get("classificationId")),
+    sectionId: positiveInt(params.get("sectionId")),
+    ownedByMe: params.get("owner") === "me",
+    overdueOnly: params.get("overdue") === "true",
+    fromDate: isoDate(params.get("from")),
+    toDate: isoDate(params.get("to")),
+    page: page === "" ? 0 : page - 1
+  };
+}
+
+function writeFilters(next: RegisterUrlFilters): URLSearchParams {
+  const params = new URLSearchParams();
+  if (next.tab !== "all") params.set("type", next.tab);
+  if (next.status) params.set("status", next.status);
+  if (next.classificationId !== "") params.set("classificationId", String(next.classificationId));
+  if (next.sectionId !== "") params.set("sectionId", String(next.sectionId));
+  if (next.ownedByMe) params.set("owner", "me");
+  if (next.overdueOnly) params.set("overdue", "true");
+  if (next.fromDate) params.set("from", next.fromDate);
+  if (next.toDate) params.set("to", next.toDate);
+  if (next.page > 0) params.set("page", String(next.page + 1));
+  return params;
+}
+
 type LookupKey = "classifications" | "sections";
 
 export function QualityRegisterPage() {
@@ -49,15 +106,14 @@ export function QualityRegisterPage() {
   const navigate = useNavigate();
   const { userId } = useAuth();
 
-  const [tab, setTab] = useState<RegisterTab>("all");
-  const [status, setStatus] = useState("");
-  const [classificationId, setClassificationId] = useState<number | "">("");
-  const [sectionId, setSectionId] = useState<number | "">("");
-  const [ownedByMe, setOwnedByMe] = useState(false);
-  const [overdueOnly, setOverdueOnly] = useState(false);
-  const [fromDate, setFromDate] = useState("");
-  const [toDate, setToDate] = useState("");
-  const [page, setPage] = useState(0);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const filters = useMemo(() => readFilters(searchParams), [searchParams]);
+  const { tab, status, classificationId, sectionId, ownedByMe, overdueOnly, fromDate, toDate, page } = filters;
+  // replace, not push: Back leaves the register instead of stepping through every filter change.
+  const update = useCallback(
+    (patch: Partial<RegisterUrlFilters>) => setSearchParams(writeFilters({ ...filters, page: 0, ...patch }), { replace: true }),
+    [filters, setSearchParams]
+  );
   const [pageSize, setPageSize] = useState(25);
 
   const [classifications, setClassifications] = useState<QualityClassificationDto[]>([]);
@@ -131,24 +187,10 @@ export function QualityRegisterPage() {
   const filtersActive =
     status !== "" || classificationId !== "" || sectionId !== "" || ownedByMe || overdueOnly || fromDate !== "" || toDate !== "";
 
-  const changeTab = (next: RegisterTab) => {
-    setTab(next);
-    setStatus("");
-    setPage(0);
-  };
+  const changeTab = (next: RegisterTab) => update({ tab: next, status: "" });
 
-  const clearFilters = () => {
-    setStatus("");
-    setClassificationId("");
-    setSectionId("");
-    setOwnedByMe(false);
-    setOverdueOnly(false);
-    setFromDate("");
-    setToDate("");
-    setPage(0);
-  };
-
-  const resetPage = useCallback(() => setPage(0), []);
+  const clearFilters = () =>
+    update({ status: "", classificationId: "", sectionId: "", ownedByMe: false, overdueOnly: false, fromDate: "", toDate: "" });
 
   const columns: RegisterColumn<QualityRecordListItemDto>[] = [
     {
@@ -234,8 +276,7 @@ export function QualityRegisterPage() {
               label={t("register.filters.status")}
               value={status}
               onChange={(e) => {
-                setStatus(e.target.value);
-                resetPage();
+                update({ status: e.target.value });
               }}
               sx={{ minWidth: 180 }}
             >
@@ -253,8 +294,7 @@ export function QualityRegisterPage() {
               label={t("register.filters.classification")}
               value={classificationId}
               onChange={(e) => {
-                setClassificationId(e.target.value === "" ? "" : Number(e.target.value));
-                resetPage();
+                update({ classificationId: e.target.value === "" ? "" : Number(e.target.value) });
               }}
               sx={{ minWidth: 180 }}
             >
@@ -272,8 +312,7 @@ export function QualityRegisterPage() {
               label={t("register.filters.section")}
               value={sectionId}
               onChange={(e) => {
-                setSectionId(e.target.value === "" ? "" : Number(e.target.value));
-                resetPage();
+                update({ sectionId: e.target.value === "" ? "" : Number(e.target.value) });
               }}
               sx={{ minWidth: 180 }}
             >
@@ -292,8 +331,7 @@ export function QualityRegisterPage() {
               slotProps={{ inputLabel: { shrink: true } }}
               value={fromDate}
               onChange={(e) => {
-                setFromDate(e.target.value);
-                resetPage();
+                update({ fromDate: e.target.value });
               }}
             />
             <TextField
@@ -303,8 +341,7 @@ export function QualityRegisterPage() {
               slotProps={{ inputLabel: { shrink: true } }}
               value={toDate}
               onChange={(e) => {
-                setToDate(e.target.value);
-                resetPage();
+                update({ toDate: e.target.value });
               }}
             />
 
@@ -314,8 +351,7 @@ export function QualityRegisterPage() {
                   <Checkbox
                     checked={ownedByMe}
                     onChange={(e) => {
-                      setOwnedByMe(e.target.checked);
-                      resetPage();
+                      update({ ownedByMe: e.target.checked });
                     }}
                   />
                 }
@@ -327,8 +363,7 @@ export function QualityRegisterPage() {
                 <Checkbox
                   checked={overdueOnly}
                   onChange={(e) => {
-                    setOverdueOnly(e.target.checked);
-                    resetPage();
+                    update({ overdueOnly: e.target.checked });
                   }}
                 />
               }
@@ -372,10 +407,10 @@ export function QualityRegisterPage() {
             totalCount,
             page,
             pageSize,
-            onPageChange: setPage,
+            onPageChange: (next) => update({ page: next }),
             onPageSizeChange: (next) => {
               setPageSize(next);
-              setPage(0);
+              update({ page: 0 });
             }
           }}
           trailingCell={{

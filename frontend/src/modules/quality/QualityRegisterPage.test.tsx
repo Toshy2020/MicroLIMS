@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { MemoryRouter, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { PinnedLightTheme } from "../../theme/PinnedLightTheme";
 import { AuthProvider } from "../../contexts/AuthContext";
 import { renderInArabic, resetLanguage } from "../../i18n/testUtils";
@@ -93,6 +93,150 @@ function renderPage() {
 
 const recordCalls = () => http.get.mock.calls.filter((call) => call[0] === "/quality/records");
 const lastRecordParams = () => recordCalls()[recordCalls().length - 1][1].params as Record<string, unknown>;
+
+function LocationProbe() {
+  const location = useLocation();
+  return <output aria-label="current url">{location.pathname + location.search}</output>;
+}
+
+function renderAt(url: string) {
+  return render(
+    <PinnedLightTheme>
+      <AuthProvider>
+        <MemoryRouter initialEntries={[url]}>
+          <Routes>
+            <Route path="/quality" element={<><QualityRegisterPage /><LocationProbe /></>} />
+            <Route path="/quality/:id" element={<p>Record page opened</p>} />
+          </Routes>
+        </MemoryRouter>
+      </AuthProvider>
+    </PinnedLightTheme>
+  );
+}
+
+function BackButton() {
+  const navigate = useNavigate();
+  return (
+    <button type="button" onClick={() => navigate(-1)}>
+      Browser back
+    </button>
+  );
+}
+
+const currentUrl = () => screen.getByLabelText("current url").textContent;
+
+describe("QualityRegisterPage URL filters", () => {
+  beforeEach(() => {
+    setAuth(8);
+    serve();
+  });
+
+  afterEach(() => {
+    cleanup();
+    localStorage.clear();
+    vi.clearAllMocks();
+  });
+
+  it("pre-applies the type tab from the URL and sends it on the first request", async () => {
+    renderAt("/quality?type=Capa");
+    await waitFor(() => expect(recordCalls()).toHaveLength(1));
+    expect(lastRecordParams()).toEqual({ page: 1, pageSize: 25, type: "Capa" });
+    expect(screen.getByRole("tab", { name: "CAPAs" }).getAttribute("aria-selected")).toBe("true");
+  });
+
+  it("pre-applies overdue=true on the first request and checks the box", async () => {
+    renderAt("/quality?overdue=true");
+    await waitFor(() => expect(recordCalls()).toHaveLength(1));
+    expect(lastRecordParams()).toEqual({ page: 1, pageSize: 25, overdue: true });
+    expect((screen.getByRole("checkbox", { name: "Overdue only" }) as HTMLInputElement).checked).toBe(true);
+  });
+
+  it("pre-applies owner=me with the signed-in user id", async () => {
+    renderAt("/quality?owner=me");
+    await waitFor(() => expect(recordCalls()).toHaveLength(1));
+    expect(lastRecordParams()).toEqual({ page: 1, pageSize: 25, ownerUserId: 8 });
+  });
+
+  it("pre-applies status, classificationId, sectionId, from, to and page", async () => {
+    renderAt("/quality?type=Capa&status=Plan&classificationId=2&sectionId=1&from=2026-01-05&to=2026-02-06&page=3");
+    await waitFor(() => expect(recordCalls()).toHaveLength(1));
+    expect(lastRecordParams()).toEqual({
+      page: 3,
+      pageSize: 25,
+      type: "Capa",
+      status: "Plan",
+      classificationId: 2,
+      sectionId: 1,
+      from: "2026-01-05T00:00:00.000Z",
+      to: "2026-02-06T23:59:59.999Z"
+    });
+  });
+
+  it("ignores invalid values and never sends them to the server", async () => {
+    renderAt(
+      "/quality?type=Bogus&status=Nope&classificationId=abc&sectionId=-4&owner=you&overdue=maybe&from=yesterday&to=2026-13-45&page=0"
+    );
+    await waitFor(() => expect(recordCalls()).toHaveLength(1));
+    expect(lastRecordParams()).toEqual({ page: 1, pageSize: 25 });
+    expect(screen.getByRole("tab", { name: "All" }).getAttribute("aria-selected")).toBe("true");
+  });
+
+  it("ignores a status that does not belong to the chosen type", async () => {
+    renderAt("/quality?type=Capa&status=Investigation");
+    await waitFor(() => expect(recordCalls()).toHaveLength(1));
+    expect(lastRecordParams()).toEqual({ page: 1, pageSize: 25, type: "Capa" });
+  });
+
+  it("writes a changed filter to the URL", async () => {
+    const user = userEvent.setup();
+    renderAt("/quality");
+    await screen.findByText("DEV-2026-0001");
+
+    await user.click(screen.getByRole("tab", { name: "CAPAs" }));
+    await waitFor(() => expect(currentUrl()).toBe("/quality?type=Capa"));
+
+    await user.click(screen.getByRole("checkbox", { name: "Overdue only" }));
+    await waitFor(() => expect(currentUrl()).toBe("/quality?type=Capa&overdue=true"));
+    await waitFor(() => expect(lastRecordParams().overdue).toBe(true));
+
+    await user.click(screen.getByRole("checkbox", { name: "Overdue only" }));
+    await waitFor(() => expect(currentUrl()).toBe("/quality?type=Capa"));
+  });
+
+  it("clears the filters from the URL and replaces history instead of pushing", async () => {
+    const user = userEvent.setup();
+    renderAt("/quality?overdue=true&owner=me");
+    await screen.findByText("DEV-2026-0001");
+
+    await user.click(screen.getByRole("button", { name: "Clear filters" }));
+    await waitFor(() => expect(currentUrl()).toBe("/quality"));
+    await waitFor(() => expect(lastRecordParams()).toEqual({ page: 1, pageSize: 25 }));
+  });
+
+  it("replaces the history entry so Back leaves the register", async () => {
+    const user = userEvent.setup();
+    render(
+      <PinnedLightTheme>
+        <AuthProvider>
+          <MemoryRouter initialEntries={["/start", "/quality"]} initialIndex={1}>
+            <Routes>
+              <Route path="/start" element={<p>Start page</p>} />
+              <Route path="/quality" element={<><QualityRegisterPage /><BackButton /></>} />
+            </Routes>
+          </MemoryRouter>
+        </AuthProvider>
+      </PinnedLightTheme>
+    );
+    await screen.findByText("DEV-2026-0001");
+
+    await user.click(screen.getByRole("tab", { name: "CAPAs" }));
+    await user.click(screen.getByRole("checkbox", { name: "Overdue only" }));
+    await waitFor(() => expect(lastRecordParams().overdue).toBe(true));
+    await user.click(screen.getByRole("button", { name: "Browser back" }));
+
+    expect(await screen.findByText("Start page")).toBeTruthy();
+  });
+});
 
 describe("QualityRegisterPage", () => {
   beforeEach(() => {

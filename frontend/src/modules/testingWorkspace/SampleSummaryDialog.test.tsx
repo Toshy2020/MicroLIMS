@@ -590,7 +590,19 @@ describe("SampleSummaryDialog OOS banner and retest options", () => {
     );
     vi.mocked(actionAvailabilityService.get).mockResolvedValue([
       { action: "approval.approve", allowed: false, reason: "OOS investigation OOS-2026-0042 is open." },
-      { action: "approval.reject", allowed: false, reason: "OOS investigation OOS-2026-0042 is open." }
+      { action: "approval.reject", allowed: false, reason: "OOS investigation OOS-2026-0042 is open." },
+      {
+        action: "approval.retestRetainedSample",
+        allowed: false,
+        reasonCode: "Oos.RetestNeedsApprovedPlan",
+        reason: "A retest needs an approved retest plan."
+      },
+      {
+        action: "approval.newSampleRequest",
+        allowed: false,
+        reasonCode: "Oos.RetestNeedsApprovedPlan",
+        reason: "A retest needs an approved retest plan."
+      }
     ]);
     vi.mocked(oosInvestigationService.getForSample).mockResolvedValue([
       {
@@ -651,6 +663,161 @@ describe("SampleSummaryDialog OOS banner and retest options", () => {
     expect(screen.getByRole("radio", { name: /New Sample Required/i })).toBeTruthy();
     expect(screen.queryByRole("radio", { name: /^Investigation$/i })).toBeNull();
     expect(screen.queryByRole("radio", { name: /OOS Investigation/i })).toBeNull();
+  }, 15000);
+
+  it("follows server availability for retest and new-sample options regardless of client investigation list", async () => {
+    mockGetSummary.mockResolvedValue(
+      createSample({
+        status: "UnderApproval",
+        certificate: { sample: { matrix: null, simple: null }, sections: [] } as never,
+        sections: (createSample().sections ?? []).map((section) => ({ ...section, status: "UnderApproval" }))
+      })
+    );
+    vi.mocked(oosInvestigationService.getForSample).mockResolvedValue([
+      {
+        id: 42,
+        number: "OOS-2026-0042",
+        kind: "Oos",
+        status: "PhaseOne",
+        sampleId: 77,
+        sampleReferenceNumber: "RM0926077",
+        sampleDisplayName: "Microcrystalline Cellulose",
+        batchNumber: null,
+        sectionId: 10,
+        sectionName: "Microbiology",
+        openedAtUtc: "2026-11-20T10:00:00Z",
+        openedByName: "Reviewer",
+        phaseOneDueDate: null,
+        dueDate: null,
+        isOverdue: false,
+        conclusion: null,
+        concludedAtUtc: null,
+        rootCauseCategoryName: null,
+        testCodes: ["TAMC"],
+        version: 1
+      }
+    ]);
+    vi.mocked(actionAvailabilityService.get).mockResolvedValue([
+      { action: "approval.approve", allowed: true, reason: null },
+      { action: "approval.reject", allowed: true, reason: null },
+      { action: "approval.retestRetainedSample", allowed: true, reason: null },
+      { action: "approval.newSampleRequest", allowed: true, reason: null }
+    ]);
+
+    const { rerender } = mount();
+
+    expect(await screen.findByRole("radio", { name: /Retest Retained Sample/i })).toBeTruthy();
+    expect(screen.getByRole("radio", { name: /New Sample Required/i })).toBeTruthy();
+
+    vi.mocked(oosInvestigationService.getForSample).mockResolvedValue([]);
+    vi.mocked(actionAvailabilityService.get).mockResolvedValue([
+      {
+        action: "approval.approve",
+        allowed: false,
+        reasonCode: "Oos.InvestigationOpen",
+        reasonParams: { number: "OOS-2026-0099" },
+        reason: "OOS investigation OOS-2026-0099 is open."
+      },
+      {
+        action: "approval.reject",
+        allowed: false,
+        reasonCode: "Oos.InvestigationOpen",
+        reasonParams: { number: "OOS-2026-0099" },
+        reason: "OOS investigation OOS-2026-0099 is open."
+      },
+      {
+        action: "approval.retestRetainedSample",
+        allowed: false,
+        reasonCode: "Oos.RetestNeedsApprovedPlan",
+        reason: "A retest needs an approved retest plan."
+      },
+      {
+        action: "approval.newSampleRequest",
+        allowed: false,
+        reasonCode: "Oos.RetestNeedsApprovedPlan",
+        reason: "A retest needs an approved retest plan."
+      }
+    ]);
+
+    rerender(
+      <MemoryRouter>
+        <PinnedLightTheme>
+          <SampleSummaryDialog open={true} sampleId={78} onClose={vi.fn()} />
+        </PinnedLightTheme>
+      </MemoryRouter>
+    );
+
+    expect((await screen.findAllByText("OOS investigation OOS-2026-0099 is open.")).length).toBeGreaterThan(0);
+    expect(screen.queryByRole("radio", { name: /Retest Retained Sample/i })).toBeNull();
+    expect(screen.queryByRole("radio", { name: /New Sample Required/i })).toBeNull();
+  }, 15000);
+
+  it("resets an unavailable selected retest decision back to Approve when server availability changes", async () => {
+    const user = userEvent.setup();
+    const base = createSample();
+    const sectionOne = base.sections![0];
+    const sectionTwo = { ...sectionOne, sectionId: 20, sectionCode: "MB", sectionName: "Microbiology" };
+    mockGetSummary.mockResolvedValue(
+      createSample({
+        status: "UnderApproval",
+        certificate: { sample: { matrix: null, simple: null }, sections: [] } as never,
+        sections: [
+          { ...sectionOne, status: "UnderApproval" },
+          { ...sectionTwo, status: "UnderApproval" }
+        ]
+      })
+    );
+    vi.mocked(oosInvestigationService.getForSample).mockResolvedValue([]);
+    vi.mocked(actionAvailabilityService.get).mockImplementation(async (_kind, _id, sectionId) => {
+      if (sectionId === 20) {
+        return [
+          {
+            action: "approval.approve",
+            allowed: false,
+            reasonCode: "Oos.InvestigationOpen",
+            reasonParams: { number: "OOS-2026-0100" },
+            reason: "OOS investigation OOS-2026-0100 is open."
+          },
+          {
+            action: "approval.retestRetainedSample",
+            allowed: false,
+            reasonCode: "Oos.RetestNeedsApprovedPlan",
+            reason: "A retest needs an approved retest plan."
+          },
+          {
+            action: "approval.newSampleRequest",
+            allowed: false,
+            reasonCode: "Oos.RetestNeedsApprovedPlan",
+            reason: "A retest needs an approved retest plan."
+          }
+        ];
+      }
+      return [
+        { action: "approval.approve", allowed: true, reason: null },
+        { action: "approval.reject", allowed: true, reason: null },
+        { action: "approval.retestRetainedSample", allowed: true, reason: null },
+        { action: "approval.newSampleRequest", allowed: true, reason: null }
+      ];
+    });
+
+    mount();
+
+    const sectionInput = await screen.findByRole("combobox", { name: /Laboratory Section/i });
+    await user.click(sectionInput);
+    await user.click(await screen.findByRole("option", { name: "Physicochemical" }));
+
+    const retestRadio = await screen.findByRole("radio", { name: /Retest Retained Sample/i });
+    await user.click(retestRadio);
+    expect((retestRadio as HTMLInputElement).checked).toBe(true);
+
+    await user.click(screen.getByRole("combobox", { name: /Laboratory Section/i }));
+    await user.click(await screen.findByRole("option", { name: "Microbiology" }));
+
+    await waitFor(() => {
+      expect(screen.queryByRole("radio", { name: /Retest Retained Sample/i })).toBeNull();
+    });
+    expect((screen.getByRole("radio", { name: /Approve/i }) as HTMLInputElement).checked).toBe(true);
+    expect((await screen.findAllByText("OOS investigation OOS-2026-0100 is open.")).length).toBeGreaterThan(0);
   }, 15000);
 
   it("keeps retest and new-sample options present when no investigation exists and allows manual open on blocked approval", async () => {

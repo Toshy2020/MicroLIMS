@@ -57,7 +57,6 @@ export function ApprovalSignaturesCard({
   onClosingSectionChange,
   onCloseTestingClick,
   oosInvestigations = [],
-  sectionHasInvestigation = false,
   canOpenInvestigation = false,
   openingInvestigation = false,
   openInvestigationError = null,
@@ -105,7 +104,6 @@ export function ApprovalSignaturesCard({
   onClosingSectionChange: (id: number | "") => void;
   onCloseTestingClick: () => void;
   oosInvestigations?: OosInvestigationListItemDto[];
-  sectionHasInvestigation?: boolean;
   canOpenInvestigation?: boolean;
   openingInvestigation?: boolean;
   openInvestigationError?: string | null;
@@ -172,34 +170,37 @@ export function ApprovalSignaturesCard({
     };
   }, [decision, effectiveApprovalSectionId, approvableSections, summary.certificate]);
 
-  // Follow-up (backend, later): derive retest/new-sample availability from the server instead of sectionHasInvestigation.
+  const retestEntry = approvalAvailability.get("approval.retestRetainedSample");
+  const newSampleEntry = approvalAvailability.get("approval.newSampleRequest");
+
   const visibleDecisionOptions = useMemo(
     () =>
-      sectionHasInvestigation
-        ? DECISION_OPTIONS.filter(
-            (opt) => opt.value !== "RetestRetainedSample" && opt.value !== "NewSampleRequest"
-          )
-        : DECISION_OPTIONS,
-    [sectionHasInvestigation]
+      DECISION_OPTIONS.filter((opt) => {
+        if (opt.value === "RetestRetainedSample") return retestEntry === null || retestEntry.allowed;
+        if (opt.value === "NewSampleRequest") return newSampleEntry === null || newSampleEntry.allowed;
+        return true;
+      }),
+    [retestEntry, newSampleEntry]
   );
+
+  const DECISION_ACTION: Record<SampleApprovalDecision, string> = {
+    Approve: "approval.approve",
+    Reject: "approval.reject",
+    RetestRetainedSample: "approval.retestRetainedSample",
+    NewSampleRequest: "approval.newSampleRequest"
+  };
 
   const approveEntry = approvalAvailability.get("approval.approve");
   const rejectEntry = approvalAvailability.get("approval.reject");
   const activeEntry =
-    decision === "Approve"
-      ? approveEntry
-      : decision === "Reject"
-      ? rejectEntry
-      : approveEntry && !approveEntry.allowed
-      ? approveEntry
-      : rejectEntry;
+    approvalAvailability.get(DECISION_ACTION[decision]) ??
+    (approveEntry && !approveEntry.allowed ? approveEntry : rejectEntry);
   const approvalBlockedReason =
     activeEntry && !activeEntry.allowed ? (activeEntry.reason ?? null) : null;
   const approvalBlockedCode =
     activeEntry && !activeEntry.allowed ? (activeEntry.reasonCode ?? null) : null;
   const canOpenMissingInvestigation =
     canOpenInvestigation &&
-    !sectionHasInvestigation &&
     approvalBlockedCode === "Oos.FailingResultWithoutInvestigation";
 
   return (
@@ -586,9 +587,8 @@ export function ApprovalSignaturesCard({
             </Alert>
           )}
 
-          {/* Approve and Not Conform are gated by the server; the retest decisions have no gated action. */}
           <GatedAction
-            action={decision === "Approve" ? "approval.approve" : decision === "Reject" ? "approval.reject" : "none"}
+            action={DECISION_ACTION[decision]}
             availability={approvalAvailability}
           >
             <Button

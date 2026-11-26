@@ -69,7 +69,8 @@
     "discussions": "النقاشات",
     "notifications": "الإشعارات",
     "receivingTestingWorkspace": "مساحة عمل الاستلام والاختبار",
-    "qualityEvents": "أحداث الجودة"
+    "qualityEvents": "أحداث الجودة",
+    "qualityConfiguration": "إعدادات الجودة"
   },
   "group": {
     "overview": "نظرة عامة",

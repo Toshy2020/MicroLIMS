@@ -37,7 +37,7 @@ Requires the *Quality View* permission (`Quality.View`). By default this is held
 - If nothing matches, the table shows "No quality records found."
 
 #### Important rules
-- The register does not read filters from the web address. The links from the dashboard tiles therefore open the register without the filters they name (section 46.8).
+- The register reads its filters from the web address and keeps the address up to date when you change a filter. A link such as `/quality?overdue=true` or `/quality?type=Capa` therefore opens the register already filtered (section 46.8).
 
 #### What happens next
 Opening a record shows its page (section 46.2).
@@ -167,7 +167,7 @@ A CAPA that was not effective leads to a successor CAPA, which follows the same 
 Plan a change to a specification, test, item, equipment or controlled document, assess what it affects, approve it for implementation, carry out the tasks, and close it.
 
 #### Who can use it
-- **Propose**: a user with *Quality Raise* (`Quality.Raise`). The owner named in the proposal must be an active Section Head or QC Manager of the laboratory.
+- **Propose**: a user with *Quality Raise* (`Quality.Raise`) whose role is Section Head, QC Manager or QA; the server refuses anyone else. The owner named in the proposal must be an active Section Head or QC Manager of the laboratory.
 - **Impact assessment, checklist and tasks**: a user with *Quality Investigate* (`Quality.Investigate`), by default the Section Head.
 - **Approval and rejection**: QA.
 - **Each task**: the responsible person named on that task.
@@ -281,9 +281,11 @@ The quality tiles appear only to users with *Quality View* (`Quality.View`). The
   - **Overdue quality items**.
 
 #### How to use it
-1. Click a tile to open the register. Each tile opens **Quality Events**.
-2. The **Overdue quality items** tile is meant to open the register filtered to overdue records. The register does not apply that filter yet: set **Overdue only** yourself (section 46.1).
-3. The **Effectiveness checks due** tile is meant to open the CAPA tab. The register does not apply that either: choose **CAPAs** yourself.
+1. Click a tile to open the register.
+2. **Overdue quality items** opens the register filtered to overdue records (**Overdue only** set).
+3. **Effectiveness checks due** opens the CAPA tab.
+4. **My open records & actions** opens the register filtered to records you own (**Owned by me** set).
+5. **Waiting for my decision** and **Lab open records & actions** open the register without a filter, because the register has no matching filter.
 
 ---
 
@@ -428,8 +430,6 @@ The permissions below are the defaults for the built-in roles. Administrators ca
 
 ---
 
-> **Note for reviewers:** The dashboard tiles open the register with filters the register does not apply (overdue, CAPA type). Only the register's own filters work from the page (section 46.8). (GAP-911)
->
 > **Note for reviewers:** Users with *Quality Raise* see **Propose change control** and the **Void** and remove-link buttons. The server refuses void and remove unless the user is the owner or holds Investigate (section 46.10), but it does not check the role of the person proposing a change control, although the rules say only Section Head, QC Manager or QA may propose one (section 46.5). This is recorded as CONF-242 in `documents/Conflicts.md`. (GAP-912)
 >
 > **Note for reviewers:** The Save template button for site-wide checklist templates is enabled for Investigate users, although only Approve users can save that scope (section 46.11). (GAP-913)

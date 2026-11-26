@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Alert, Box, Button, Checkbox, FormControlLabel, MenuItem, Stack, Tab, Tabs, TextField, Typography } from "@mui/material";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "../../i18n";
 import { useAuth } from "../../contexts/AuthContext";
 import { PageHeader } from "../../components/PageHeader";
@@ -244,7 +244,12 @@ export function QualityRegisterPage() {
   return (
     <Box>
       <PageHeader title={t("register.title")} subtitle={t("register.subtitle")}>
-        <QualityCreateActions />
+        <Stack direction="row" spacing={1} sx={{ alignItems: "center", flexWrap: "wrap" }}>
+          <Button component={Link} to="/quality/trends" variant="outlined">
+            {t("trends.openTrends")}
+          </Button>
+          <QualityCreateActions />
+        </Stack>
       </PageHeader>
 
       <Tabs

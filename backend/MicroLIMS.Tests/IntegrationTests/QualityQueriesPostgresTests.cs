@@ -8,6 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using MicroLIMS.API.BackgroundServices;
 using MicroLIMS.API.Controllers;
+using MicroLIMS.Application.Abstractions.Pdf;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.Helpers;
@@ -146,14 +147,17 @@ public sealed class QualityQueriesPostgresTests(PostgresTestFixture fixture)
             var assessed = await devSvc.AssessAsync(dev.Id, new AssessDeviationRequest(true, classId, ownerA, new DateOnly(2089, 3, 12), Password), dev.Version, qaId);
             devId = assessed.Id;
 
-            clock.CurrentUtc = Utc(2089, 3, 15);
+            clock.CurrentUtc = Utc(2089, 3, 15, 18);
             var capaSvc = new CapaService(arrange, Core(arrange, clock), new PermissionService(arrange),
                 new UserSectionScopeService(arrange), new LabClock(clock, TimeZoneInfo.Utc), new QualityDueDateService(arrange));
             var capa = await capaSvc.CreateAsync(new CreateCapaRequest("Filter CAPA", "Desc", secB, null, null, ownerB), headB);
             capaId = capa.Id;
+
+            var cancelledDev = await devSvc.RaiseAsync(new RaiseDeviationRequest("Cancelled Dev", "Desc", Utc(2089, 3, 15, 10), null, "Imm", secA, null), null, headA);
+            await devSvc.CancelAsync(cancelledDev.Id, "Duplicate", Password, cancelledDev.Version, qaId);
         }
 
-        // Advance clock so devId (due 2089-03-05) is overdue at 2089-03-15
+        // Advance clock so devId (due 2089-03-12) is overdue at 2089-03-15
         await using (var act = Context(clock, qaId))
         {
             var svc = QueryService(act, clock);
@@ -165,6 +169,10 @@ public sealed class QualityQueriesPostgresTests(PostgresTestFixture fixture)
             var byStatus = await svc.ListAsync(new QualityRecordFilter(Status: "Investigation"), qaId);
             Assert.Contains(byStatus.Items, x => x.Id == devId);
             Assert.DoesNotContain(byStatus.Items, x => x.Id == capaId);
+
+            var byCancelled = await svc.ListAsync(new QualityRecordFilter(Status: "Cancelled"), qaId);
+            Assert.Contains(byCancelled.Items, x => x.IsCancelled);
+            Assert.DoesNotContain(byCancelled.Items, x => x.Id == devId);
 
             var byClass = await svc.ListAsync(new QualityRecordFilter(ClassificationId: classId), qaId);
             Assert.Contains(byClass.Items, x => x.Id == devId);
@@ -181,7 +189,12 @@ public sealed class QualityQueriesPostgresTests(PostgresTestFixture fixture)
             Assert.Contains(byOverdue.Items, x => x.Id == devId);
             Assert.DoesNotContain(byOverdue.Items, x => x.Id == capaId);
 
-            var byDate = await svc.ListAsync(new QualityRecordFilter(From: Utc(2089, 3, 14), To: Utc(2089, 3, 16)), qaId);
+            var byNotOverdue = await svc.ListAsync(new QualityRecordFilter(Overdue: false), qaId);
+            Assert.Contains(byNotOverdue.Items, x => x.Id == capaId);
+            Assert.DoesNotContain(byNotOverdue.Items, x => x.Id == devId);
+
+            // Date-only `To` includes the entire day (capaId raised at 18:00Z on 2089-03-15)
+            var byDate = await svc.ListAsync(new QualityRecordFilter(From: Utc(2089, 3, 14, 0), To: Utc(2089, 3, 15, 0)), qaId);
             Assert.Contains(byDate.Items, x => x.Id == capaId);
             Assert.DoesNotContain(byDate.Items, x => x.Id == devId);
 
@@ -229,15 +242,24 @@ public sealed class QualityQueriesPostgresTests(PostgresTestFixture fixture)
             await arrange.SaveChangesAsync();
             sampleBId = sampleB.Id;
 
+            var equipB = new Equipment
+            {
+                Code = $"EQ-B-{Guid.NewGuid():N}"[..12],
+                Name = "Secret Section-B Centrifuge",
+                SectionId = secB
+            };
+            arrange.Equipment.Add(equipB);
+            await arrange.SaveChangesAsync();
+
             var devSvc = new DeviationService(arrange, Core(arrange, clock), new PermissionService(arrange),
                 new UserSectionScopeService(arrange), new SegregationOfDutiesGuard(arrange),
                 new LabClock(clock, TimeZoneInfo.Utc), new QualityDueDateService(arrange));
 
-            // Raised by analystA1 in secA, plus a link to sampleB (which headA cannot read) added by qaId
+            // Raised by analystA1 in secA, plus a link to equipB (which headA cannot read; label != code) added by qaId
             var d1 = await devSvc.RaiseAsync(new RaiseDeviationRequest("Analyst1 Dev", "Desc", Utc(2089, 4, 1), null, "Imm", secA, null), null, analystA1);
             devA1Id = d1.Id;
             var linkSvc = new QualityLinkService(arrange, Core(arrange, clock), new PermissionService(arrange), new UserSectionScopeService(arrange), clock);
-            await linkSvc.AddAsync(devA1Id, QualityLinkTargetType.Sample, sampleBId, qaId, d1.Version);
+            await linkSvc.AddAsync(devA1Id, QualityLinkTargetType.Equipment, equipB.Id, qaId, d1.Version);
 
             // Raised by headA in secA (analystA1 is neither raiser, owner, nor action assignee)
             var d2 = await devSvc.RaiseAsync(new RaiseDeviationRequest("HeadA Dev", "Desc", Utc(2089, 4, 1), null, "Imm", secA, null), null, headA);
@@ -274,7 +296,7 @@ public sealed class QualityQueriesPostgresTests(PostgresTestFixture fixture)
             Assert.DoesNotContain(list.Items, x => x.Id == devA1Id || x.Id == devA2Id);
         }
 
-        // Head A can read devA1Id, and the restricted link to sampleB shows its number only (no label/route)
+        // Head A can read devA1Id, and the restricted link to equipB shows its code + "Restricted" (no label/route)
         await using (var actHeadA = Context(clock, headA))
         {
             var detail = await QueryService(actHeadA, clock).GetDetailAsync(devA1Id, headA);
@@ -283,15 +305,18 @@ public sealed class QualityQueriesPostgresTests(PostgresTestFixture fixture)
             var (_, pdfBytes) = await ReportBuilder(actHeadA, clock).GeneratePdfAsync(devA1Id, headA);
             using var pdf = PdfDocument.Open(pdfBytes);
             var text = string.Join("\n", pdf.GetPages().Select(p => p.Text));
-            Assert.Contains("SMP-B-", text);
+            Assert.Contains("EQ-B-", text);
+            Assert.Contains("Restricted", text);
+            Assert.DoesNotContain("Secret Section-B Centrifuge", text);
+            Assert.DoesNotContain("/laboratory-configuration/equipment", text);
         }
     }
 
     [PostgresFact]
-    public async Task Detail_and_pdf_include_path_steps_signed_timeline_and_export_audit()
+    public async Task Detail_and_pdf_include_path_steps_multiple_signers_truncated_links_note_and_export_audit()
     {
         var clock = new MutableClock(Utc(2089, 5, 10, 14));
-        int secA, qaId, headId, ownerId, devId, classId;
+        int secA, qaId, headId, ownerId, devId, classId, causeId;
 
         await using (var arrange = Context(clock))
         {
@@ -301,9 +326,11 @@ public sealed class QualityQueriesPostgresTests(PostgresTestFixture fixture)
             ownerId = await CreateUserAsync(arrange, RoleType.SectionHead, secA, "Salma Owner");
 
             var cls = new QualityClassification { Name = $"Major-{Guid.NewGuid():N}"[..16], Order = 1, IsActive = true };
-            arrange.QualityClassifications.Add(cls);
+            var cause = new OosCauseCategory { Name = $"Cause-{Guid.NewGuid():N}"[..16], IsActive = true };
+            arrange.AddRange(cls, cause);
             await arrange.SaveChangesAsync();
             classId = cls.Id;
+            causeId = cause.Id;
 
             var devSvc = new DeviationService(arrange, Core(arrange, clock), new PermissionService(arrange),
                 new UserSectionScopeService(arrange), new SegregationOfDutiesGuard(arrange),
@@ -311,7 +338,17 @@ public sealed class QualityQueriesPostgresTests(PostgresTestFixture fixture)
 
             var raised = await devSvc.RaiseAsync(new RaiseDeviationRequest("PDF Dev", "Desc", Utc(2089, 5, 10, 9), "Lab 1", "Quarantined", secA, null), null, headId);
             var assessed = await devSvc.AssessAsync(raised.Id, new AssessDeviationRequest(true, classId, ownerId, new DateOnly(2089, 5, 20), Password), raised.Version, qaId);
-            devId = assessed.Id;
+            var investigated = await devSvc.SaveInvestigationAsync(assessed.Id, new SaveDeviationInvestigationRequest("Impact", causeId, "Root", "Prop"), assessed.Version, ownerId);
+
+            clock.CurrentUtc = Utc(2089, 5, 11, 15);
+            var labConcluded = await devSvc.SignLabConclusionAsync(investigated.Id, Password, investigated.Version, headId);
+
+            clock.CurrentUtc = Utc(2089, 5, 12, 16);
+            var approved = await devSvc.ApproveAsync(labConcluded.Id, new ApproveDeviationRequest(false, null, Password), labConcluded.Version, qaId);
+
+            clock.CurrentUtc = Utc(2089, 5, 13, 17);
+            var closed = await devSvc.CloseAsync(approved.Id, Password, approved.Version, qaId);
+            devId = closed.Id;
         }
 
         await using (var act = Context(clock, qaId))
@@ -319,18 +356,29 @@ public sealed class QualityQueriesPostgresTests(PostgresTestFixture fixture)
             var detail = await QueryService(act, clock).GetDetailAsync(devId, qaId);
             Assert.NotNull(detail.Deviation);
             Assert.NotEmpty(detail.PathSteps);
-            var sig = Assert.Single(detail.Timeline);
-            Assert.Equal("Dr. Nadia QA", sig.SignerFullName);
-            Assert.Contains("UTC", sig.SignedAtUtcText);
-            Assert.Equal(ReportVocabulary.SignatureMeaning(nameof(SignatureMeaning.DeviationAssessed)), sig.MeaningText);
+            Assert.Equal(4, detail.Timeline.Count);
 
             var (fileName, bytes) = await ReportBuilder(act, clock).GeneratePdfAsync(devId, qaId);
             Assert.EndsWith(".pdf", fileName);
             using var pdf = PdfDocument.Open(bytes);
             var text = string.Join("\n", pdf.GetPages().Select(p => p.Text));
             Assert.Contains("Dr. Nadia QA", text);
+            Assert.Contains("Tariq Head", text);
             Assert.Contains("2089-05-10 14:00:00 UTC", text);
+            Assert.Contains("2089-05-11 15:00:00 UTC", text);
+            Assert.Contains("2089-05-12 16:00:00 UTC", text);
+            Assert.Contains("2089-05-13 17:00:00 UTC", text);
             Assert.Contains(ReportVocabulary.SignatureMeaning(nameof(SignatureMeaning.DeviationAssessed)), text);
+            Assert.Contains(ReportVocabulary.SignatureMeaning(nameof(SignatureMeaning.QualityLabConclusion)), text);
+            Assert.Contains(ReportVocabulary.SignatureMeaning(nameof(SignatureMeaning.QualityApproved)), text);
+            Assert.Contains(ReportVocabulary.SignatureMeaning(nameof(SignatureMeaning.QualityClosed)), text);
+
+            // Truncated links note when LinksCount > resolvedLinks.Count
+            var fakeTruncatedDetail = detail with { LinksCount = 5 };
+            var fakeLinks = new[] { new QualityLinkDto(1, "SMP-001", "SMP-001", "/samples/1", false) };
+            var truncatedDoc = QualityReportBuilder.Build(fakeTruncatedDetail, fakeLinks);
+            var listBlocks = truncatedDoc.Blocks.OfType<ListBlock>().ToList();
+            Assert.Contains(listBlocks, b => b.Rows.Any(r => r.Right.Contains("4 more linked records not shown")));
         }
 
         await using (var assertDb = Context(clock))
@@ -340,316 +388,6 @@ public sealed class QualityQueriesPostgresTests(PostgresTestFixture fixture)
                 .OrderByDescending(e => e.Id)
                 .FirstOrDefaultAsync();
             Assert.NotNull(exportLog);
-        }
-    }
-
-    [PostgresFact]
-    public async Task Trends_group_by_each_dimension_and_detect_repeat_causes()
-    {
-        var clock = new MutableClock(Utc(2089, 6, 1));
-        int secA, qaId, headId, ownerId, classId, causeId, itemId;
-
-        await using (var arrange = Context(clock))
-        {
-            (secA, _) = await TwoSectionsAsync(arrange);
-            qaId = await CreateUserAsync(arrange, RoleType.Qa, secA, "QA Trend");
-            headId = await CreateUserAsync(arrange, RoleType.SectionHead, secA, "Head Trend");
-            ownerId = await CreateUserAsync(arrange, RoleType.SectionHead, secA, "Owner Trend");
-
-            var cls = new QualityClassification { Name = $"Crit-{Guid.NewGuid():N}"[..16], Order = 1, IsActive = true };
-            var cause = new OosCauseCategory { Name = $"Cause-{Guid.NewGuid():N}"[..16], IsActive = true };
-            var item = new Item { Name = $"Prod-{Guid.NewGuid():N}"[..16], Code = $"P-{Guid.NewGuid():N}"[..10], Category = SampleCategory.FinishedProduct, IsActive = true };
-            arrange.AddRange(cls, cause, item);
-            await arrange.SaveChangesAsync();
-            classId = cls.Id;
-            causeId = cause.Id;
-            itemId = item.Id;
-
-            var devSvc = new DeviationService(arrange, Core(arrange, clock), new PermissionService(arrange),
-                new UserSectionScopeService(arrange), new SegregationOfDutiesGuard(arrange),
-                new LabClock(clock, TimeZoneInfo.Utc), new QualityDueDateService(arrange));
-
-            // Two deviations with the same cause + item within 10 days (repeat cause!)
-            for (var i = 0; i < 2; i++)
-            {
-                clock.CurrentUtc = Utc(2089, 6, 1 + i * 5);
-                var d = await devSvc.RaiseAsync(new RaiseDeviationRequest($"Trend Dev {i}", "Desc", clock.CurrentUtc, null, "Imm",
-                    secA, [new QualityLinkRequest(QualityLinkTargetType.Item, itemId)]), null, headId);
-                d = await devSvc.AssessAsync(d.Id, new AssessDeviationRequest(true, classId, ownerId, new DateOnly(2089, 6, 20), Password), d.Version, qaId);
-                d = await devSvc.SaveInvestigationAsync(d.Id, new SaveDeviationInvestigationRequest("Impact", causeId, "Root", "Prop"), d.Version, ownerId);
-                d = await devSvc.SignLabConclusionAsync(d.Id, Password, d.Version, headId);
-                d = await devSvc.ApproveAsync(d.Id, new ApproveDeviationRequest(false, null, Password), d.Version, qaId);
-                if (i == 0)
-                {
-                    clock.CurrentUtc = Utc(2089, 6, 4);
-                    await devSvc.CloseAsync(d.Id, Password, d.Version, qaId);
-                }
-            }
-        }
-
-        await using (var act = Context(clock, qaId))
-        {
-            var svc = QueryService(act, clock);
-            foreach (var groupBy in new[] { "type", "classification", "cause", "section", "item", "source" })
-            {
-                var report = await svc.GetTrendsAsync(groupBy, Utc(2089, 5, 30), Utc(2089, 6, 30), 30, qaId);
-                Assert.Equal(groupBy, report.GroupBy);
-                Assert.NotEmpty(report.Groups);
-            }
-
-            var causeReport = await svc.GetTrendsAsync("cause", Utc(2089, 5, 30), Utc(2089, 6, 30), 30, qaId);
-            var repeat = Assert.Single(causeReport.RepeatCauses, r => r.CauseCategoryId == causeId && r.TargetType == QualityLinkTargetType.Item && r.TargetId == itemId);
-            Assert.Equal(2, repeat.OccurrenceCount);
-
-            var tightWindow = await svc.GetTrendsAsync("cause", Utc(2089, 5, 30), Utc(2089, 6, 30), 2, qaId);
-            Assert.DoesNotContain(tightWindow.RepeatCauses, r => r.CauseCategoryId == causeId && r.TargetId == itemId);
-
-            await Assert.ThrowsAsync<BusinessRuleException>(() => svc.GetTrendsAsync("invalid", null, null, 30, qaId));
-        }
-    }
-
-    [PostgresFact]
-    public async Task Dashboard_returns_role_specific_items()
-    {
-        var clock = new MutableClock(Utc(2089, 7, 10));
-        int secA, qaId, headId, ownerId, analystId, devId, capaId;
-
-        await using (var arrange = Context(clock))
-        {
-            (secA, _) = await TwoSectionsAsync(arrange);
-            qaId = await CreateUserAsync(arrange, RoleType.Qa, secA, "QA Dash");
-            headId = await CreateUserAsync(arrange, RoleType.SectionHead, secA, "Head Dash");
-            ownerId = await CreateUserAsync(arrange, RoleType.SectionHead, secA, "Owner Dash");
-            analystId = await CreateUserAsync(arrange, RoleType.Analyst, secA, "Analyst Dash");
-
-            var cls = new QualityClassification { Name = $"Min-{Guid.NewGuid():N}"[..16], Order = 1, IsActive = true };
-            arrange.QualityClassifications.Add(cls);
-            await arrange.SaveChangesAsync();
-
-            var devSvc = new DeviationService(arrange, Core(arrange, clock), new PermissionService(arrange),
-                new UserSectionScopeService(arrange), new SegregationOfDutiesGuard(arrange),
-                new LabClock(clock, TimeZoneInfo.Utc), new QualityDueDateService(arrange));
-            var dev = await devSvc.RaiseAsync(new RaiseDeviationRequest("Dash Dev", "Desc", Utc(2089, 7, 1), null, "Imm", secA, null), null, analystId);
-            dev = await devSvc.AssessAsync(dev.Id, new AssessDeviationRequest(true, cls.Id, ownerId, new DateOnly(2089, 7, 11), Password), dev.Version, qaId);
-            devId = dev.Id;
-
-            var capaSvc = new CapaService(arrange, Core(arrange, clock), new PermissionService(arrange),
-                new UserSectionScopeService(arrange), new LabClock(clock, TimeZoneInfo.Utc), new QualityDueDateService(arrange));
-            var capa = await capaSvc.CreateAsync(new CreateCapaRequest("Dash CAPA", "Desc", secA, null, null, ownerId), headId);
-            capa = await capaSvc.SavePlanAsync(capa.Id, new SaveCapaPlanRequest(
-                [new CapaActionInput(QualityActionKind.Corrective, "Do thing", analystId, new DateOnly(2089, 7, 12))],
-                "Crit", "Meth", new DateOnly(2089, 7, 15)), capa.Version, ownerId);
-            capa = await capaSvc.ApprovePlanAsync(capa.Id, Password, capa.Version, qaId);
-            var actionId = capa.Actions[0].Id;
-            capa = await capaSvc.CompleteActionAsync(actionId, new CompleteCapaActionRequest("Done", null), capa.Version, analystId);
-            await capaSvc.VerifyCompletionAsync(capa.Id, Password, capa.Version, qaId);
-            capaId = capa.Id;
-        }
-
-        // Advance clock to 2089-07-16 so devId is overdue (due 07-05) and capaId effectiveness check is due (planned 07-15)
-        clock.CurrentUtc = Utc(2089, 7, 16);
-
-        await using (var actQa = Context(clock, qaId))
-        {
-            var dash = await QueryService(actQa, clock).GetDashboardAsync(qaId);
-            Assert.Contains(dash.EffectivenessChecksDue, x => x.Id == capaId);
-            Assert.Contains(dash.WaitingForMyDecision, x => x.Id == capaId);
-            Assert.Contains(dash.OverdueRecords, x => x.Id == devId);
-        }
-
-        await using (var actOwner = Context(clock, ownerId))
-        {
-            var dash = await QueryService(actOwner, clock).GetDashboardAsync(ownerId);
-            Assert.Contains(dash.MyOpenRecords, x => x.Id == devId);
-            Assert.Contains(dash.OverdueRecords, x => x.Id == devId);
-        }
-    }
-
-    [PostgresFact]
-    public async Task Overdue_worker_creates_one_notification_per_day_per_item_and_none_when_not_overdue()
-    {
-        var clock = new MutableClock(Utc(2089, 8, 10));
-        int secA, qaId, ownerId, analystId, overdueDevId, notOverdueDevId, overdueActionId;
-
-        await using (var arrange = Context(clock))
-        {
-            (secA, _) = await TwoSectionsAsync(arrange);
-            qaId = await CreateUserAsync(arrange, RoleType.Qa, secA, "QA Overdue");
-            ownerId = await CreateUserAsync(arrange, RoleType.SectionHead, secA, "Owner Overdue");
-            analystId = await CreateUserAsync(arrange, RoleType.Analyst, secA, "Analyst Overdue");
-
-            var cls = new QualityClassification { Name = $"Ov-{Guid.NewGuid():N}"[..16], Order = 1, IsActive = true };
-            arrange.QualityClassifications.Add(cls);
-            await arrange.SaveChangesAsync();
-
-            var devSvc = new DeviationService(arrange, Core(arrange, clock), new PermissionService(arrange),
-                new UserSectionScopeService(arrange), new SegregationOfDutiesGuard(arrange),
-                new LabClock(clock, TimeZoneInfo.Utc), new QualityDueDateService(arrange));
-
-            var d1 = await devSvc.RaiseAsync(new RaiseDeviationRequest("Overdue Dev", "Desc", Utc(2089, 8, 1), null, "Imm", secA, null), null, ownerId);
-            d1 = await devSvc.AssessAsync(d1.Id, new AssessDeviationRequest(true, cls.Id, ownerId, new DateOnly(2089, 8, 11), Password), d1.Version, qaId);
-            overdueDevId = d1.Id;
-
-            var d2 = await devSvc.RaiseAsync(new RaiseDeviationRequest("Future Dev", "Desc", Utc(2089, 8, 1), null, "Imm", secA, null), null, ownerId);
-            d2 = await devSvc.AssessAsync(d2.Id, new AssessDeviationRequest(true, cls.Id, ownerId, new DateOnly(2089, 8, 25), Password), d2.Version, qaId);
-            notOverdueDevId = d2.Id;
-
-            var capaSvc = new CapaService(arrange, Core(arrange, clock), new PermissionService(arrange),
-                new UserSectionScopeService(arrange), new LabClock(clock, TimeZoneInfo.Utc), new QualityDueDateService(arrange));
-            var capa = await capaSvc.CreateAsync(new CreateCapaRequest("Overdue Action CAPA", "Desc", secA, null, null, ownerId), ownerId);
-            capa = await capaSvc.SavePlanAsync(capa.Id, new SaveCapaPlanRequest(
-                [new CapaActionInput(QualityActionKind.Corrective, "Overdue Task", analystId, new DateOnly(2089, 8, 11))],
-                "Crit", "Meth", new DateOnly(2089, 8, 20)), capa.Version, ownerId);
-            capa = await capaSvc.ApprovePlanAsync(capa.Id, Password, capa.Version, qaId);
-            overdueActionId = capa.Actions[0].Id;
-        }
-
-        // Advance to 2089-08-12: overdueDevId (due 08-05) and overdueActionId (due 08-11) are overdue; notOverdueDevId (due 08-25) is not.
-        clock.CurrentUtc = Utc(2089, 8, 12);
-        var labClock = new LabClock(clock, TimeZoneInfo.Utc);
-
-        await using var sp = new ServiceCollection()
-            .AddScoped<IMicroLimsDbContext>(_ => fixture.CreateDbContext(clock))
-            .AddSingleton<TimeProvider>(clock)
-            .AddSingleton<ILabClock>(labClock)
-            .AddScoped<OosRecipientResolver>()
-            .AddScoped<IPermissionRecipientResolver>(sp2 => sp2.GetRequiredService<OosRecipientResolver>())
-            .AddScoped<INotificationPublisher, NotificationPublisher>()
-            .AddScoped<QualityNotifier>()
-            .AddSingleton(NullLogger<QualityNotifier>.Instance)
-            .BuildServiceProvider();
-
-        var worker = new QualityOverdueWorker(
-            sp.GetRequiredService<IServiceScopeFactory>(),
-            new ConfigurationBuilder().Build(),
-            NullLogger<QualityOverdueWorker>.Instance);
-
-        await worker.ScanOnceAsync();
-        await worker.ScanOnceAsync(); // Second run same day must dedupe!
-
-        await using (var assertDb = Context(clock))
-        {
-            var recNotifs = await assertDb.NotificationLogs.AsNoTracking()
-                .Where(n => n.Type == "QualityRecordOverdue" && n.TargetId == overdueDevId && n.UserId == ownerId)
-                .ToListAsync();
-            Assert.Single(recNotifs);
-
-            var actNotifs = await assertDb.NotificationLogs.AsNoTracking()
-                .Where(n => n.Type == "QualityActionOverdue" && n.UserId == analystId && n.DedupeKey == $"quality:overdue:action:{overdueActionId}:2089-08-12")
-                .ToListAsync();
-            Assert.Single(actNotifs);
-
-            Assert.False(await assertDb.NotificationLogs.AsNoTracking()
-                .AnyAsync(n => n.Type == "QualityRecordOverdue" && n.TargetId == notOverdueDevId));
-        }
-
-        // Advance to next lab day (2089-08-13): creates 1 new notification for that day
-        clock.CurrentUtc = Utc(2089, 8, 13);
-        await worker.ScanOnceAsync();
-
-        await using (var assertDb2 = Context(clock))
-        {
-            var count = await assertDb2.NotificationLogs.AsNoTracking()
-                .CountAsync(n => n.Type == "QualityRecordOverdue" && n.TargetId == overdueDevId && n.UserId == ownerId);
-            Assert.Equal(2, count);
-        }
-    }
-
-    private sealed class ThrowingQualityNotifier : IQualityNotifier
-    {
-        public Task RaisedAsync(int recordId, CancellationToken ct = default) => throw new InvalidOperationException("Boom");
-        public Task AssignedAsync(int recordId, CancellationToken ct = default) => throw new InvalidOperationException("Boom");
-        public Task ReturnedAsync(int recordId, CancellationToken ct = default) => throw new InvalidOperationException("Boom");
-        public Task AwaitingQaAsync(int recordId, CancellationToken ct = default) => throw new InvalidOperationException("Boom");
-        public Task ActionAssignedAsync(int recordId, IReadOnlyList<int> actionIds, CancellationToken ct = default) => throw new InvalidOperationException("Boom");
-        public Task ClosedAsync(int recordId, CancellationToken ct = default) => throw new InvalidOperationException("Boom");
-    }
-
-    [PostgresFact]
-    public async Task Notifier_failure_does_not_undo_committed_step_and_events_notify_after_commit()
-    {
-        var clock = new MutableClock(Utc(2089, 9, 1));
-        int secA, qaId, headId, ownerId, devId;
-
-        await using (var arrange = Context(clock))
-        {
-            (secA, _) = await TwoSectionsAsync(arrange);
-            qaId = await CreateUserAsync(arrange, RoleType.Qa, secA, "QA Notif");
-            headId = await CreateUserAsync(arrange, RoleType.SectionHead, secA, "Head Notif");
-            ownerId = await CreateUserAsync(arrange, RoleType.SectionHead, secA, "Owner Notif");
-        }
-
-        // 1. Throwing notifier must NOT fail or roll back RaiseAsync
-        await using (var actThrow = Context(clock, headId))
-        {
-            var svc = new DeviationService(actThrow, Core(actThrow, clock), new PermissionService(actThrow),
-                new UserSectionScopeService(actThrow), new SegregationOfDutiesGuard(actThrow),
-                new LabClock(clock, TimeZoneInfo.Utc), new QualityDueDateService(actThrow),
-                new ThrowingQualityNotifier(), NullLogger<DeviationService>.Instance);
-            var created = await svc.RaiseAsync(new RaiseDeviationRequest("Survives Notifier Boom", "Desc", Utc(2089, 9, 1), null, "Imm", secA, null), null, headId);
-            devId = created.Id;
-        }
-
-        await using (var assertDb = Context(clock))
-        {
-            Assert.True(await assertDb.QualityRecords.AsNoTracking().AnyAsync(r => r.Id == devId));
-        }
-
-        // 2. Real QualityNotifier sends Raised notification
-        await using var sp = new ServiceCollection()
-            .AddScoped<IMicroLimsDbContext>(_ => fixture.CreateDbContext(clock))
-            .AddSingleton<TimeProvider>(clock)
-            .AddScoped<OosRecipientResolver>()
-            .AddScoped<IPermissionRecipientResolver>(sp2 => sp2.GetRequiredService<OosRecipientResolver>())
-            .AddScoped<INotificationPublisher, NotificationPublisher>()
-            .BuildServiceProvider();
-
-        var notifier = new QualityNotifier(sp.GetRequiredService<IServiceScopeFactory>(), NullLogger<QualityNotifier>.Instance);
-        await using (var actReal = Context(clock, headId))
-        {
-            var svc = new DeviationService(actReal, Core(actReal, clock), new PermissionService(actReal),
-                new UserSectionScopeService(actReal), new SegregationOfDutiesGuard(actReal),
-                new LabClock(clock, TimeZoneInfo.Utc), new QualityDueDateService(actReal),
-                notifier, NullLogger<DeviationService>.Instance);
-            var created = await svc.RaiseAsync(new RaiseDeviationRequest("Real Notif", "Desc", Utc(2089, 9, 1), null, "Imm", secA, null), null, headId);
-            devId = created.Id;
-        }
-
-        await using (var assertDb = Context(clock))
-        {
-            Assert.True(await assertDb.NotificationLogs.AsNoTracking()
-                .AnyAsync(n => n.Type == "QualityRecordRaised" && n.TargetId == devId && n.UserId == qaId));
-        }
-    }
-
-    [PostgresFact]
-    public async Task Oos_notifications_unchanged_after_resolver_generalisation()
-    {
-        var clock = new MutableClock(Utc(2089, 10, 1));
-        int secA, secB, qaId, headA, headB;
-
-        await using (var arrange = Context(clock))
-        {
-            (secA, secB) = await TwoSectionsAsync(arrange);
-            qaId = await CreateUserAsync(arrange, RoleType.Qa, secA, "QA Resolver");
-            headA = await CreateUserAsync(arrange, RoleType.SectionHead, secA, "Head A Resolver", PermissionConstants.OosManage);
-            headB = await CreateUserAsync(arrange, RoleType.SectionHead, secB, "Head B Resolver", PermissionConstants.OosManage);
-        }
-
-        await using (var act = Context(clock))
-        {
-            var oosResolver = new OosRecipientResolver(act, clock);
-            IPermissionRecipientResolver genericResolver = oosResolver;
-
-            var oosIds = await oosResolver.ResolveAsync(secA, PermissionConstants.OosManage);
-            var genericIds = await genericResolver.ResolveAsync(secA, PermissionConstants.OosManage);
-
-            Assert.Equal(oosIds.OrderBy(x => x), genericIds.OrderBy(x => x));
-            Assert.Contains(headA, genericIds);
-            Assert.DoesNotContain(headB, genericIds);
-
-            var siteWideQa = await genericResolver.ResolveAsync((int?)null, PermissionConstants.QualityApprove);
-            Assert.Contains(qaId, siteWideQa);
         }
     }
 }

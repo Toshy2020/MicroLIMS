@@ -25,6 +25,7 @@ public static partial class MessageCodes
     public const string QualityExtensionSignatureFailed = "Quality.ExtensionSignatureFailed";
     public const string QualityRecordTerminal = "Quality.RecordTerminal";
     public const string QualityTrendGroupByInvalid = "Quality.TrendGroupByInvalid";
+    public const string QualityTrendWindowTooLarge = "Quality.TrendWindowTooLarge";
 
     public const string DeviationOccurrenceUtc = "Deviation.OccurrenceUtc";
     public const string DeviationUseReject = "Deviation.UseReject";
@@ -192,5 +193,6 @@ public static partial class MessageCodes
         [QualityExtensionSignatureFailed] = [],
         [QualityRecordTerminal] = [],
         [QualityTrendGroupByInvalid] = [],
+        [QualityTrendWindowTooLarge] = [],
     };
 }

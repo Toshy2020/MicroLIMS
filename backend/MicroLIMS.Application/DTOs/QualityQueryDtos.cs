@@ -154,7 +154,9 @@ public sealed record QualityTrendGroupDto(
     int ClosedCount,
     double? AverageTimeToCloseDays,
     double? OnTimeRate,
-    double? CapaEffectivenessRate);
+    double? CapaEffectivenessRate,
+    int CancelledCount = 0,
+    int RejectedCount = 0);
 
 public sealed record QualityRepeatCauseDto(
     int CauseCategoryId,
@@ -192,4 +194,14 @@ public sealed record QualityDashboardDto(
     IReadOnlyList<QualityDashboardActionDto> MyOpenActions,
     IReadOnlyList<QualityRecordListItemDto> OverdueRecords,
     IReadOnlyList<QualityDashboardActionDto> OverdueActions,
-    IReadOnlyList<QualityRecordListItemDto> EffectivenessChecksDue);
+    IReadOnlyList<QualityRecordListItemDto> EffectivenessChecksDue,
+    int WaitingForMyDecisionTotalCount = 0,
+    int MyOpenRecordsTotalCount = 0,
+    int MyOpenActionsTotalCount = 0,
+    int OverdueRecordsTotalCount = 0,
+    int OverdueActionsTotalCount = 0,
+    int EffectivenessChecksDueTotalCount = 0,
+    IReadOnlyList<QualityRecordListItemDto>? LaboratoryOpenRecords = null,
+    int LaboratoryOpenRecordsTotalCount = 0,
+    IReadOnlyList<QualityDashboardActionDto>? LaboratoryOpenActions = null,
+    int LaboratoryOpenActionsTotalCount = 0);

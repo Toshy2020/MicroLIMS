@@ -279,5 +279,96 @@
     "signAndDecide": "Sign and decide",
     "signatureStatement": "Due-date extension decided",
     "requestFailed": "The extension request could not be sent."
+  },
+  "signatureMeanings": {
+    "DeviationAssessed": "Deviation assessed",
+    "DeviationRejected": "Deviation rejected",
+    "QualityLabConclusion": "Laboratory conclusion signed",
+    "QualityApproved": "Quality record approved",
+    "QualityClosed": "Quality record closed",
+    "QualityCancelled": "Quality record cancelled",
+    "CapaPlanApproved": "CAPA plan approved",
+    "CapaCompletionVerified": "CAPA completion verified",
+    "CapaEffectivenessChecked": "CAPA effectiveness checked",
+    "ChangeImpactAssessed": "Change impact assessed",
+    "ChangeApproved": "Change control approved",
+    "ChangeRejected": "Change control rejected",
+    "ComplaintConcluded": "Complaint concluded"
+  },
+  "steps": {
+    "common": {
+      "title": "Steps for this record",
+      "noFurtherSteps": "No further steps are open on this record.",
+      "choose": "Select",
+      "lookupFailed": "The choices could not be loaded. Reload the page and try again.",
+      "lookupLoading": "Loading choices...",
+      "raiserOrOwner": "You raised or own this record, so you cannot approve or close it.",
+      "cancelRecord": "Cancel record",
+      "cancelConfirmTitle": "Cancel this record?",
+      "cancelConfirmMessage": "{{number}} stays visible as cancelled. This cannot be undone.",
+      "cancelReason": "Reason for cancelling"
+    },
+    "deviation": {
+      "assess": {
+        "title": "Assess the deviation",
+        "intro": "Accept the deviation with a classification and an owner, or reject it as not a deviation.",
+        "waitingForQa": "Waiting for QA to assess this deviation.",
+        "classification": "Classification",
+        "owner": "Owner",
+        "dueDate": "Due date",
+        "dueDateHelp": "Leave empty to use the due time set for the classification.",
+        "accept": "Accept and sign",
+        "needsFields": "Choose a classification and an owner first.",
+        "reject": "Reject as not a deviation",
+        "rejectConfirmTitle": "Reject this deviation?",
+        "rejectConfirmMessage": "{{number}} will be rejected as not a deviation. This cannot be undone.",
+        "rejectReason": "Reason for rejecting"
+      },
+      "investigation": {
+        "title": "Investigation",
+        "impact": "Impact assessment",
+        "impactHelp": "Which samples, results, lots and equipment are affected.",
+        "category": "Root cause category",
+        "cause": "Root cause",
+        "proposed": "Proposed actions",
+        "save": "Save investigation",
+        "needsFields": "Fill in every field to save the investigation.",
+        "saveFailed": "The investigation could not be saved.",
+        "sign": "Sign laboratory conclusion",
+        "ownerCannotConclude": "The owner cannot sign the laboratory conclusion.",
+        "saveFirst": "Save the complete investigation before signing the laboratory conclusion.",
+        "withOwner": "The investigation is with the owner."
+      },
+      "decision": {
+        "title": "QA approval",
+        "waitingForQa": "Waiting for QA to approve or return the laboratory conclusion.",
+        "capaRequired": "A CAPA is required",
+        "comment": "Comment",
+        "commentHelp": "Required to return the conclusion; optional when approving.",
+        "approve": "Approve and sign",
+        "return": "Return to investigation",
+        "returnNeedsComment": "Write a comment to return the conclusion.",
+        "returnFailed": "The conclusion could not be returned."
+      },
+      "close": {
+        "title": "Closure",
+        "waitingForQa": "Waiting for QA to close this deviation.",
+        "capaRequired": "A CAPA is required. Its plan must be approved before this deviation can be closed.",
+        "noCapa": "No CAPA is required.",
+        "createCapa": "Create CAPA",
+        "close": "Close and sign"
+      }
+    },
+    "capa": {
+      "create": {
+        "title": "Create CAPA",
+        "from": "Raised from {{number}}.",
+        "titleField": "Title",
+        "description": "Description",
+        "owner": "Owner",
+        "submit": "Create CAPA",
+        "failed": "The CAPA could not be created."
+      }
+    }
   }
 }

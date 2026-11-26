@@ -273,6 +273,205 @@ export interface CompleteQualityActionRequest {
   evidenceLinkId: number | null;
 }
 
+// ---- Step requests and results (DeviationDtos.cs, CapaDtos.cs, ChangeControlDtos.cs, ComplaintDtos.cs) ----
+
+// QualityRecordDto: the base every type DTO carries as its "record" member.
+export interface QualityRecordDto {
+  id: number;
+  number: string;
+  type: QualityRecordType;
+  title: string;
+  description: string;
+  sectionId: number | null;
+  raisedByUserId: number | null;
+  raisedAtUtc: string;
+  ownerUserId: number | null;
+  version: number;
+  attachments: QualityAttachmentDto[];
+}
+
+// What a create call answers with: CapaDto, ChangeControlDto and ComplaintDto all expose the base record, its
+// Id and its Version (the other members are read again from the record page).
+export interface QualityCreatedDto {
+  record: QualityRecordDto;
+  id: number;
+  version: number;
+}
+
+export interface AssessDeviationRequest {
+  accept: boolean;
+  classificationId: number;
+  ownerUserId: number;
+  dueDate: string | null;
+  password: string;
+}
+
+export interface SaveDeviationInvestigationRequest {
+  impactAssessment: string;
+  rootCauseCategoryId: number;
+  rootCauseDescription: string;
+  proposedActions: string;
+}
+
+export interface ApproveDeviationRequest {
+  capaRequired: boolean;
+  comment: string | null;
+  password: string;
+}
+
+// DeviationReasonRequest, CapaReasonRequest, ComplaintReasonRequest and ChangeControlRejectRequest.
+export interface QualityReasonRequest {
+  reason: string;
+  password: string;
+}
+
+// DeviationPasswordRequest, CapaPasswordRequest, ChangeControlPasswordRequest and ComplaintPasswordRequest.
+export interface QualityPasswordRequest {
+  password: string;
+}
+
+// ReturnDeviationRequest and ReturnCapaPlanRequest.
+export interface QualityCommentRequest {
+  comment: string;
+}
+
+export interface CreateCapaRequest {
+  title: string;
+  description: string;
+  sectionId: number | null;
+  sourceRecordId: number | null;
+  links: QualityLinkRequest[] | null;
+  ownerUserId: number;
+}
+
+export interface CapaActionInput {
+  kind: QualityActionKind;
+  description: string;
+  responsibleUserId: number;
+  dueDate: string;
+}
+
+export interface SaveCapaPlanRequest {
+  actions: CapaActionInput[];
+  effectivenessCriteria: string;
+  effectivenessMethod: string;
+  effectivenessPlannedDate: string;
+}
+
+export interface SignCapaEffectivenessRequest {
+  result: CapaEffectiveness;
+  findings: string;
+  newCapaId: number | null;
+  password: string;
+}
+
+export interface ChangeControlAffectedInput {
+  targetType: QualityLinkTargetType;
+  targetId: number | null;
+  newRecordCode: string | null;
+}
+
+export interface ProposeChangeControlRequest {
+  title: string;
+  description: string;
+  reason: string;
+  sectionId: number | null;
+  affected: ChangeControlAffectedInput[] | null;
+  ownerUserId: number | null;
+}
+
+export interface ChangeControlTaskInput {
+  description: string;
+  responsibleUserId: number;
+  dueDate: string;
+}
+
+export type QualityChecklistAnswerValue = "Yes" | "No" | "NotApplicable";
+
+export interface ChangeControlChecklistAnswerInput {
+  itemKey: string;
+  answer: QualityChecklistAnswerValue;
+  comment: string | null;
+}
+
+export interface SaveChangeControlAssessmentRequest {
+  impactSummary: string;
+  tasks: ChangeControlTaskInput[];
+  answers: ChangeControlChecklistAnswerInput[] | null;
+}
+
+export interface CloseChangeControlRequest {
+  postChangeReview: string;
+  unchangedJustification: string | null;
+  password: string;
+}
+
+export interface ReceiveComplaintRequest {
+  title: string;
+  source: string;
+  receivedOn: string;
+  externalReference: string | null;
+  itemId: number | null;
+  lotText: string | null;
+  complaintText: string;
+  sectionId: number | null;
+}
+
+export interface RequestComplaintInvestigationRequest {
+  classificationId: number;
+  ownerUserId: number;
+  dueDate: string | null;
+  whatToTest: string;
+}
+
+export interface SaveComplaintInvestigationRequest {
+  findings: string;
+  sampleIds: number[] | null;
+}
+
+export interface ConcludeComplaintRequest {
+  outcome: ComplaintOutcome;
+  summary: string;
+  password: string;
+}
+
+// QualityChecklistTemplateDto / QualityChecklistItemDto / QualityAnswerDto (QualityConfigDtos.cs).
+export interface QualityChecklistItemDto {
+  key: string;
+  order: number;
+  text: string;
+  isActive: boolean;
+}
+
+export interface QualityChecklistTemplateDto {
+  id: number;
+  type: QualityRecordType;
+  sectionId: number | null;
+  version: number;
+  items: QualityChecklistItemDto[];
+}
+
+export interface QualityAnswerDto {
+  id: number;
+  itemKey: string;
+  itemText: string;
+  answer: QualityChecklistAnswerValue;
+  comment: string | null;
+  answeredByUserId: number;
+  answeredAtUtc: string;
+  recordVersion: number;
+}
+
+// UserDirectoryDto (UserService.cs): GET users/directory, open to every signed-in user.
+export interface QualityUserOption {
+  id: number;
+  fullName: string;
+  username: string;
+  jobTitle: string | null;
+  roleName: string;
+  isActive: boolean;
+}
+
 export const qualityService = {
   async listRecords(filter: QualityRecordFilter, signal?: AbortSignal): Promise<PagedResult<QualityRecordListItemDto>> {
     return (await apiClient.get("/quality/records", { params: filter, signal })).data.data;
@@ -344,5 +543,142 @@ export const qualityService = {
 
   async completeChangeControlTask(actionId: number, request: CompleteQualityActionRequest, version: number): Promise<void> {
     await apiClient.post(`/quality/change-controls/tasks/${actionId}/complete`, request, ifMatch(version));
+  },
+
+  async listUserDirectory(permission?: string, signal?: AbortSignal): Promise<QualityUserOption[]> {
+    return (await apiClient.get("/users/directory", { params: permission ? { permission } : undefined, signal })).data.data;
+  },
+
+  async getChecklistTemplate(type: QualityRecordType, sectionId: number | null, signal?: AbortSignal): Promise<QualityChecklistTemplateDto | null> {
+    return (await apiClient.get(`/quality/config/templates/${type}`, { params: sectionId === null ? undefined : { sectionId }, signal })).data.data;
+  },
+
+  async listChecklistAnswers(recordId: number, page: number, pageSize: number, signal?: AbortSignal): Promise<QualityAnswerDto[]> {
+    return (await apiClient.get(`/quality/${recordId}/checklist-answers`, { params: { page, pageSize }, signal })).data.data;
+  },
+
+  // ---- Deviation (api/quality/deviations) ----
+  async assessDeviation(id: number, request: AssessDeviationRequest, version: number): Promise<void> {
+    await apiClient.post(`/quality/deviations/${id}/assess`, request, ifMatch(version));
+  },
+
+  async rejectDeviation(id: number, request: QualityReasonRequest, version: number): Promise<void> {
+    await apiClient.post(`/quality/deviations/${id}/reject`, request, ifMatch(version));
+  },
+
+  async saveDeviationInvestigation(id: number, request: SaveDeviationInvestigationRequest, version: number): Promise<void> {
+    await apiClient.put(`/quality/deviations/${id}/investigation`, request, ifMatch(version));
+  },
+
+  async signDeviationLabConclusion(id: number, request: QualityPasswordRequest, version: number): Promise<void> {
+    await apiClient.post(`/quality/deviations/${id}/lab-conclusion`, request, ifMatch(version));
+  },
+
+  async approveDeviation(id: number, request: ApproveDeviationRequest, version: number): Promise<void> {
+    await apiClient.post(`/quality/deviations/${id}/approve`, request, ifMatch(version));
+  },
+
+  async returnDeviation(id: number, request: QualityCommentRequest, version: number): Promise<void> {
+    await apiClient.post(`/quality/deviations/${id}/return`, request, ifMatch(version));
+  },
+
+  async closeDeviation(id: number, request: QualityPasswordRequest, version: number): Promise<void> {
+    await apiClient.post(`/quality/deviations/${id}/close`, request, ifMatch(version));
+  },
+
+  async cancelDeviation(id: number, request: QualityReasonRequest, version: number): Promise<void> {
+    await apiClient.post(`/quality/deviations/${id}/cancel`, request, ifMatch(version));
+  },
+
+  // ---- CAPA (api/quality/capas) ----
+  // Creating needs no record version: the record does not exist yet.
+  async createCapa(request: CreateCapaRequest): Promise<QualityCreatedDto> {
+    return (await apiClient.post("/quality/capas", request)).data.data;
+  },
+
+  async saveCapaPlan(id: number, request: SaveCapaPlanRequest, version: number): Promise<void> {
+    await apiClient.put(`/quality/capas/${id}/plan`, request, ifMatch(version));
+  },
+
+  async approveCapaPlan(id: number, request: QualityPasswordRequest, version: number): Promise<void> {
+    await apiClient.post(`/quality/capas/${id}/approve-plan`, request, ifMatch(version));
+  },
+
+  async returnCapaPlan(id: number, request: QualityCommentRequest, version: number): Promise<void> {
+    await apiClient.post(`/quality/capas/${id}/return-plan`, request, ifMatch(version));
+  },
+
+  async verifyCapaCompletion(id: number, request: QualityPasswordRequest, version: number): Promise<void> {
+    await apiClient.post(`/quality/capas/${id}/verify-completion`, request, ifMatch(version));
+  },
+
+  async signCapaEffectiveness(id: number, request: SignCapaEffectivenessRequest, version: number): Promise<void> {
+    await apiClient.post(`/quality/capas/${id}/effectiveness`, request, ifMatch(version));
+  },
+
+  async cancelCapa(id: number, request: QualityReasonRequest, version: number): Promise<void> {
+    await apiClient.post(`/quality/capas/${id}/cancel`, request, ifMatch(version));
+  },
+
+  // ---- Change control (api/quality/change-controls) ----
+  async proposeChangeControl(request: ProposeChangeControlRequest): Promise<QualityCreatedDto> {
+    return (await apiClient.post("/quality/change-controls", request)).data.data;
+  },
+
+  async addChangeControlAffected(id: number, input: ChangeControlAffectedInput, version: number): Promise<void> {
+    await apiClient.post(`/quality/change-controls/${id}/affected`, input, ifMatch(version));
+  },
+
+  async saveChangeControlAssessment(id: number, request: SaveChangeControlAssessmentRequest, version: number): Promise<void> {
+    await apiClient.put(`/quality/change-controls/${id}/assessment`, request, ifMatch(version));
+  },
+
+  async signChangeControlAssessment(id: number, request: QualityPasswordRequest, version: number): Promise<void> {
+    await apiClient.post(`/quality/change-controls/${id}/sign-assessment`, request, ifMatch(version));
+  },
+
+  async approveChangeControl(id: number, request: QualityPasswordRequest, version: number): Promise<void> {
+    await apiClient.post(`/quality/change-controls/${id}/approve`, request, ifMatch(version));
+  },
+
+  async rejectChangeControl(id: number, request: QualityReasonRequest, version: number): Promise<void> {
+    await apiClient.post(`/quality/change-controls/${id}/reject`, request, ifMatch(version));
+  },
+
+  async closeChangeControl(id: number, request: CloseChangeControlRequest, version: number): Promise<void> {
+    await apiClient.post(`/quality/change-controls/${id}/close`, request, ifMatch(version));
+  },
+
+  async cancelChangeControl(id: number, request: QualityReasonRequest, version: number): Promise<void> {
+    await apiClient.post(`/quality/change-controls/${id}/cancel`, request, ifMatch(version));
+  },
+
+  // ---- Complaint (api/quality/complaints) ----
+  async receiveComplaint(request: ReceiveComplaintRequest): Promise<QualityCreatedDto> {
+    return (await apiClient.post("/quality/complaints", request)).data.data;
+  },
+
+  async requestComplaintInvestigation(id: number, request: RequestComplaintInvestigationRequest, version: number): Promise<void> {
+    await apiClient.post(`/quality/complaints/${id}/request-investigation`, request, ifMatch(version));
+  },
+
+  async saveComplaintInvestigation(id: number, request: SaveComplaintInvestigationRequest, version: number): Promise<void> {
+    await apiClient.put(`/quality/complaints/${id}/investigation`, request, ifMatch(version));
+  },
+
+  async signComplaintLabReport(id: number, request: QualityPasswordRequest, version: number): Promise<void> {
+    await apiClient.post(`/quality/complaints/${id}/lab-report`, request, ifMatch(version));
+  },
+
+  async concludeComplaint(id: number, request: ConcludeComplaintRequest, version: number): Promise<void> {
+    await apiClient.post(`/quality/complaints/${id}/conclude`, request, ifMatch(version));
+  },
+
+  async closeComplaint(id: number, request: QualityPasswordRequest, version: number): Promise<void> {
+    await apiClient.post(`/quality/complaints/${id}/close`, request, ifMatch(version));
+  },
+
+  async cancelComplaint(id: number, request: QualityReasonRequest, version: number): Promise<void> {
+    await apiClient.post(`/quality/complaints/${id}/cancel`, request, ifMatch(version));
   }
 };

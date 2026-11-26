@@ -169,6 +169,53 @@ public sealed class OosRetestPlanValidationPostgresTests(PostgresTestFixture fix
         await AssertNothingPersistedAsync(world, withoutManage.Id, version);
     }
 
+    [PostgresFact]
+    public async Task Draft_refuses_missing_reportable_retest_when_multiple()
+    {
+        var world = await ArrangeAsync();
+        var version = await VersionAsync(world);
+        var request = Request(world) with { ReportableRetestNumber = null };
+
+        var error = await Assert.ThrowsAsync<BusinessRuleException>(() => DraftAsync(world, request));
+
+        Assert.Equal(MessageCodes.OosRetestPlanReportableRetestRequired, error.Code);
+        Assert.Equal("Choose which retest gives the reportable result.", error.Message);
+        await AssertNothingPersistedAsync(world, world.Head, version);
+    }
+
+    [PostgresFact]
+    public async Task Draft_refuses_reportable_retest_out_of_range()
+    {
+        var world = await ArrangeAsync();
+        var version = await VersionAsync(world);
+        var request = Request(world) with { ReportableRetestNumber = 3 };
+
+        var error = await Assert.ThrowsAsync<BusinessRuleException>(() => DraftAsync(world, request));
+
+        Assert.Equal(MessageCodes.OosRetestPlanReportableRetestInvalid, error.Code);
+        Assert.Equal("The reportable retest must be one of the planned retests.", error.Message);
+        await AssertNothingPersistedAsync(world, world.Head, version);
+    }
+
+    [PostgresFact]
+    public async Task Draft_stores_reportable_retest_one_when_single_retest_and_null()
+    {
+        var world = await ArrangeAsync();
+        var request = Request(world) with
+        {
+            RetestCount = 1,
+            AnalystUserIds = [world.Analysts[0]],
+            ReportableRetestNumber = null
+        };
+
+        var dto = await DraftAsync(world, request);
+
+        Assert.Equal(1, dto.ReportableRetestNumber);
+        await using var verify = fixture.CreateDbContext();
+        var row = await verify.OosRetestPlans.AsNoTracking().SingleAsync(p => p.Id == dto.Id);
+        Assert.Equal(1, row.ReportableRetestNumber);
+    }
+
     private async Task AssertNothingPersistedAsync(World world, int actor, uint version)
     {
         await using var verify = fixture.CreateDbContext();

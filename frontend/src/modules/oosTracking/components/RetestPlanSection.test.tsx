@@ -340,4 +340,61 @@ describe("RetestPlanSection", () => {
       "Updated rule from server"
     );
   });
+
+  it("shows reportable retest select only when retestCount > 1 and includes choice in payload", async () => {
+    setupAuth();
+    const user = userEvent.setup();
+    const onSaveDraft = vi.fn().mockResolvedValue(undefined);
+    const twoAnalysts: UserRecord[] = [
+      ...analysts,
+      {
+        ...analysts[0],
+        id: 11,
+        username: "analyst3",
+        fullName: "Carol Analyst"
+      }
+    ];
+
+    render(
+      <PinnedLightTheme>
+        <AuthProvider>
+          <RetestPlanSection
+            detail={baseDetail}
+            analysts={twoAnalysts}
+            canManage={true}
+            onSaveDraft={onSaveDraft}
+            onSignPlan={vi.fn().mockResolvedValue(undefined)}
+          />
+        </AuthProvider>
+      </PinnedLightTheme>
+    );
+
+    expect(screen.queryByLabelText("Reportable retest")).toBeNull();
+
+    const countInput = screen.getByLabelText("Number of Retests (1–10)");
+    await user.clear(countInput);
+    await user.type(countInput, "2");
+
+    await user.click(screen.getByLabelText("Assigned Analysts"));
+    await user.click(await screen.findByRole("option", { name: "Bob Analyst (analyst2)" }));
+    await user.click(await screen.findByRole("option", { name: "Carol Analyst (analyst3)" }));
+    await user.keyboard("{Escape}");
+
+    await user.click(screen.getByLabelText("Reportable retest"));
+    await user.click(await screen.findByRole("option", { name: "Retest 2 - Carol Analyst" }));
+
+    await user.type(screen.getByLabelText("Judging Rule"), "Use retest 2.");
+    await user.click(screen.getByRole("button", { name: "Save Draft Plan" }));
+
+    await waitFor(() => {
+      expect(onSaveDraft).toHaveBeenCalledWith(
+        expect.objectContaining({
+          retestCount: 2,
+          analystUserIds: [10, 11],
+          reportableRetestNumber: 2
+        }),
+        9
+      );
+    });
+  });
 });

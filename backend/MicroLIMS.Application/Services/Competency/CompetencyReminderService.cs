@@ -13,19 +13,19 @@ public sealed record CompetencyExpiryReminder(
 public sealed class CompetencyReminderService(IMicroLimsDbContext db, ILabClock clock)
 {
     public async Task<IReadOnlyList<CompetencyExpiryReminder>> GetExpiringAsync(
-        int? userId = null, CancellationToken cancellationToken = default)
+        int? userId = null, CancellationToken cancellationToken = default, bool includeExpired = false)
     {
         var labToday = clock.LabToday;
         var windows = await db.CompetencySectionSettings.AsNoTracking()
             .Where(setting => setting.ReminderDaysBeforeExpiry != null)
             .ToDictionaryAsync(setting => setting.SectionId,
                 setting => setting.ReminderDaysBeforeExpiry!.Value, cancellationToken);
-        if (windows.Count == 0)
+        if (windows.Count == 0 && !includeExpired)
             return [];
 
         var sectionIds = windows.Keys.ToArray();
         var tests = await db.TestDefinitions.AsNoTracking()
-            .Where(test => sectionIds.Contains(test.SectionId))
+            .Where(test => includeExpired || sectionIds.Contains(test.SectionId))
             .Select(test => new { test.Id, test.SectionId, test.Code })
             .ToListAsync(cancellationToken);
         if (tests.Count == 0)
@@ -52,11 +52,20 @@ public sealed class CompetencyReminderService(IMicroLimsDbContext db, ILabClock 
         foreach (var (key, qualification) in latest)
         {
             var test = tests.FirstOrDefault(candidate => candidate.Id == key.TestDefinitionId);
-            if (test is null || !windows.TryGetValue(test.SectionId, out var days)
+            if (test is null
                 || qualification.WithdrawnOn is not null // the latest record governs: a withdrawn one never reminds
-                || qualification.ExpiresOn is not { } expiresOn
-                || expiresOn < labToday || expiresOn > labToday.AddDays(days))
+                || qualification.ExpiresOn is not { } expiresOn)
                 continue;
+
+            var isExpired = expiresOn < labToday;
+            if (isExpired)
+            {
+                if (!includeExpired) continue;
+            }
+            else if (!windows.TryGetValue(test.SectionId, out var days) || expiresOn > labToday.AddDays(days))
+            {
+                continue;
+            }
 
             reminders.Add(new CompetencyExpiryReminder(
                 qualification.Id, key.UserId,

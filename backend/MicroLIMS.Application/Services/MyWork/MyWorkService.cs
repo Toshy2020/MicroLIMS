@@ -30,6 +30,7 @@ public sealed class MyWorkService : IMyWorkService
         ("documents", "Documents"),
         ("equipment", "Equipment"),
         ("materials", "Media, solutions and strains"),
+        ("competency", "Competency qualifications"),
     };
 
     private readonly IMicroLimsDbContext _db;

@@ -39,6 +39,7 @@ public static partial class MessageCodes
     public const string CompetencySopNotCheckedAmbiguous = "Competency.SopNotCheckedAmbiguous";
     public const string CompetencyGateReasonRequired = "Competency.GateReasonRequired";
     public const string CompetencyGateVersionStale = "Competency.GateVersionStale";
+    public const string CompetencyReminderDaysInvalid = "Competency.ReminderDaysInvalid";
     public const string CompetencySectionScopeDenied = "Competency.SectionScopeDenied";
     public const string CompetencyViewRequired = "Competency.ViewRequired";
 
@@ -49,6 +50,7 @@ public static partial class MessageCodes
         [CompetencyAttachmentNameTooLong] = [],
         [CompetencyGateReasonRequired] = [],
         [CompetencyGateVersionStale] = [],
+        [CompetencyReminderDaysInvalid] = [],
         [CompetencyIntervalInvalid] = [],
         [CompetencyOverridePermissionRequired] = [],
         [CompetencyOverrideSelf] = [],

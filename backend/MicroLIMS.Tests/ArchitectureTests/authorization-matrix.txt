@@ -107,6 +107,7 @@ ComplaintsController.Receive(ReceiveComplaintRequest, CancellationToken): Qa
 ComplaintsController.RequestInvestigation(Int32, RequestComplaintInvestigationRequest, CancellationToken): Qa
 ComplaintsController.SaveInvestigation(Int32, SaveComplaintInvestigationRequest, CancellationToken): SectionHead,Reviewer,Analyst,QcManager,Qa
 ComplaintsController.SignLabReport(Int32, ComplaintPasswordRequest, CancellationToken): SectionHead,QcManager
+CompetencyController.ExportMatrix(Int32, MatrixFilters, CancellationToken): SectionHead,Reviewer,Analyst,QcManager,Qa
 CompetencyController.GetImpact(Int32, CancellationToken): SectionHead,QcManager
 CompetencyController.GetMatrix(Int32, MatrixFilters, CancellationToken): SectionHead,Reviewer,Analyst,QcManager,Qa
 CompetencyController.GetMy(CancellationToken): SectionHead,Reviewer,Analyst,QcManager,Qa
@@ -114,6 +115,7 @@ CompetencyController.GetSetting(Int32, CancellationToken): SectionHead,QcManager
 CompetencyController.GrantOverride(Int32, GrantOverrideRequest, CancellationToken): SectionHead
 CompetencyController.Qualify(QualifyForm, CancellationToken): SectionHead,QcManager
 CompetencyController.SetGate(Int32, GateChangeRequest, CancellationToken): SectionHead,QcManager
+CompetencyController.SetReminderDays(Int32, ReminderDaysRequest, CancellationToken): SectionHead,QcManager
 CompetencyController.Withdraw(Int32, WithdrawRequest, CancellationToken): SectionHead,QcManager
 ControlChartController.ApplyLimits(ApplyTrendLimitsRequest): SystemAdministrator,SectionHead
 ControlChartController.GenerateReport(ControlChartReportRequest): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa

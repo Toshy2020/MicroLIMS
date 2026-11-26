@@ -34,6 +34,8 @@ public class BusinessRuleException : InvalidOperationException, ICodedMessage
         : base(string.Join(" ", details.Select(detail => detail.Message)))
     {
         Details = details;
+        Code = details.FirstOrDefault()?.Code;
+        Parameters = details.FirstOrDefault()?.Params;
     }
 
     public static BusinessRuleException FromDetails(IReadOnlyList<ApiError> details) => new(details);

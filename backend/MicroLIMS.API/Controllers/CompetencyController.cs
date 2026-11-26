@@ -83,10 +83,24 @@ public class CompetencyController(
         Ok(ApiResponse<CompetencySettingDto>.Ok(await settings.SetGateAsync(sectionId, request.Enabled,
             request.Reason, request.Password, request.ExpectedVersion, CurrentUserId, cancellationToken)));
 
+    [HttpPut("~/api/competency/settings/{sectionId:int}/reminder-days")]
+    [Authorize(Policy = PermissionConstants.CompetencyManage)]
+    public async Task<IActionResult> SetReminderDays(int sectionId, ReminderDaysRequest request, CancellationToken cancellationToken) =>
+        Ok(ApiResponse<CompetencySettingDto>.Ok(await settings.SetReminderDaysAsync(
+            sectionId, request.ReminderDaysBeforeExpiry, request.ExpectedVersion, CurrentUserId, cancellationToken)));
+
     [HttpGet("~/api/competency/matrix/{sectionId:int}")]
     [Authorize(Policy = PermissionConstants.CompetencyView)]
     public async Task<IActionResult> GetMatrix(int sectionId, [FromQuery] MatrixFilters filters, CancellationToken cancellationToken) =>
         Ok(ApiResponse<CompetencyMatrixDto>.Ok(await matrix.GetMatrixAsync(sectionId, filters, CurrentUserId, cancellationToken)));
+
+    [HttpGet("~/api/competency/matrix/{sectionId:int}/export")]
+    [Authorize(Policy = PermissionConstants.CompetencyView)]
+    public async Task<IActionResult> ExportMatrix(int sectionId, [FromQuery] MatrixFilters filters, CancellationToken cancellationToken)
+    {
+        var (fileName, bytes) = await matrix.ExportCsvAsync(sectionId, filters, CurrentUserId, cancellationToken);
+        return File(bytes, "text/csv; charset=utf-8", fileName);
+    }
 
     [HttpGet("~/api/competency/matrix/my")]
     [Authorize(Policy = PermissionConstants.CompetencyView)]
@@ -111,4 +125,6 @@ public class CompetencyController(
     public sealed record WithdrawRequest(string Reason, string Password);
 
     public sealed record GateChangeRequest(bool Enabled, string Reason, string Password, uint? ExpectedVersion);
+
+    public sealed record ReminderDaysRequest(int? ReminderDaysBeforeExpiry, uint? ExpectedVersion);
 }

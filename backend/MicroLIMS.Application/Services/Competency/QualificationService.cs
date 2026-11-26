@@ -63,7 +63,7 @@ public sealed class QualificationService(
             var id = await sequences.ReserveIdAsync<AnalystQualification>(cancellationToken);
             var evidence = request.Evidence.Trim();
             var signature = await signatures.SignAsync(actingUserId, request.Password ?? string.Empty,
-                SignatureMeaning.AnalystQualified, nameof(AnalystQualification), id, evidence, null);
+                SignatureMeaning.AnalystQualified, nameof(AnalystQualification), id, evidence, null, cancellationToken);
             signature.SignedAt = clock.UtcNow.UtcDateTime;
 
             var qualification = new AnalystQualification
@@ -101,7 +101,7 @@ public sealed class QualificationService(
             db.AnalystQualifications.Add(qualification);
             await SaveAsActorAsync(actingUserId, evidence, cancellationToken);
             return AnalystQualificationResponse.From(qualification);
-        });
+        }, cancellationToken);
     }
 
     public async Task<AnalystQualificationResponse> WithdrawAsync(
@@ -122,7 +122,7 @@ public sealed class QualificationService(
                 throw new BusinessRuleException(MessageCodes.CompetencyQualificationAlreadyWithdrawn, "The qualification has already been withdrawn.");
 
             var signature = await signatures.SignAsync(actingUserId, password ?? string.Empty,
-                SignatureMeaning.AnalystQualificationWithdrawn, nameof(AnalystQualification), qualificationId, reason.Trim(), null);
+                SignatureMeaning.AnalystQualificationWithdrawn, nameof(AnalystQualification), qualificationId, reason.Trim(), null, cancellationToken);
             signature.SignedAt = clock.UtcNow.UtcDateTime;
             qualification.WithdrawnOn = signature.SignedAt;
             qualification.WithdrawnByUserId = actingUserId;
@@ -132,7 +132,7 @@ public sealed class QualificationService(
             await SaveAsActorAsync(actingUserId, qualification.WithdrawnReason, cancellationToken);
 
             return AnalystQualificationResponse.From(qualification);
-        });
+        }, cancellationToken);
     }
 
     private async Task RequireManageAsync(int actingUserId, CancellationToken cancellationToken)

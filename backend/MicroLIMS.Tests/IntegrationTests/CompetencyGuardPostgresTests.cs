@@ -68,8 +68,8 @@ public class CompetencyGuardPostgresTests(PostgresTestFixture fixture)
     public async Task EnsureAllowedAsync_with_both_qualification_and_sop_missing_throws_both_coded_details()
     {
         var setup = await ArrangeAsync(sop: "effective");
-        await using var act = fixture.CreateDbContext(Now);
-        var guard = new CompetencyGuard(act, new LabClock(Now, LabClock.ResolveTimeZone("Africa/Cairo")), new ItemSopResolver(act));
+        await using var act = fixture.CreateDbContext();
+        var guard = new CompetencyGuard(act, new LabClock(new FixedTimeProvider(Now), LabClock.ResolveTimeZone("Africa/Cairo")), new ItemSopResolver(act));
 
         var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             guard.EnsureAllowedAsync(setup.UserId, setup.OrderIds[0]));
@@ -79,7 +79,7 @@ public class CompetencyGuardPostgresTests(PostgresTestFixture fixture)
         Assert.Equal("Competency.NotQualified", ex.Details[0].Code);
         Assert.Equal("Competency.SopNotAcknowledged", ex.Details[1].Code);
         Assert.Contains($"You are not qualified for {setup.Code}.", ex.Message);
-        Assert.Contains($"You have not acknowledged {setup.SopCode} revision 1.", ex.Message);
+        Assert.Contains($"You have not acknowledged {setup.SopCode} revision 3.", ex.Message);
     }
 
     [PostgresFact]

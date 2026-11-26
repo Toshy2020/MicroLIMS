@@ -25,7 +25,7 @@ public class MyWorkCompetencySourcePostgresTests(PostgresTestFixture fixture)
     private sealed class StubSettings : ISystemSettingsReader
     {
         public Task<int> GetIntAsync(string key, CancellationToken cancellationToken = default) => Task.FromResult(7);
-        public Task<string?> GetStringAsync(string key, CancellationToken cancellationToken = default) => Task.FromResult<string?>(null);
+        public Task<string> GetStringAsync(string key, CancellationToken cancellationToken = default) => Task.FromResult(string.Empty);
         public Task<bool> GetBoolAsync(string key, CancellationToken cancellationToken = default) => Task.FromResult(false);
     }
 

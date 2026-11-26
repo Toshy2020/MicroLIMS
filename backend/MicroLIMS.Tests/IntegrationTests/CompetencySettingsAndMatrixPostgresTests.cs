@@ -32,7 +32,8 @@ public class CompetencySettingsAndMatrixPostgresTests(PostgresTestFixture fixtur
             new ElectronicSignatureService(db, _clock), new CompetencyGuard(db, Clock, new ItemSopResolver(db)));
 
     private CompetencyMatrixService Matrix(MicroLimsDbContext db) =>
-        new(db, new UserSectionScopeService(db), Clock, new PermissionService(db), new ItemSopResolver(db));
+        new(db, new UserSectionScopeService(db), Clock, new PermissionService(db), new ItemSopResolver(db),
+            new DataExportAuditService(db, _clock));
 
     private CompetencyReminderService Reminders(MicroLimsDbContext db) => new(db, Clock);
 

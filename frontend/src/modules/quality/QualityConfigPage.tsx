@@ -21,7 +21,7 @@ import AddIcon from "@mui/icons-material/Add";
 import { toast } from "sonner";
 import { PageHeader } from "../../components/PageHeader";
 import { SignatureDialog } from "../../components/SignatureDialog";
-import { useAuth, useHasPermission } from "../../contexts/AuthContext";
+import { useHasPermission } from "../../contexts/AuthContext";
 import { useTranslation } from "../../i18n";
 import { PERMISSIONS } from "../../routes/routes";
 import { getMySections, type LaboratorySection } from "../../services/laboratorySectionService";
@@ -43,11 +43,8 @@ type ConfigTab = "templates" | "classifications" | "dueRules" | "sectionSettings
 
 export function QualityConfigPage() {
   const { t } = useTranslation("qualityConfig");
-  const { permissions } = useAuth();
   const canApprove = useHasPermission(PERMISSIONS.QUALITY_APPROVE);
-  const canEditTemplate =
-    permissions.includes(PERMISSIONS.QUALITY_APPROVE) ||
-    permissions.includes(PERMISSIONS.QUALITY_INVESTIGATE);
+  const canInvestigate = useHasPermission(PERMISSIONS.QUALITY_INVESTIGATE);
 
   const [tab, setTab] = useState<ConfigTab>("templates");
   const [sections, setSections] = useState<LaboratorySection[]>([]);
@@ -211,6 +208,10 @@ export function QualityConfigPage() {
     const match = dueRules.find((r) => r.type === dueType && r.classificationId === cid);
     setDueWorkingDays(match?.workingDays != null ? String(match.workingDays) : "");
   }, [dueType, dueClassificationId, dueRules]);
+
+  // The server (QualityConfigService.SaveTemplateAsync) takes the site-wide template from Quality.Approve and a
+  // section template from Quality.Investigate (within the sections the user may configure).
+  const canEditTemplate = templateSectionId === "" ? canApprove : canInvestigate;
 
   const handleAddTemplateItem = () => {
     const nextOrder = templateItems.length + 1;
@@ -392,6 +393,13 @@ export function QualityConfigPage() {
               </TextField>
             </Stack>
 
+            {!canEditTemplate && (
+              <Alert severity="info">
+                {templateSectionId === ""
+                  ? t("config.templates.readOnlySiteWide")
+                  : t("config.templates.readOnlySection")}
+              </Alert>
+            )}
             {templateError && <Alert severity="error">{templateError}</Alert>}
 
             {templateLoading ? (

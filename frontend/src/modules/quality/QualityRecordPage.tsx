@@ -214,6 +214,8 @@ export function QualityRecordPage() {
   }
 
   const isOwner = userId !== null && detail.ownerUserId === userId;
+  // The server lets only the owner or a Quality.Investigate holder void an attachment or remove a link.
+  const canRemove = isOwner || can.investigate;
   const TypeActions = qualityTypeActionsFor(detail.type);
 
   const openActionExtension = (action: QualityActionDetailDto) =>
@@ -326,6 +328,7 @@ export function QualityRecordPage() {
           links={links}
           totalCount={linksTotalCount}
           canEdit={can.raise}
+          canRemove={canRemove}
           onChanged={reload}
         />
       )}
@@ -335,6 +338,7 @@ export function QualityRecordPage() {
         recordVersion={detail.version}
         attachments={detail.attachments}
         canEdit={can.raise}
+        canRemove={canRemove}
         onChanged={reload}
       />
 

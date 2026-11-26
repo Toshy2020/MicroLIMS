@@ -23,8 +23,9 @@ function Where() {
   return <p data-testid="where">{useLocation().pathname}</p>;
 }
 
-function renderActions(permissions: string[]) {
+function renderActions(permissions: string[], role = "Qa") {
   localStorage.setItem("microlims_permissions", JSON.stringify(permissions));
+  localStorage.setItem("microlims_role", role);
   render(
     <PinnedLightTheme>
       <AuthProvider>
@@ -69,6 +70,28 @@ describe("QualityCreateActions", () => {
 
     expect(screen.getByRole("button", { name: "Propose change control" })).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Receive complaint" })).toBeNull();
+  });
+
+  it.each(["SectionHead", "QcManager", "Qa"])("offers proposing a change control to %s with Quality.Raise", (role) => {
+    renderActions(["Quality.View", "Quality.Raise"], role);
+
+    expect(screen.getByRole("button", { name: "Propose change control" })).toBeTruthy();
+  });
+
+  it.each(["Analyst", "Reviewer", "SystemAdministrator"])(
+    "does not offer proposing a change control to %s even with Quality.Raise (the server accepts only a section head, QC manager or QA)",
+    (role) => {
+      renderActions(["Quality.View", "Quality.Raise"], role);
+
+      expect(screen.queryByRole("button", { name: "Propose change control" })).toBeNull();
+    }
+  );
+
+  it("still offers receiving a complaint to QA when the role may not propose", () => {
+    renderActions(["Quality.View", "Quality.Raise", "Quality.Approve"], "Reviewer");
+
+    expect(screen.getByRole("button", { name: "Receive complaint" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Propose change control" })).toBeNull();
   });
 
   it("offers receiving a complaint to QA", () => {

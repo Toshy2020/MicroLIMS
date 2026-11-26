@@ -19,12 +19,14 @@ interface AttachmentsPanelProps {
   recordId: number;
   recordVersion: number;
   attachments: QualityAttachmentDto[];
-  // Quality.Raise: upload and void. Without it files can still be downloaded.
+  // Quality.Raise: upload. Without it files can still be downloaded.
   canEdit: boolean;
+  // The record's owner or a Quality.Investigate holder (the server's rule for a destructive change): void.
+  canRemove: boolean;
   onChanged: () => Promise<void>;
 }
 
-export function AttachmentsPanel({ recordId, recordVersion, attachments, canEdit, onChanged }: AttachmentsPanelProps) {
+export function AttachmentsPanel({ recordId, recordVersion, attachments, canEdit, canRemove, onChanged }: AttachmentsPanelProps) {
   const { t } = useTranslation("quality");
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -132,7 +134,7 @@ export function AttachmentsPanel({ recordId, recordVersion, attachments, canEdit
                   >
                     {t("attachments.download")}
                   </Button>
-                  {canEdit && !attachment.isVoided && (
+                  {canRemove && !attachment.isVoided && (
                     <Button
                       size="small"
                       color="error"

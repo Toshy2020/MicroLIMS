@@ -42,12 +42,14 @@ interface LinksPanelProps {
   // null when the links could not be loaded (the page shows the partial-outage banner).
   links: QualityLinkDto[] | null;
   totalCount?: number | null;
-  // Quality.Raise: add and remove links. Without it the panel only lists them.
+  // Quality.Raise: add links. Without it the panel only lists them.
   canEdit: boolean;
+  // The record's owner or a Quality.Investigate holder (the server's rule for a destructive change): remove.
+  canRemove: boolean;
   onChanged: () => Promise<void>;
 }
 
-export function LinksPanel({ recordId, recordVersion, links, totalCount, canEdit, onChanged }: LinksPanelProps) {
+export function LinksPanel({ recordId, recordVersion, links, totalCount, canEdit, canRemove, onChanged }: LinksPanelProps) {
   const { t } = useTranslation("quality");
   const [searchOpen, setSearchOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -217,7 +219,7 @@ export function LinksPanel({ recordId, recordVersion, links, totalCount, canEdit
                   key={link.id}
                   divider
                   secondaryAction={
-                    canEdit ? (
+                    canRemove ? (
                       <IconButton
                         edge="end"
                         disabled={busy}

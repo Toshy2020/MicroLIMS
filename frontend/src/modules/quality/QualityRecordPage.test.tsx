@@ -180,6 +180,35 @@ describe("QualityRecordPage", () => {
     expect(screen.queryByText(/Read-only view/)).toBeNull();
   });
 
+  it("offers Void and Remove link to the record owner, who owns record 1 as user 8", async () => {
+    serve({ detail: () => ok(recordDetail({ attachments: [attachment()] })) });
+    setAuth(RAISE, 8);
+    renderPage();
+
+    expect(await screen.findByRole("button", { name: "Void temperature-log.pdf" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /^Remove link / })).toBeTruthy();
+  });
+
+  it("offers Void and Remove link to a non-owner holding Quality.Investigate", async () => {
+    serve({ detail: () => ok(recordDetail({ attachments: [attachment()] })) });
+    setAuth([...RAISE, "Quality.Investigate"], 99);
+    renderPage();
+
+    expect(await screen.findByRole("button", { name: "Void temperature-log.pdf" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /^Remove link / })).toBeTruthy();
+  });
+
+  it("offers no Void or Remove link to a non-owner without Quality.Investigate, though they can still add", async () => {
+    serve({ detail: () => ok(recordDetail({ attachments: [attachment()] })) });
+    setAuth(RAISE, 99);
+    renderPage();
+
+    expect(await screen.findByRole("button", { name: "Upload" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Add link" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /^Void / })).toBeNull();
+    expect(screen.queryByRole("button", { name: /^Remove link / })).toBeNull();
+  });
+
   it("offers the owner a request for more time and an approver the decision on a pending request", async () => {
     serve({ extensions: () => ok([extension({ requestedDueDate: "2026-12-20" })]) });
     setAuth(APPROVE, 8);

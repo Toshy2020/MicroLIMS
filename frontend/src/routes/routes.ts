@@ -91,6 +91,8 @@ export const APP_ROUTES = {
   AUDIT_TRAIL_REVIEW_DETAIL: (id: number | string) => `/audit-trail-reviews/${id}`,
   ERROR_MONITORING: "/admin/error-log",
   OOS_TRACKING: "/oos-tracking",
+  QUALITY: "/quality",
+  QUALITY_DETAIL: (id: number | string) => `/quality/${id}`,
 
   // Administration
   ADMIN: "/admin",
@@ -280,6 +282,11 @@ export const PERMISSIONS = {
   OOS_CONTRIBUTE: "Oos.Contribute",
   OOS_MANAGE: "Oos.Manage",
   OOS_REQUEST_DEVIATION: "Oos.RequestDeviation",
+  QUALITY_VIEW: "Quality.View",
+  QUALITY_RAISE: "Quality.Raise",
+  QUALITY_INVESTIGATE: "Quality.Investigate",
+  QUALITY_LAB_CONCLUDE: "Quality.LabConclude",
+  QUALITY_APPROVE: "Quality.Approve",
   SOLUTIONS_PREPARE: "Solutions.Prepare",
   SOLUTIONS_RELEASE: "Solutions.Release",
   WORKING_STANDARDS_QUALIFY: "WorkingStandards.Qualify",

@@ -776,7 +776,17 @@
     "Excursion": "تجاوز",
     "Addressed": "تمت المعالجة",
     "LaboratoryErrorConfirmed": "تأكد خطأ المختبر",
-    "NoLaboratoryErrorFound": "لم يُعثر على خطأ مختبري"
+    "NoLaboratoryErrorFound": "لم يُعثر على خطأ مختبري",
+    "Raised": "تم رفعه",
+    "Investigation": "تحقيق",
+    "LabConcluded": "استنتاج المختبر",
+    "Plan": "خطة",
+    "PlanApproved": "الخطة معتمدة",
+    "CompletionVerified": "تم التحقق من الإنجاز",
+    "Proposed": "مقترح",
+    "Assessed": "تم التقييم",
+    "ApprovedForImplementation": "معتمد للتنفيذ",
+    "LabReported": "تقرير المختبر"
   },
   "workflowEvents": {
     "SubmittedForReview": "قُدِّم للمراجعة",

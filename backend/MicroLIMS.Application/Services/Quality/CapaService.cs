@@ -53,8 +53,9 @@ public sealed class CapaService(
             await db.SaveChangesAsync(ct);
             return CapaDto.From(record, detail, []);
         }, ct);
-        await QualityNotifier.SendPostCommitAsync(notifier, n => n.RaisedAsync(dto.Id, ct), logger, dto.Id);
-        await QualityNotifier.SendPostCommitAsync(notifier, n => n.AssignedAsync(dto.Id, ct), logger, dto.Id);
+        await QualityNotifier.SendPostCommitAsync(notifier, n => n.RaisedAsync(dto.Id, CancellationToken.None), logger, dto.Id);
+        if (dto.Record.OwnerUserId != userId)
+            await QualityNotifier.SendPostCommitAsync(notifier, n => n.AssignedAsync(dto.Id, CancellationToken.None), logger, dto.Id);
         return dto;
     }
 
@@ -124,7 +125,8 @@ public sealed class CapaService(
             core.AdvanceVersion(record);
             await db.SaveChangesAsync(ct);
         }, ct);
-        await QualityNotifier.SendPostCommitAsync(notifier, n => n.AwaitingQaAsync(dto.Id, ct), logger, dto.Id);
+        await QualityNotifier.SendPostCommitAsync(notifier,
+            n => n.AwaitingQaAsync(dto.Id, $"quality:{dto.Id}:awaiting-qa:plan", CancellationToken.None), logger, dto.Id);
         return dto;
     }
 
@@ -150,7 +152,7 @@ public sealed class CapaService(
             detail.Status = CapaStatus.PlanApproved;
             await db.SaveChangesAsync(ct);
         }, ct);
-        await QualityNotifier.SendPostCommitAsync(notifier, n => n.ActionAssignedAsync(dto.Id, dto.Actions.Select(a => a.Id).ToList(), ct), logger, dto.Id);
+        await QualityNotifier.SendPostCommitAsync(notifier, n => n.ActionAssignedAsync(dto.Id, dto.Actions.Select(a => a.Id).ToList(), CancellationToken.None), logger, dto.Id);
         return dto;
     }
 
@@ -163,6 +165,7 @@ public sealed class CapaService(
             core.EnsureNotRaiserOrOwner(record, userId);
             var reason = QualityRecordCore.RequiredText(comment, 2000);
             db.SetNextAuditReason(detail, reason);
+            db.SetNextAuditReason(record, reason);
             db.QualityComments.Add(new QualityComment
             {
                 RecordId = id, AuthorUserId = userId, Text = reason, CreatedAtUtc = clock.UtcNow.UtcDateTime
@@ -170,49 +173,57 @@ public sealed class CapaService(
             core.AdvanceVersion(record);
             await db.SaveChangesAsync(ct);
         }, ct);
-        await QualityNotifier.SendPostCommitAsync(notifier, n => n.ReturnedAsync(dto.Id, ct), logger, dto.Id);
+        await QualityNotifier.SendPostCommitAsync(notifier, n => n.ReturnedAsync(dto.Id, CancellationToken.None), logger, dto.Id);
         return dto;
     }
 
-    public Task<CapaDto> CompleteActionAsync(int actionId, CompleteCapaActionRequest request, uint expectedVersion,
-        int userId, string? ip = null, CancellationToken ct = default) => UnitOfWork.RunAsync(db, async () =>
+    public async Task<CapaDto> CompleteActionAsync(int actionId, CompleteCapaActionRequest request, uint expectedVersion,
+        int userId, string? ip = null, CancellationToken ct = default)
     {
-        var recordId = await db.QualityActions.AsNoTracking().Where(a => a.Id == actionId)
-            .Select(a => (int?)a.RecordId).SingleOrDefaultAsync(ct) ?? throw QualityRecordCore.Missing();
+        var dto = await UnitOfWork.RunAsync(db, async () =>
+        {
+            var recordId = await db.QualityActions.AsNoTracking().Where(a => a.Id == actionId)
+                .Select(a => (int?)a.RecordId).SingleOrDefaultAsync(ct) ?? throw QualityRecordCore.Missing();
 
-        var record = await core.LockForWriteAsync(recordId, expectedVersion, userId, ct);
-        if (record.Type != QualityRecordType.Capa ||
-            (record.SectionId is int section && !(await scope.GetMemberSectionIdsAsync(userId, ct)).Contains(section)))
-            throw QualityRecordCore.Missing();
-        var detail = await db.CapaDetails.SingleOrDefaultAsync(d => d.RecordId == recordId, ct) ?? throw QualityRecordCore.Missing();
-        if (record.IsCancelled) throw WrongState();
-        RequireStatus(detail, CapaStatus.PlanApproved);
+            var record = await core.LockForWriteAsync(recordId, expectedVersion, userId, ct);
+            if (record.Type != QualityRecordType.Capa ||
+                (record.SectionId is int section && !(await scope.GetMemberSectionIdsAsync(userId, ct)).Contains(section)))
+                throw QualityRecordCore.Missing();
+            var detail = await db.CapaDetails.SingleOrDefaultAsync(d => d.RecordId == recordId, ct) ?? throw QualityRecordCore.Missing();
+            if (record.IsCancelled) throw WrongState();
+            RequireStatus(detail, CapaStatus.PlanApproved);
 
-        await db.Database.ExecuteSqlInterpolatedAsync(
-            $"""SELECT "Id" FROM "QualityActions" WHERE "Id" = {actionId} FOR UPDATE""", ct);
-        var action = await db.QualityActions.SingleAsync(a => a.Id == actionId && a.RecordId == recordId, ct);
-        if (action.ResponsibleUserId != userId)
-            throw QualityRecordCore.Denied();
-        if (action.DoneAtUtc is not null)
-            throw new BusinessRuleException(MessageCodes.CapaActionAlreadyDone, "This CAPA action is already completed.");
+            await db.Database.ExecuteSqlInterpolatedAsync(
+                $"""SELECT "Id" FROM "QualityActions" WHERE "Id" = {actionId} FOR UPDATE""", ct);
+            var action = await db.QualityActions.SingleAsync(a => a.Id == actionId && a.RecordId == recordId, ct);
+            if (action.ResponsibleUserId != userId)
+                throw QualityRecordCore.Denied();
+            if (action.DoneAtUtc is not null)
+                throw new BusinessRuleException(MessageCodes.CapaActionAlreadyDone, "This CAPA action is already completed.");
 
-        var evidence = QualityRecordCore.RequiredText(request.Evidence, 4000);
-        if (request.EvidenceLinkId is int linkId &&
-            !await db.QualityRecordLinks.AsNoTracking().AnyAsync(l => l.Id == linkId && l.RecordId == recordId, ct))
-            throw new BusinessRuleException(MessageCodes.CapaActionEvidenceLinkInvalid,
-                "The selected evidence link does not belong to this CAPA.");
+            var evidence = QualityRecordCore.RequiredText(request.Evidence, 4000);
+            if (request.EvidenceLinkId is int linkId &&
+                !await db.QualityRecordLinks.AsNoTracking().AnyAsync(l => l.Id == linkId && l.RecordId == recordId, ct))
+                throw new BusinessRuleException(MessageCodes.CapaActionEvidenceLinkInvalid,
+                    "The selected evidence link does not belong to this CAPA.");
 
-        db.CurrentUserId = userId;
-        action.DoneAtUtc = clock.UtcNow.UtcDateTime;
-        action.DoneByUserId = userId;
-        action.Evidence = evidence;
-        action.EvidenceLinkId = request.EvidenceLinkId;
-        core.AdvanceVersion(record);
-        await db.SaveChangesAsync(ct);
+            db.CurrentUserId = userId;
+            action.DoneAtUtc = clock.UtcNow.UtcDateTime;
+            action.DoneByUserId = userId;
+            action.Evidence = evidence;
+            action.EvidenceLinkId = request.EvidenceLinkId;
+            core.AdvanceVersion(record);
+            await db.SaveChangesAsync(ct);
 
-        var actions = await db.QualityActions.AsNoTracking().Where(a => a.RecordId == recordId).OrderBy(a => a.Id).ToListAsync(ct);
-        return CapaDto.From(record, detail, actions);
-    }, ct);
+            var actions = await db.QualityActions.AsNoTracking().Where(a => a.RecordId == recordId).OrderBy(a => a.Id).ToListAsync(ct);
+            return CapaDto.From(record, detail, actions);
+        }, ct);
+
+        if (dto.Actions.All(a => a.DoneAtUtc is not null))
+            await QualityNotifier.SendPostCommitAsync(notifier,
+                n => n.AwaitingQaAsync(dto.Id, $"quality:{dto.Id}:awaiting-qa:verify", CancellationToken.None), logger, dto.Id);
+        return dto;
+    }
 
     public Task<CapaDto> VerifyCompletionAsync(int id, string password, uint expectedVersion, int userId,
         string? ip = null, CancellationToken ct = default) =>
@@ -277,19 +288,23 @@ public sealed class CapaService(
             detail.Status = CapaStatus.Closed;
             await db.SaveChangesAsync(ct);
         }, ct);
-        await QualityNotifier.SendPostCommitAsync(notifier, n => n.ClosedAsync(dto.Id, ct), logger, dto.Id);
+        await QualityNotifier.SendPostCommitAsync(notifier, n => n.ClosedAsync(dto.Id, CancellationToken.None), logger, dto.Id);
         return dto;
     }
 
-    public Task<CapaDto> CancelAsync(int id, string reason, string password, uint expectedVersion, int userId,
-        string? ip = null, CancellationToken ct = default) =>
-        ChangeAsync(id, expectedVersion, userId, PermissionConstants.QualityApprove, async (record, detail) =>
+    public async Task<CapaDto> CancelAsync(int id, string reason, string password, uint expectedVersion, int userId,
+        string? ip = null, CancellationToken ct = default)
+    {
+        var dto = await ChangeAsync(id, expectedVersion, userId, PermissionConstants.QualityApprove, async (record, detail) =>
         {
             if (detail.Status is CapaStatus.Closed or CapaStatus.Cancelled)
                 throw new BusinessRuleException(MessageCodes.CapaFinalCancellation, "A closed or cancelled CAPA cannot be cancelled.");
             detail.Status = CapaStatus.Cancelled;
             await core.CancelAsync(record, reason, password, userId, ip, ct);
         }, ct);
+        await QualityNotifier.SendPostCommitAsync(notifier, n => n.CancelledAsync(dto.Id, CancellationToken.None), logger, dto.Id);
+        return dto;
+    }
 
     private Task<CapaDto> ChangeAsync(int id, uint expectedVersion, int userId, string? permission,
         Func<QualityRecord, CapaDetail, Task> change, CancellationToken ct) => UnitOfWork.RunAsync(db, async () =>

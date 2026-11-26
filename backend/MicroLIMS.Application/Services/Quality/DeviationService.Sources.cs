@@ -41,7 +41,7 @@ public sealed partial class DeviationService
                 clock.UtcNow.UtcDateTime, ct);
             return deviation;
         }, ct);
-        await NotifyAsync(n => n.RaisedAsync(dto.Id, ct), dto.Id);
+        await NotifyAsync(n => n.RaisedAsync(dto.Id, CancellationToken.None), dto.Id);
         return dto;
     }
 
@@ -66,7 +66,7 @@ public sealed partial class DeviationService
                 details.ImmediateAction, source.SectionId,
                 [new(QualityLinkTargetType.MonitoringDeviation, monitoringDeviationId)]), userId, ct, fromSource: true);
         }, ct);
-        await NotifyAsync(n => n.RaisedAsync(dto.Id, ct), dto.Id);
+        await NotifyAsync(n => n.RaisedAsync(dto.Id, CancellationToken.None), dto.Id);
         return dto;
     }
 
@@ -91,7 +91,7 @@ public sealed partial class DeviationService
                 details.ImmediateAction, null, [new(QualityLinkTargetType.AuditTrailReviewFinding, findingId)]),
                 userId, ct, fromSource: true);
         }, ct);
-        await NotifyAsync(n => n.RaisedAsync(dto.Id, ct), dto.Id);
+        await NotifyAsync(n => n.RaisedAsync(dto.Id, CancellationToken.None), dto.Id);
         return dto;
     }
 

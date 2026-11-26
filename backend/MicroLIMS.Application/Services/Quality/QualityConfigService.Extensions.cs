@@ -126,7 +126,8 @@ public sealed partial class QualityConfigService
         var records = await open.Where(r => r.DueDate < labDate).OrderBy(r => r.DueDate).ThenBy(r => r.Id)
             .Skip(skip).Take(take).Select(r => new OverdueQualityRecordDto(r.Id, r.Number, r.Title,
                 r.DueDate.GetValueOrDefault(), r.OwnerUserId)).ToListAsync(ct);
-        var actions = await open.SelectMany(r => r.Actions.Where(a => a.DoneAtUtc == null && a.DueDate < labDate),
+        var actions = await open.Where(IsActionExecutionActiveExpression)
+            .SelectMany(r => r.Actions.Where(a => a.DoneAtUtc == null && a.DueDate < labDate),
                 (r, a) => new { r.Id, r.Number, a })
             .OrderBy(x => x.a.DueDate).ThenBy(x => x.a.Id).Skip(skip).Take(take)
             .Select(x => new OverdueQualityActionDto(x.Id, x.Number, x.a.Id, x.a.Description, x.a.DueDate, x.a.ResponsibleUserId))

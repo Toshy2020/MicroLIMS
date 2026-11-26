@@ -25,6 +25,27 @@ public sealed partial class QualityConfigService(IMicroLimsDbContext db, Quality
             && (r.ComplaintDetail == null || (r.ComplaintDetail.Status != ComplaintStatus.Closed
                 && r.ComplaintDetail.Status != ComplaintStatus.Cancelled));
 
+    internal static readonly System.Linq.Expressions.Expression<Func<QualityRecord, bool>> IsNotOpenExpression =
+        System.Linq.Expressions.Expression.Lambda<Func<QualityRecord, bool>>(
+            System.Linq.Expressions.Expression.Not(IsOpenExpression.Body),
+            IsOpenExpression.Parameters);
+
+    internal static readonly System.Linq.Expressions.Expression<Func<QualityRecord, bool>> IsActionExecutionActiveExpression =
+        r => (r.CapaDetail == null || r.CapaDetail.Status != CapaStatus.Plan)
+            && (r.ChangeControlDetail == null || (r.ChangeControlDetail.Status != ChangeControlStatus.Proposed
+                && r.ChangeControlDetail.Status != ChangeControlStatus.Assessed));
+
+    internal static bool IsOpenStatus(bool isCancelled, QualityDeviationStatus? dev, CapaStatus? capa,
+        ChangeControlStatus? cc, ComplaintStatus? cmp)
+    {
+        if (isCancelled) return false;
+        if (dev is QualityDeviationStatus.Rejected or QualityDeviationStatus.Closed or QualityDeviationStatus.Cancelled) return false;
+        if (capa is CapaStatus.Closed or CapaStatus.Cancelled) return false;
+        if (cc is ChangeControlStatus.Closed or ChangeControlStatus.Rejected or ChangeControlStatus.Cancelled) return false;
+        if (cmp is ComplaintStatus.Closed or ComplaintStatus.Cancelled) return false;
+        return true;
+    }
+
     private async Task EnsureOpenAsync(int recordId, CancellationToken ct)
     {
         if (!await db.QualityRecords.AsNoTracking().Where(r => r.Id == recordId).AnyAsync(IsOpenExpression, ct))

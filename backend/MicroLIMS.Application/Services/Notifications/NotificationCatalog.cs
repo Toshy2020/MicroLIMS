@@ -52,6 +52,8 @@ public static class NotificationCatalog
         new("QualityAwaitingQa", "info", false, "Quality record awaiting QA"),
         new("QualityActionAssigned", "info", false, "Quality action assigned"),
         new("QualityRecordClosed", "info", false, "Quality record closed"),
+        new("QualityRecordRejected", "warning", false, "Quality record rejected"),
+        new("QualityRecordCancelled", "warning", false, "Quality record cancelled"),
         new("QualityRecordOverdue", "warning", false, "Quality record overdue"),
         new("QualityActionOverdue", "warning", false, "Quality action overdue"),
     ];

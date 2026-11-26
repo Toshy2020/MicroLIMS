@@ -68,9 +68,9 @@ public sealed class ChangeControlService(
             await db.SaveChangesAsync(ct);
             return ChangeControlDto.From(record, detail, affectedLinks, []);
         }, ct);
-        await QualityNotifier.SendPostCommitAsync(notifier, n => n.RaisedAsync(dto.Id, ct), logger, dto.Id);
+        await QualityNotifier.SendPostCommitAsync(notifier, n => n.RaisedAsync(dto.Id, CancellationToken.None), logger, dto.Id);
         if (dto.Record.OwnerUserId != userId)
-            await QualityNotifier.SendPostCommitAsync(notifier, n => n.AssignedAsync(dto.Id, ct), logger, dto.Id);
+            await QualityNotifier.SendPostCommitAsync(notifier, n => n.AssignedAsync(dto.Id, CancellationToken.None), logger, dto.Id);
         return dto;
     }
 
@@ -193,7 +193,7 @@ public sealed class ChangeControlService(
             detail.Status = ChangeControlStatus.Assessed;
             await db.SaveChangesAsync(ct);
         }, ct);
-        await QualityNotifier.SendPostCommitAsync(notifier, n => n.AwaitingQaAsync(dto.Id, ct), logger, dto.Id);
+        await QualityNotifier.SendPostCommitAsync(notifier, n => n.AwaitingQaAsync(dto.Id, CancellationToken.None), logger, dto.Id);
         return dto;
     }
 
@@ -212,7 +212,7 @@ public sealed class ChangeControlService(
             await db.SaveChangesAsync(ct);
         }, ct);
         if (dto.Tasks.Count > 0)
-            await QualityNotifier.SendPostCommitAsync(notifier, n => n.ActionAssignedAsync(dto.Id, dto.Tasks.Select(t => t.Id).ToList(), ct), logger, dto.Id);
+            await QualityNotifier.SendPostCommitAsync(notifier, n => n.ActionAssignedAsync(dto.Id, dto.Tasks.Select(t => t.Id).ToList(), CancellationToken.None), logger, dto.Id);
         return dto;
     }
 
@@ -235,47 +235,55 @@ public sealed class ChangeControlService(
             await db.SaveChangesAsync(ct);
         }, ct);
 
-    public Task<ChangeControlDto> CompleteTaskAsync(int actionId, CompleteChangeControlTaskRequest request,
-        uint expectedVersion, int userId, string? ip = null, CancellationToken ct = default) => UnitOfWork.RunAsync(db, async () =>
+    public async Task<ChangeControlDto> CompleteTaskAsync(int actionId, CompleteChangeControlTaskRequest request,
+        uint expectedVersion, int userId, string? ip = null, CancellationToken ct = default)
     {
-        var recordId = await db.QualityActions.AsNoTracking()
-            .Where(a => a.Id == actionId && a.Kind == QualityActionKind.ChangeTask)
-            .Select(a => (int?)a.RecordId).SingleOrDefaultAsync(ct) ?? throw QualityRecordCore.Missing();
+        var dto = await UnitOfWork.RunAsync(db, async () =>
+        {
+            var recordId = await db.QualityActions.AsNoTracking()
+                .Where(a => a.Id == actionId && a.Kind == QualityActionKind.ChangeTask)
+                .Select(a => (int?)a.RecordId).SingleOrDefaultAsync(ct) ?? throw QualityRecordCore.Missing();
 
-        var record = await core.LockForWriteAsync(recordId, expectedVersion, userId, ct);
-        if (record.Type != QualityRecordType.ChangeControl ||
-            (record.SectionId is int section && !(await scope.GetMemberSectionIdsAsync(userId, ct)).Contains(section)))
-            throw QualityRecordCore.Missing();
-        var detail = await db.ChangeControlDetails.SingleOrDefaultAsync(d => d.RecordId == recordId, ct)
-            ?? throw QualityRecordCore.Missing();
-        if (record.IsCancelled) throw WrongState();
-        RequireStatus(detail, ChangeControlStatus.ApprovedForImplementation);
+            var record = await core.LockForWriteAsync(recordId, expectedVersion, userId, ct);
+            if (record.Type != QualityRecordType.ChangeControl ||
+                (record.SectionId is int section && !(await scope.GetMemberSectionIdsAsync(userId, ct)).Contains(section)))
+                throw QualityRecordCore.Missing();
+            var detail = await db.ChangeControlDetails.SingleOrDefaultAsync(d => d.RecordId == recordId, ct)
+                ?? throw QualityRecordCore.Missing();
+            if (record.IsCancelled) throw WrongState();
+            RequireStatus(detail, ChangeControlStatus.ApprovedForImplementation);
 
-        await db.Database.ExecuteSqlInterpolatedAsync(
-            $"""SELECT "Id" FROM "QualityActions" WHERE "Id" = {actionId} FOR UPDATE""", ct);
-        var action = await db.QualityActions.SingleAsync(a => a.Id == actionId && a.RecordId == recordId, ct);
-        if (action.ResponsibleUserId != userId)
-            throw QualityRecordCore.Denied();
-        if (action.DoneAtUtc is not null)
-            throw new BusinessRuleException(MessageCodes.ChangeControlTaskAlreadyDone,
-                "This change control task is already completed.");
+            await db.Database.ExecuteSqlInterpolatedAsync(
+                $"""SELECT "Id" FROM "QualityActions" WHERE "Id" = {actionId} FOR UPDATE""", ct);
+            var action = await db.QualityActions.SingleAsync(a => a.Id == actionId && a.RecordId == recordId, ct);
+            if (action.ResponsibleUserId != userId)
+                throw QualityRecordCore.Denied();
+            if (action.DoneAtUtc is not null)
+                throw new BusinessRuleException(MessageCodes.ChangeControlTaskAlreadyDone,
+                    "This change control task is already completed.");
 
-        var evidence = QualityRecordCore.RequiredText(request.Evidence, 4000);
-        if (request.EvidenceLinkId is int linkId &&
-            !await db.QualityRecordLinks.AsNoTracking().AnyAsync(l => l.Id == linkId && l.RecordId == recordId, ct))
-            throw new BusinessRuleException(MessageCodes.ChangeControlTaskEvidenceLinkInvalid,
-                "The selected evidence link does not belong to this change control.");
+            var evidence = QualityRecordCore.RequiredText(request.Evidence, 4000);
+            if (request.EvidenceLinkId is int linkId &&
+                !await db.QualityRecordLinks.AsNoTracking().AnyAsync(l => l.Id == linkId && l.RecordId == recordId, ct))
+                throw new BusinessRuleException(MessageCodes.ChangeControlTaskEvidenceLinkInvalid,
+                    "The selected evidence link does not belong to this change control.");
 
-        db.CurrentUserId = userId;
-        action.DoneAtUtc = clock.UtcNow.UtcDateTime;
-        action.DoneByUserId = userId;
-        action.Evidence = evidence;
-        action.EvidenceLinkId = request.EvidenceLinkId;
-        core.AdvanceVersion(record);
-        await db.SaveChangesAsync(ct);
+            db.CurrentUserId = userId;
+            action.DoneAtUtc = clock.UtcNow.UtcDateTime;
+            action.DoneByUserId = userId;
+            action.Evidence = evidence;
+            action.EvidenceLinkId = request.EvidenceLinkId;
+            core.AdvanceVersion(record);
+            await db.SaveChangesAsync(ct);
 
-        return await ProjectDtoAsync(record, detail, ct);
-    }, ct);
+            return await ProjectDtoAsync(record, detail, ct);
+        }, ct);
+
+        if (dto.Tasks.All(t => t.DoneAtUtc is not null))
+            await QualityNotifier.SendPostCommitAsync(notifier,
+                n => n.AwaitingQaAsync(dto.Id, $"quality:{dto.Id}:awaiting-qa:close", CancellationToken.None), logger, dto.Id);
+        return dto;
+    }
 
     public async Task<ChangeControlDto> CloseAsync(int id, CloseChangeControlRequest request, uint expectedVersion,
         int userId, string? ip = null, CancellationToken ct = default)
@@ -321,13 +329,14 @@ public sealed class ChangeControlService(
             detail.Status = ChangeControlStatus.Closed;
             await db.SaveChangesAsync(ct);
         }, ct);
-        await QualityNotifier.SendPostCommitAsync(notifier, n => n.ClosedAsync(dto.Id, ct), logger, dto.Id);
+        await QualityNotifier.SendPostCommitAsync(notifier, n => n.ClosedAsync(dto.Id, CancellationToken.None), logger, dto.Id);
         return dto;
     }
 
-    public Task<ChangeControlDto> CancelAsync(int id, string reason, string password, uint expectedVersion, int userId,
-        string? ip = null, CancellationToken ct = default) =>
-        ChangeAsync(id, expectedVersion, userId, PermissionConstants.QualityApprove, async (record, detail) =>
+    public async Task<ChangeControlDto> CancelAsync(int id, string reason, string password, uint expectedVersion, int userId,
+        string? ip = null, CancellationToken ct = default)
+    {
+        var dto = await ChangeAsync(id, expectedVersion, userId, PermissionConstants.QualityApprove, async (record, detail) =>
         {
             if (detail.Status is ChangeControlStatus.Closed or ChangeControlStatus.Rejected or ChangeControlStatus.Cancelled)
                 throw new BusinessRuleException(MessageCodes.ChangeControlFinalCancellation,
@@ -335,6 +344,9 @@ public sealed class ChangeControlService(
             detail.Status = ChangeControlStatus.Cancelled;
             await core.CancelAsync(record, reason, password, userId, ip, ct);
         }, ct);
+        await QualityNotifier.SendPostCommitAsync(notifier, n => n.CancelledAsync(dto.Id, CancellationToken.None), logger, dto.Id);
+        return dto;
+    }
 
     private async Task<QualityRecordLink> BuildAffectedLinkAsync(int recordId, ChangeControlAffectedInput input,
         int userId, DateTime addedAtUtc, QualityLinkTargets targets, CancellationToken ct)

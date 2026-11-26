@@ -64,7 +64,7 @@ public sealed class ComplaintService(
             await db.SaveChangesAsync(ct);
             return ComplaintDto.From(record, detail);
         }, ct);
-        await QualityNotifier.SendPostCommitAsync(notifier, n => n.RaisedAsync(dto.Id, ct), logger, dto.Id);
+        await QualityNotifier.SendPostCommitAsync(notifier, n => n.RaisedAsync(dto.Id, CancellationToken.None), logger, dto.Id);
         return dto;
     }
 
@@ -94,7 +94,7 @@ public sealed class ComplaintService(
             core.AdvanceVersion(record);
             await db.SaveChangesAsync(ct);
         }, ct);
-        await QualityNotifier.SendPostCommitAsync(notifier, n => n.AssignedAsync(dto.Id, ct), logger, dto.Id);
+        await QualityNotifier.SendPostCommitAsync(notifier, n => n.AssignedAsync(dto.Id, CancellationToken.None), logger, dto.Id);
         return dto;
     }
 
@@ -157,7 +157,7 @@ public sealed class ComplaintService(
             await core.SignStepAsync(record, QualityStepKind.ComplaintLabReport, SignatureMeaning.QualityLabConclusion,
                 new { detail.WhatToTest, detail.Findings, Links = links }, password, null, userId, ip, ct);
         }, ct);
-        await QualityNotifier.SendPostCommitAsync(notifier, n => n.AwaitingQaAsync(dto.Id, ct), logger, dto.Id);
+        await QualityNotifier.SendPostCommitAsync(notifier, n => n.AwaitingQaAsync(dto.Id, CancellationToken.None), logger, dto.Id);
         return dto;
     }
 
@@ -208,13 +208,14 @@ public sealed class ComplaintService(
             await core.SignStepAsync(record, QualityStepKind.ComplaintClosed, SignatureMeaning.QualityClosed,
                 new { detail.Outcome, detail.ConclusionSummary }, password, null, userId, ip, ct);
         }, ct);
-        await QualityNotifier.SendPostCommitAsync(notifier, n => n.ClosedAsync(dto.Id, ct), logger, dto.Id);
+        await QualityNotifier.SendPostCommitAsync(notifier, n => n.ClosedAsync(dto.Id, CancellationToken.None), logger, dto.Id);
         return dto;
     }
 
-    public Task<ComplaintDto> CancelAsync(int id, string reason, string password, uint expectedVersion, int userId,
-        string? ip = null, CancellationToken ct = default) =>
-        ChangeAsync(id, expectedVersion, userId, PermissionConstants.QualityApprove, async (record, detail) =>
+    public async Task<ComplaintDto> CancelAsync(int id, string reason, string password, uint expectedVersion, int userId,
+        string? ip = null, CancellationToken ct = default)
+    {
+        var dto = await ChangeAsync(id, expectedVersion, userId, PermissionConstants.QualityApprove, async (record, detail) =>
         {
             if (detail.Status is not (ComplaintStatus.Received or ComplaintStatus.Investigation
                 or ComplaintStatus.LabReported or ComplaintStatus.Concluded))
@@ -224,6 +225,9 @@ public sealed class ComplaintService(
             detail.Status = ComplaintStatus.Cancelled;
             await core.CancelAsync(record, reason, password, userId, ip, ct);
         }, ct);
+        await QualityNotifier.SendPostCommitAsync(notifier, n => n.CancelledAsync(dto.Id, CancellationToken.None), logger, dto.Id);
+        return dto;
+    }
 
     private Task<ComplaintDto> ChangeAsync(int id, uint expectedVersion, int userId, string? permission,
         Func<QualityRecord, ComplaintDetail, Task> change, CancellationToken ct) => UnitOfWork.RunAsync(db, async () =>

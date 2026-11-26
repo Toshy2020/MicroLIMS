@@ -15,8 +15,11 @@ public interface IQualityNotifier
     Task AssignedAsync(int recordId, CancellationToken ct = default);
     Task ReturnedAsync(int recordId, CancellationToken ct = default);
     Task AwaitingQaAsync(int recordId, CancellationToken ct = default);
+    Task AwaitingQaAsync(int recordId, string? dedupeKey, CancellationToken ct = default) => AwaitingQaAsync(recordId, ct);
     Task ActionAssignedAsync(int recordId, IReadOnlyList<int> actionIds, CancellationToken ct = default);
     Task ClosedAsync(int recordId, CancellationToken ct = default);
+    Task RejectedAsync(int recordId, CancellationToken ct = default) => Task.CompletedTask;
+    Task CancelledAsync(int recordId, CancellationToken ct = default) => Task.CompletedTask;
 }
 
 public sealed class QualityNotifier(IServiceScopeFactory scopes, ILogger<QualityNotifier>? logger = null) : IQualityNotifier
@@ -77,6 +80,9 @@ public sealed class QualityNotifier(IServiceScopeFactory scopes, ILogger<Quality
         }, ct);
 
     public Task AwaitingQaAsync(int recordId, CancellationToken ct = default) =>
+        AwaitingQaAsync(recordId, null, ct);
+
+    public Task AwaitingQaAsync(int recordId, string? dedupeKey, CancellationToken ct = default) =>
         SafeSendAsync("AwaitingQa", recordId, async (db, recipients, publisher, token) =>
         {
             var record = await LoadRecordAsync(db, recordId, token);
@@ -92,7 +98,7 @@ public sealed class QualityNotifier(IServiceScopeFactory scopes, ILogger<Quality
                 "quality-record",
                 record.Id,
                 record.SectionId,
-                null), token);
+                dedupeKey), token);
             await db.SaveChangesAsync(token);
         }, ct);
 
@@ -143,12 +149,60 @@ public sealed class QualityNotifier(IServiceScopeFactory scopes, ILogger<Quality
             await db.SaveChangesAsync(token);
         }, ct);
 
+    public Task RejectedAsync(int recordId, CancellationToken ct = default) =>
+        SafeSendAsync("Rejected", recordId, async (db, _, publisher, token) =>
+        {
+            var record = await LoadRecordAsync(db, recordId, token);
+            if (record?.RaisedByUserId is not int raiserId) return;
+
+            await publisher.PublishAsync(new NotificationRequest(
+                "QualityRecordRejected",
+                [raiserId],
+                $"{Label(record.Type)} {record.Number} ({record.Title}) was rejected.",
+                "quality-record",
+                record.Id,
+                record.SectionId,
+                $"quality:{record.Id}:rejected"), token);
+            await db.SaveChangesAsync(token);
+        }, ct);
+
+    public Task CancelledAsync(int recordId, CancellationToken ct = default) =>
+        SafeSendAsync("Cancelled", recordId, async (db, _, publisher, token) =>
+        {
+            var record = await LoadRecordAsync(db, recordId, token);
+            if (record?.RaisedByUserId is not int raiserId) return;
+
+            await publisher.PublishAsync(new NotificationRequest(
+                "QualityRecordCancelled",
+                [raiserId],
+                $"{Label(record.Type)} {record.Number} ({record.Title}) was cancelled.",
+                "quality-record",
+                record.Id,
+                record.SectionId,
+                $"quality:{record.Id}:cancelled"), token);
+            await db.SaveChangesAsync(token);
+        }, ct);
+
     public async Task<int> NotifyOverdueAsync(DateOnly labDate, CancellationToken ct = default)
     {
         await using var scope = scopes.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<IMicroLimsDbContext>();
         var recipients = scope.ServiceProvider.GetRequiredService<IPermissionRecipientResolver>();
         var publisher = scope.ServiceProvider.GetRequiredService<INotificationPublisher>();
+
+        var efDb = db as DbContext;
+        var isRelational = efDb is not null && efDb.Database.IsRelational();
+        var useTx = isRelational && efDb!.Database.CurrentTransaction is null;
+        await using var tx = useTx ? await efDb!.Database.BeginTransactionAsync(ct) : null;
+
+        if (isRelational && efDb!.Database.ProviderName?.Contains("Npgsql", StringComparison.OrdinalIgnoreCase) == true)
+        {
+            var acquired = await efDb.Database.SqlQueryRaw<bool>(
+                $"SELECT pg_try_advisory_xact_lock({AdvisoryLockKeys.QualityOverdueWorker}) AS \"Value\"")
+                .SingleAsync(ct);
+            if (!acquired)
+                return 0;
+        }
 
         var open = db.QualityRecords.AsNoTracking().Where(QualityConfigService.IsOpenExpression);
 
@@ -158,6 +212,7 @@ public sealed class QualityNotifier(IServiceScopeFactory scopes, ILogger<Quality
             .ToListAsync(ct);
 
         var overdueActions = await open
+            .Where(QualityConfigService.IsActionExecutionActiveExpression)
             .SelectMany(r => r.Actions.Where(a => a.DoneAtUtc == null && a.DueDate < labDate),
                 (r, a) => new
                 {
@@ -166,7 +221,7 @@ public sealed class QualityNotifier(IServiceScopeFactory scopes, ILogger<Quality
                 })
             .ToListAsync(ct);
 
-        var count = 0;
+        var requests = new List<NotificationRequest>(overdueRecords.Count + overdueActions.Count);
         var qaCache = new Dictionary<int, IReadOnlyList<int>>();
 
         async Task<IReadOnlyList<int>> GetQaAsync(int? sectionId)
@@ -186,15 +241,14 @@ public sealed class QualityNotifier(IServiceScopeFactory scopes, ILogger<Quality
             if (rec.OwnerUserId is int ownerId) userIds.Add(ownerId);
             if (userIds.Count == 0) continue;
 
-            await publisher.PublishAsync(new NotificationRequest(
+            requests.Add(new NotificationRequest(
                 "QualityRecordOverdue",
                 userIds.ToList(),
                 $"{Label(rec.Type)} {rec.Number} ({rec.Title}) is overdue (due {rec.DueDate:yyyy-MM-dd}).",
                 "quality-record",
                 rec.Id,
                 rec.SectionId,
-                $"quality:overdue:record:{rec.Id}:{labDate:yyyy-MM-dd}"), ct);
-            count++;
+                $"quality:overdue:record:{rec.Id}:{labDate:yyyy-MM-dd}"));
         }
 
         foreach (var act in overdueActions)
@@ -203,21 +257,26 @@ public sealed class QualityNotifier(IServiceScopeFactory scopes, ILogger<Quality
             userIds.Add(act.ResponsibleUserId);
             if (act.OwnerUserId is int ownerId) userIds.Add(ownerId);
 
-            await publisher.PublishAsync(new NotificationRequest(
+            requests.Add(new NotificationRequest(
                 "QualityActionOverdue",
                 userIds.ToList(),
                 $"Action on {Label(act.Type)} {act.Number} is overdue (due {act.DueDate:yyyy-MM-dd}): {act.Description}",
                 "quality-record",
                 act.RecordId,
                 act.SectionId,
-                $"quality:overdue:action:{act.ActionId}:{labDate:yyyy-MM-dd}"), ct);
-            count++;
+                $"quality:overdue:action:{act.ActionId}:{labDate:yyyy-MM-dd}"));
         }
 
-        if (count > 0)
+        if (requests.Count > 0)
+        {
+            await publisher.PublishBatchAsync(requests, ct);
             await db.SaveChangesAsync(ct);
+        }
 
-        return count;
+        if (tx is not null)
+            await tx.CommitAsync(ct);
+
+        return requests.Count;
     }
 
     private async Task SafeSendAsync(string eventName, int recordId,
@@ -231,10 +290,6 @@ public sealed class QualityNotifier(IServiceScopeFactory scopes, ILogger<Quality
             var recipients = scope.ServiceProvider.GetRequiredService<IPermissionRecipientResolver>();
             var publisher = scope.ServiceProvider.GetRequiredService<INotificationPublisher>();
             await send(db, recipients, publisher, ct);
-        }
-        catch (OperationCanceledException) when (ct.IsCancellationRequested)
-        {
-            throw;
         }
         catch (Exception ex)
         {
@@ -257,10 +312,6 @@ public sealed class QualityNotifier(IServiceScopeFactory scopes, ILogger<Quality
         try
         {
             await send(notifier);
-        }
-        catch (OperationCanceledException)
-        {
-            throw;
         }
         catch (Exception ex)
         {

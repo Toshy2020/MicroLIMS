@@ -32,6 +32,7 @@ export interface TestOrderSummary extends TestOrderSop {
 // Mirrors backend SampleDto (backend/MicroLIMS.Application/DTOs/SampleDto.cs)
 export interface SampleCard {
   labTimeZoneId?: string;
+  sopCaptureStartDateUtc?: string | null;
   sampleId: number;
   itemId?: number | null;
   referenceNumber: string;

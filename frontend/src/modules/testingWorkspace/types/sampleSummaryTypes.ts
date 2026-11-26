@@ -249,6 +249,7 @@ export type OverallSampleStatus =
 
 export interface SampleSummary {
   labTimeZoneId?: string;
+  sopCaptureStartDateUtc?: string | null;
   sampleId: number;
   referenceNumber: string;
   category: string;

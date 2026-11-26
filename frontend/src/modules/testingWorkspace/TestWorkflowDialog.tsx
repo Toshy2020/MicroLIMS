@@ -219,7 +219,12 @@ export function TestWorkflowDialog(props: Props) {
       {props.itemId != null && (
         <>
           <OpenSopAction itemId={props.itemId} />
-          <SopMethodDetails sopCapture={sop.sopCapture} newerSopRevision={sop.newerSopRevision} timeZone={props.labTimeZoneId} />
+          <SopMethodDetails
+            sopCapture={sop.sopCapture}
+            newerSopRevision={sop.newerSopRevision}
+            sopCaptureStartDateUtc={sop.sopCaptureStartDateUtc ?? props.sopCaptureStartDateUtc}
+            timeZone={props.labTimeZoneId}
+          />
         </>
       )}
       <TestWorkflowDialogBody
@@ -277,8 +282,8 @@ function TestWorkflowDialogBody({
       const data = await TestWorkflowService.getCurrentStep(testOrderId, signal);
       if (signal?.aborted) return;
       setCurrent(data);
-      if (data.sopCapture !== undefined)
-        onSopLoaded({ testOrderId, sopCapture: data.sopCapture, newerSopRevision: data.newerSopRevision });
+      if (data.sopCapture !== undefined || data.sopCaptureStartDateUtc !== undefined)
+        onSopLoaded({ testOrderId, sopCapture: data.sopCapture, newerSopRevision: data.newerSopRevision, sopCaptureStartDateUtc: data.sopCaptureStartDateUtc });
       setMediaId(""); setIncubatorId(""); setStage2IncubatorId("");
       resetLot();
       resetIncubator();

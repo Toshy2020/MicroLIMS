@@ -65,12 +65,14 @@ export function TestResultsSection({
   overallStatus,
   showSop,
   labTimeZoneId,
+  sopCaptureStartDateUtc,
   onReturnTest
 }: {
   testOrders: TestOrderSummaryDetail[];
   overallStatus: string;
   showSop?: boolean;
   labTimeZoneId?: string;
+  sopCaptureStartDateUtc?: string | null;
   onReturnTest?: (order: TestOrderSummaryDetail) => void;
 }) {
   const { t } = useTranslation("testingWorkspace");
@@ -156,7 +158,7 @@ export function TestResultsSection({
               <AccordionDetails sx={{ p: 2.5 }}>
                 <Stack spacing={2}>
                   {(showSop || order.sopCapture) && (
-                    <SopMethodDetails sopCapture={order.sopCapture} newerSopRevision={order.newerSopRevision} timeZone={labTimeZoneId} />
+                    <SopMethodDetails sopCapture={order.sopCapture} newerSopRevision={order.newerSopRevision} sopCaptureStartDateUtc={sopCaptureStartDateUtc} timeZone={labTimeZoneId} />
                   )}
                   {order.competencyOverrides?.map((override, index) => (
                     <Box key={index} sx={{ borderInlineStart: "2px solid", borderColor: "divider", paddingInlineStart: 2 }}>

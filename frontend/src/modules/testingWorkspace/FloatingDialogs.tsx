@@ -83,6 +83,7 @@ export function TestWorkflowDialogRouter({ open, test, sample, onClose }: Props)
         labTimeZoneId={sample.labTimeZoneId}
         sopCapture={test.sopCapture}
         newerSopRevision={test.newerSopRevision}
+        sopCaptureStartDateUtc={sample.sopCaptureStartDateUtc}
         onClose={onClose}
       />
       </Suspense>

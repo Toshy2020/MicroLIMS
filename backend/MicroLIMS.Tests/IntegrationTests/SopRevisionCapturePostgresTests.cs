@@ -26,13 +26,20 @@ public class SopRevisionCapturePostgresTests(PostgresTestFixture fixture)
         "SopRevisionId", "SopRevisionNumber", "SopEffectiveDateUtc", "SopCapturedAtUtc"
     ];
 
-    [Theory]
-    [InlineData("effective", SopCaptureStatus.Captured)]
-    [InlineData("blank", SopCaptureStatus.NoSopNumber)]
-    [InlineData("missing", SopCaptureStatus.NotFound)]
-    [InlineData("draft", SopCaptureStatus.NoEffectiveRevision)]
-    [InlineData("ambiguous", SopCaptureStatus.Ambiguous)]
-    public async Task Resolver_status_is_stored_on_the_test_order(string scenario, SopCaptureStatus expected)
+    [PostgresFact]
+    public Task Resolver_status_is_stored_on_the_test_order() =>
+        PostgresCases.RunAsync(
+            new (string Scenario, SopCaptureStatus Expected)[]
+            {
+                ("effective", SopCaptureStatus.Captured),
+                ("blank", SopCaptureStatus.NoSopNumber),
+                ("missing", SopCaptureStatus.NotFound),
+                ("draft", SopCaptureStatus.NoEffectiveRevision),
+                ("ambiguous", SopCaptureStatus.Ambiguous)
+            },
+            c => ResolverStatusCaseAsync(c.Scenario, c.Expected));
+
+    private async Task ResolverStatusCaseAsync(string scenario, SopCaptureStatus expected)
     {
         var setup = await ArrangeAsync(scenario);
 
@@ -149,16 +156,11 @@ public class SopRevisionCapturePostgresTests(PostgresTestFixture fixture)
         Assert.Equal(CapturedAt.UtcDateTime, stored.SopCapturedAtUtc);
     }
 
-    [Theory]
-    [InlineData("SopCaptureStatus")]
-    [InlineData("SopDocumentMasterId")]
-    [InlineData("SopDocumentCode")]
-    [InlineData("SopDocumentTitle")]
-    [InlineData("SopRevisionId")]
-    [InlineData("SopRevisionNumber")]
-    [InlineData("SopEffectiveDateUtc")]
-    [InlineData("SopCapturedAtUtc")]
-    public async Task Trigger_rejects_any_captured_column_change_after_capture(string column)
+    [PostgresFact]
+    public Task Trigger_rejects_any_captured_column_change_after_capture() =>
+        PostgresCases.RunAsync(CapturedColumns, TriggerRejectsColumnChangeCaseAsync);
+
+    private async Task TriggerRejectsColumnChangeCaseAsync(string column)
     {
         var setup = await ArrangeAsync("effective");
         await CaptureAndSaveAsync(setup.OrderId);

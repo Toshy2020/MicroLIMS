@@ -152,7 +152,7 @@ export function recordDetail(overrides: Partial<QualityRecordDetailDto> = {}): Q
     version: 3,
     deviation: {
       status: "Investigation",
-      occurredAtUtc: "2026-11-19T22:00:00Z",
+      occurredAtUtc: "2026-11-19T12:00:00Z",
       location: "Incubator room 2",
       immediateAction: "Moved the plates to incubator 4.",
       impactAssessment: "Plates of two batches were affected.",

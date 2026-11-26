@@ -276,6 +276,7 @@
     "refuse": "Refuse the extension",
     "comment": "Comment (optional)",
     "signAndDecide": "Sign and decide",
-    "signatureStatement": "Due-date extension decided"
+    "signatureStatement": "Due-date extension decided",
+    "requestFailed": "The extension request could not be sent."
   }
 }

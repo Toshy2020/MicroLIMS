@@ -68,6 +68,11 @@ public class QualityRecordsController(QualityRecordCore core, QualityLinkService
     public async Task<IActionResult> GetDashboard(CancellationToken ct = default) =>
         Ok(ApiResponse<QualityDashboardDto>.Ok(await queries.GetDashboardAsync(Actor, ct)));
 
+    [HttpGet("qa-availability")]
+    [Authorize(Policy = PermissionConstants.QualityView)]
+    public async Task<IActionResult> GetQaAvailability(CancellationToken ct = default) =>
+        Ok(ApiResponse<QaAvailabilityDto>.Ok(await queries.GetQaAvailabilityAsync(ct)));
+
     [HttpGet("{id:int}")]
     [Authorize(Policy = PermissionConstants.QualityView)]
     public async Task<IActionResult> GetById(int id, CancellationToken ct = default) =>

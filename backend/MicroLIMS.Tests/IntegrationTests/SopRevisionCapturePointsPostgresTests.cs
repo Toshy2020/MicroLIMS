@@ -1,4 +1,6 @@
 using System.Text.Json;
+using MicroLIMS.Application.DTOs.Responses;
+using MicroLIMS.Application.Helpers;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Application.Workflows;
 using MicroLIMS.Domain.Entities;
@@ -1362,5 +1364,273 @@ public class SopRevisionCapturePointsPostgresTests(PostgresTestFixture fixture)
             await Task.Delay(100);
         }
         Assert.False(second.IsFaulted, "The second writer failed before it could wait for the first.");
+    }
+
+    [PostgresFact]
+    public async Task Icp_method_assay_submission_captures_the_revision()
+    {
+        var tag = Guid.NewGuid().ToString("N")[..6].ToUpperInvariant();
+        int userId;
+        int orderId;
+        int runSampleId;
+        Sop sop;
+        await using (var arrange = fixture.CreateDbContext())
+        {
+            var section = TestServiceFactory.EnsureMicroSection(arrange);
+            var role = new Role { Name = "Analyst " + tag, Type = RoleType.Analyst, IsActive = true };
+            arrange.Roles.Add(role);
+            await arrange.SaveChangesAsync();
+            var user = new User
+            {
+                Username = "icp_sop_" + tag,
+                FullName = "ICP SOP Analyst",
+                RoleId = role.Id,
+                IsActive = true,
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(Password),
+            };
+            arrange.Users.Add(user);
+            await arrange.SaveChangesAsync();
+            TestServiceFactory.AssignUserToMicroSection(arrange, user.Id);
+            arrange.CurrentUserId = user.Id;
+            userId = user.Id;
+
+            var calEntry = new MaterialMasterEntry
+            {
+                SectionId = section.Id, Code = "ICP-CAL-" + tag, Name = "ICP cal " + tag,
+                Category = MaterialMasterCategory.ReferenceStandard, BaseUnit = MaterialUnit.Milliliter,
+                IsActive = true, CreatedByUserId = userId, CreatedAt = DateTime.UtcNow,
+                LastModifiedByUserId = userId, LastModifiedAt = DateTime.UtcNow,
+            };
+            arrange.MaterialMasterEntries.Add(calEntry);
+            await arrange.SaveChangesAsync();
+            var lot = new Material
+            {
+                SectionId = section.Id, MaterialType = MaterialType.ReferenceStandard, MaterialMasterEntryId = calEntry.Id,
+                MaterialName = calEntry.Name, ManufacturerName = "Acme", BatchNumber = "LOT-" + tag,
+                ReceivingDate = DateTime.UtcNow.AddDays(-10), ExpiryDate = DateTime.UtcNow.AddYears(1), Location = "Shelf",
+                QuantityReceived = 100m, QuantityRemaining = 100m, Unit = MaterialUnit.Milliliter,
+                Purity = 99.5m, MoisturePercent = 0m, CreatedByUserId = userId, LastModifiedByUserId = userId,
+            };
+            var equipment = new Equipment
+            {
+                Name = "ICP-OES " + tag, Code = "ICP-" + tag, Type = EquipmentType.IcpOes, SectionId = section.Id,
+                CalibrationDueDate = DateTime.UtcNow.AddYears(1),
+            };
+            var def = new TestDefinition
+            {
+                Code = "ICPT_" + tag, DisplayName = "ICP " + tag, SectionId = section.Id,
+                WorkflowType = WorkflowType.IcpMethodAssay, EquationType = EquationType.IcpMethodAssay, IsActive = true,
+                IcpMode = IcpTestMode.Assay, IcpSampleForm = IcpSampleForm.Solid, IcpTheoreticalAmount = 0.5m,
+                IcpElements = { new TestDefinitionIcpElement { Symbol = "Ca", DisplayOrder = 0, TargetPpm = 20m } },
+            };
+            var item = new Item { Code = "CA-" + tag, Name = "Calcium tablet " + tag, Category = SampleCategory.FinishedProduct, IsActive = true };
+            arrange.Materials.Add(lot);
+            arrange.Equipment.Add(equipment);
+            arrange.TestDefinitions.Add(def);
+            arrange.Items.Add(item);
+            await arrange.SaveChangesAsync();
+
+            var caEl = def.IcpElements.Single();
+            arrange.Specifications.Add(new Specification
+            {
+                ItemId = item.Id, TestCode = def.Code, ParameterName = caEl.Symbol, IcpTestElementId = caEl.Id,
+                LimitType = LimitType.Range, LowerLimit = 90m, UpperLimit = 110m, Unit = "%", DisplayOrder = 1,
+            });
+            var cause = await arrange.CausesOfTesting.FirstOrDefaultAsync() ?? new CauseOfTesting { Name = "Release", IsActive = true };
+            if (cause.Id == 0) arrange.CausesOfTesting.Add(cause);
+            var sample = new Sample
+            {
+                ReferenceNumber = "FP-" + Guid.NewGuid().ToString("N")[..8].ToUpperInvariant(), ItemId = item.Id,
+                Category = SampleCategory.FinishedProduct, BatchNumber = "B-CA", ReceivedAt = DateTime.UtcNow,
+                CauseOfTesting = cause, ReceivedByUserId = userId, Status = SampleStatus.InTesting,
+            };
+            arrange.Samples.Add(sample);
+            await arrange.SaveChangesAsync();
+            var order = new TestOrder
+            {
+                SampleId = sample.Id, TestCode = def.Code, SectionId = section.Id,
+                CurrentStep = WorkflowStep.Running, Status = ApprovalStatus.InProgress,
+            };
+            arrange.TestOrders.Add(order);
+            await arrange.SaveChangesAsync();
+            orderId = order.Id;
+
+            sop = await LinkSopAsync(arrange, item.Id, effective: true);
+
+            var icpSvc = TestServiceFactory.IcpRun(arrange);
+            var run = await icpSvc.StartRunAsync(new StartIcpRunRequest(equipment.Id), userId);
+            await icpSvc.SaveCalibrationAsync(run.Id, new SaveIcpCalibrationRequest(lot.Id, new()
+            {
+                new SaveIcpCalibrationElementInput("Ca", 0.999386m),
+            }), userId);
+            var pdf = new byte[] { 0x25, 0x50, 0x44, 0x46, 0x2D };
+            await icpSvc.UploadEvidenceAsync(run.Id, null, IcpEvidenceContext.Calibration, IcpEvidenceKind.CalibrationReport,
+                "cal.pdf", "application/pdf", new MemoryStream(pdf), userId);
+            await icpSvc.ConfirmCalibrationAsync(run.Id, new ConfirmIcpCalibrationRequest(Password, null), userId, null);
+            run = await icpSvc.AssignSamplesAsync(run.Id, new AssignIcpSamplesRequest(new List<int> { orderId }, Password, null), userId, null);
+            runSampleId = run.Samples.Single(x => x.TestOrderId == orderId).Id;
+            await icpSvc.SaveEntryAsync(runSampleId, new SaveIcpSampleEntryRequest(0.5m, new() { new IcpConcentrationInput(caEl.Id, 19m) }), userId);
+            await icpSvc.UploadEvidenceAsync(run.Id, runSampleId, IcpEvidenceContext.Sample, IcpEvidenceKind.SampleReport,
+                "s.pdf", "application/pdf", new MemoryStream(pdf), userId);
+        }
+
+        await using (var act = fixture.CreateDbContext())
+        {
+            act.CurrentUserId = userId;
+            await Engine(act).SubmitIcpMethodAssayAsync(runSampleId, Password, "ok", userId, "127.0.0.1");
+        }
+
+        await AssertCapturedAsync(orderId, sop);
+    }
+
+    [PostgresFact]
+    public async Task Hplc_method_assay_submission_captures_the_revision()
+    {
+        var tag = Guid.NewGuid().ToString("N")[..6].ToUpperInvariant();
+        int userId;
+        int orderId;
+        int runSampleId;
+        Sop sop;
+        await using (var arrange = fixture.CreateDbContext())
+        {
+            var section = TestServiceFactory.EnsureMicroSection(arrange);
+            userId = fixture.SeededUserId;
+            TestServiceFactory.AssignUserToMicroSection(arrange, userId);
+            var user = await arrange.Users.SingleAsync(u => u.Id == userId);
+            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(Password);
+            await arrange.SaveChangesAsync();
+
+            var diluent = await HplcMethodServiceTests.AddSolutionAsync(arrange, section.Id, "Diluent " + tag, SolutionType.Diluent);
+            var mp = await HplcMethodServiceTests.AddSolutionAsync(arrange, section.Id, "Mobile " + tag, SolutionType.MobilePhase);
+            var standard = await HplcMethodServiceTests.AddEntryAsync(arrange, section.Id, "STD-" + tag);
+            var stage = await arrange.ProductionStages.FirstOrDefaultAsync(p => p.Role == ProductionStageRole.Bulk);
+            if (stage == null)
+            {
+                stage = new ProductionStage { Name = ProductionStageRole.Bulk + " " + tag, Role = ProductionStageRole.Bulk, IsActive = true };
+                arrange.ProductionStages.Add(stage);
+                await arrange.SaveChangesAsync();
+            }
+
+            var item = new Item { Code = "RM-" + tag, Name = "Raw Material " + tag, Category = SampleCategory.RawMaterial, IsActive = true };
+            arrange.Items.Add(item);
+            var method = new HplcMethod
+            {
+                Name = "HPLC Assay " + tag, Abbreviation = "H" + tag, SectionId = section.Id,
+                DiluentSolutionId = diluent.Id, ResultMode = HplcResultMode.Assay, Technique = HplcTechnique.Hplc, IsActive = true,
+            };
+            method.MobilePhases.Add(new HplcMethodMobilePhase { Channel = "A", SolutionMasterId = mp.Id });
+            arrange.HplcMethods.Add(method);
+            var analyte = new HplcMethodAnalyte
+            {
+                HplcMethod = method, Name = "Active Ingredient", StandardEntryId = standard.Id, WavelengthNm = 254m,
+                DisplayOrder = 1, TheoreticalWeightStdMg = 50m, TheoreticalWeightTestMg = 50m, StandardInjections = 3,
+            };
+            arrange.HplcMethodAnalytes.Add(analyte);
+            var testDef = new TestDefinition
+            {
+                Code = "HPLC-" + tag, DisplayName = "HPLC Content Assay " + tag, SectionId = section.Id,
+                WorkflowType = WorkflowType.HplcMethodAssay, EquationType = EquationType.HplcMethodAssay,
+                RequiresSystemSuitability = true, HplcMethod = method, IsActive = true,
+            };
+            arrange.TestDefinitions.Add(testDef);
+            await arrange.SaveChangesAsync();
+
+            arrange.SampleTests.Add(new SampleTest { ItemId = item.Id, TestCode = testDef.Code });
+            arrange.Specifications.Add(new Specification
+            {
+                ItemId = item.Id, TestCode = testDef.Code, ParameterName = "Active Ingredient",
+                HplcMethodAnalyteId = analyte.Id, LimitType = LimitType.Range, LowerLimit = 95m, UpperLimit = 105m,
+                Unit = "%", ResultBasis = ResultBasis.PercentAsIs, DisplayOrder = 1,
+            });
+            arrange.TestDefinitionStageReplicates.Add(new TestDefinitionStageReplicate
+            {
+                TestDefinitionId = testDef.Id, Role = ProductionStageRole.Bulk, SampleReplicates = 1,
+            });
+            var cause = await arrange.CausesOfTesting.FirstOrDefaultAsync()
+                ?? arrange.CausesOfTesting.Add(new CauseOfTesting { Name = "Routine Testing", IsActive = true }).Entity;
+            var sample = new Sample
+            {
+                ItemId = item.Id, Category = SampleCategory.RawMaterial, ReferenceNumber = "SMP-" + tag,
+                BatchNumber = "B-001", ProductionStageId = stage.Id, ProductionStage = stage.Name,
+                CauseOfTesting = cause, ReceivedAt = DateTime.UtcNow, ReceivedByUserId = userId, Status = SampleStatus.InTesting,
+            };
+            arrange.Samples.Add(sample);
+            await arrange.SaveChangesAsync();
+            var order = new TestOrder
+            {
+                SampleId = sample.Id, TestCode = testDef.Code, SectionId = section.Id,
+                CurrentStep = WorkflowStep.Running, Status = ApprovalStatus.InProgress,
+            };
+            arrange.TestOrders.Add(order);
+            var equipment = new Equipment
+            {
+                Code = "EQ-" + tag, Name = "HPLC System " + tag, Type = EquipmentType.Hplc,
+                SectionId = section.Id, CalibrationDueDate = DateTime.UtcNow.AddYears(1),
+            };
+            var column = new ChromatographyColumn
+            {
+                Code = "COL-" + tag, Name = "C18 Column " + tag, UspDesignation = "L1",
+                SectionId = section.Id, IsActive = true, CreatedByUserId = userId, LastModifiedByUserId = userId,
+            };
+            column.CompatibleEquipment.Add(equipment);
+            arrange.Equipment.Add(equipment);
+            arrange.ChromatographyColumns.Add(column);
+            await arrange.SaveChangesAsync();
+
+            var run = new HplcRun
+            {
+                Code = "RUN-" + tag, SectionId = section.Id, EquipmentId = equipment.Id,
+                HplcMethodId = method.Id, ChromatographyColumnId = column.Id, Status = HplcRunStatus.Open,
+                MethodSnapshotJson = JsonSerializer.Serialize(HplcMethodResponse.From(method), SnapshotJson.Options),
+            };
+            arrange.HplcRuns.Add(run);
+            await arrange.SaveChangesAsync();
+
+            arrange.HplcSstRecords.Add(new HplcSstRecord
+            {
+                HplcRunId = run.Id, Code = "SST-" + tag, Status = HplcSstStatus.Passed,
+                Analytes =
+                {
+                    new HplcSstAnalyte
+                    {
+                        HplcMethodAnalyteId = analyte.Id, MeanResponse = 1000m,
+                        StandardWeightMg = 50m, StandardPurityPercent = 100m, StandardMoisturePercent = 0m,
+                    }
+                }
+            });
+            var runSample = new HplcRunSample
+            {
+                HplcRunId = run.Id, TestOrderId = order.Id, Status = HplcRunSampleStatus.Assigned,
+                Replicates =
+                {
+                    new HplcSampleReplicate
+                    {
+                        ReplicateNo = 1, ActualWeightMg = 50m,
+                        Responses = { new HplcReplicateResponse { HplcMethodAnalyteId = analyte.Id, Response = 980m } }
+                    }
+                }
+            };
+            arrange.HplcRunSamples.Add(runSample);
+            await arrange.SaveChangesAsync();
+            arrange.HplcEvidences.Add(new HplcEvidence
+            {
+                HplcRunId = run.Id, HplcRunSampleId = runSample.Id, Kind = HplcEvidenceKind.SampleReport,
+                Context = HplcEvidenceContext.Sample, FilePath = "report.pdf", FileName = "report.pdf",
+                ContentType = "application/pdf", UploadedByUserId = userId, UploadedAt = DateTime.UtcNow,
+            });
+            await arrange.SaveChangesAsync();
+
+            orderId = order.Id;
+            runSampleId = runSample.Id;
+            sop = await LinkSopAsync(arrange, item.Id, effective: true);
+        }
+
+        await using (var act = fixture.CreateDbContext())
+        {
+            act.CurrentUserId = userId;
+            await Engine(act).SubmitHplcMethodAssayAsync(runSampleId, Password, "ok", userId, "127.0.0.1");
+        }
+
+        await AssertCapturedAsync(orderId, sop);
     }
 }

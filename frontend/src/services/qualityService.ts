@@ -255,6 +255,10 @@ export interface QualityClassificationDto {
   version: number;
 }
 
+export interface QaAvailabilityDto {
+  hasActiveQa: boolean;
+}
+
 export interface RequestQualityExtensionRequest {
   actionId: number | null;
   requestedDueDate: string;
@@ -493,6 +497,10 @@ export interface QualityUserOption {
 }
 
 export const qualityService = {
+  async getQaAvailability(signal?: AbortSignal): Promise<QaAvailabilityDto> {
+    return (await apiClient.get("/quality/qa-availability", { signal })).data.data;
+  },
+
   async listRecords(filter: QualityRecordFilter, signal?: AbortSignal): Promise<PagedResult<QualityRecordListItemDto>> {
     return (await apiClient.get("/quality/records", { params: filter, signal })).data.data;
   },

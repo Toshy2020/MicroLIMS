@@ -524,4 +524,87 @@ public class SopRevisionCapturePostgresTests(PostgresTestFixture fixture)
         "SopEffectiveDateUtc" => order.SopEffectiveDateUtc,
         _ => order.SopCapturedAtUtc
     };
+
+    [PostgresFact]
+    public async Task CurrentStepViewService_GetAsync_returns_sop_capture_and_newer_revision_notice()
+    {
+        Setup setup;
+        await using (var arrange = fixture.CreateDbContext())
+        {
+            var s = TitrationScenario.Seed(
+                arrange, new TitrationScenario.Options { ExistingUserId = fixture.SeededUserId });
+            var code = NewCode();
+            var item = await arrange.Items.SingleAsync(i => i.Id == s.Order.Sample.ItemId);
+            item.SopNumber = code;
+            await arrange.SaveChangesAsync();
+            var master = await AddMasterAsync(arrange, fixture, code);
+            var revision = await AddRevisionAsync(arrange, fixture, master, 3, DocumentRevisionStatus.Effective, current: true);
+            setup = new(s.Order.Id, master.Id, revision.Id, code);
+        }
+        await CaptureAndSaveAsync(setup.OrderId);
+        await ArrangeNewerRevisionAsync(setup, completed: false);
+
+        await using var act = fixture.CreateDbContext();
+        var engine = TestServiceFactory.TestWorkflow(act);
+        var service = new CurrentStepViewService(act, engine, new FixedTimeProvider(CapturedAt.AddDays(2)));
+        var payload = await service.GetAsync(setup.OrderId);
+
+        var json = System.Text.Json.JsonSerializer.Serialize(payload,
+            new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web));
+        using var doc = System.Text.Json.JsonDocument.Parse(json);
+        var sopCapture = doc.RootElement.GetProperty("sopCapture");
+        Assert.Equal(nameof(SopCaptureStatus.Captured), sopCapture.GetProperty("status").GetString());
+        Assert.Equal(setup.MasterId, sopCapture.GetProperty("documentMasterId").GetInt32());
+        Assert.Equal(setup.Code, sopCapture.GetProperty("documentCode").GetString());
+        Assert.Equal(setup.RevisionId, sopCapture.GetProperty("revisionId").GetInt32());
+        Assert.Equal("3", sopCapture.GetProperty("revisionNumber").GetString());
+
+        var newer = doc.RootElement.GetProperty("newerSopRevision");
+        Assert.Equal("4", newer.GetProperty("revisionNumber").GetString());
+    }
+
+    [PostgresFact]
+    public async Task ReportDocumentMapper_renders_sop_capture_effective_time_in_non_utc_lab_zone()
+    {
+        var setup = await ArrangeAsync("effective");
+        await CaptureAndSaveAsync(setup.OrderId);
+        var summary = await ReadSummaryAsync(setup.OrderId);
+        var labZone = TimeZoneInfo.CreateCustomTimeZone("Test+02", TimeSpan.FromHours(2), "Test+02", "Test+02");
+
+        var report = ReportDocumentMapper.ForSample(summary, labZone);
+
+        var expectedLocal = TimeZoneInfo.ConvertTime(new DateTimeOffset(RevisionEffective, TimeSpan.Zero), labZone)
+            .ToString("dd-MMM-yyyy HH:mm zzz");
+        Assert.Contains("+02:00", expectedLocal);
+
+        var header = Assert.Single(report.Blocks.OfType<ListBlock>(), b => b.Label == "methods");
+        Assert.Contains(header.Rows, row => row.Right.Contains(expectedLocal, StringComparison.Ordinal));
+        Assert.Contains(report.Blocks.OfType<CardBlock>(), card =>
+            card.MetaLines.Any(line => line.Contains(expectedLocal, StringComparison.Ordinal)));
+    }
+
+    [PostgresFact]
+    public async Task Certificate_sorts_revision_numbers_numerically_not_ordinally()
+    {
+        var setup = await ArrangeAsync("effective");
+        var sampleId = await GetSampleIdAsync(setup.OrderId);
+        await using (var arrange = fixture.CreateDbContext())
+        {
+            var sectionId = await arrange.TestOrders.AsNoTracking()
+                .Where(o => o.Id == setup.OrderId).Select(o => o.SectionId).SingleAsync();
+            arrange.TestOrders.AddRange(
+                CapturedOrder(sampleId, sectionId, "SOP-A", "10", 10),
+                CapturedOrder(sampleId, sectionId, "SOP-A", "2", 2),
+                CapturedOrder(sampleId, sectionId, "SOP-A", "01.10", 110),
+                CapturedOrder(sampleId, sectionId, "SOP-A", "01.2", 102),
+                CapturedOrder(sampleId, sectionId, "SOP-A", "02.1", 201),
+                CapturedOrder(sampleId, sectionId, "SOP-A", "02", 200));
+            await arrange.SaveChangesAsync();
+        }
+
+        var summary = await ReadSummaryAsync(setup.OrderId);
+        Assert.Equal(
+            new[] { "01.2", "01.10", "02", "2", "02.1", "10" },
+            summary.Certificate.Sample.MethodDocuments.Select(m => m.RevisionNumber));
+    }
 }

@@ -222,3 +222,5 @@ public sealed record QualityDashboardDto(
     int LaboratoryOpenRecordsTotalCount = 0,
     IReadOnlyList<QualityDashboardActionDto>? LaboratoryOpenActions = null,
     int LaboratoryOpenActionsTotalCount = 0);
+
+public sealed record QaAvailabilityDto(bool HasActiveQa);

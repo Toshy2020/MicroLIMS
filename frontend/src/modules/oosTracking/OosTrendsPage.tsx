@@ -19,10 +19,6 @@ import {
   type OosTrendReportDto
 } from "../../services/oosTrendsService";
 
-// The server reads a date-only "to" as the start of that day, so the last day would drop out of the report.
-// The end of the chosen day is sent instead (the register's date filters send the plain date).
-const END_OF_DAY = "T23:59:59.999Z";
-
 function numberCell(value: number) {
   return (
     <Typography variant="body2" sx={{ fontVariantNumeric: "tabular-nums" }}>
@@ -69,7 +65,7 @@ export function OosTrendsPage() {
     const controller = new AbortController();
     const filter: OosTrendFilter = { groupBy };
     if (fromDate) filter.from = fromDate;
-    if (toDate) filter.to = `${toDate}${END_OF_DAY}`;
+    if (toDate) filter.to = toDate;
     if (kind) filter.kind = kind;
     if (sectionId !== "") filter.sectionId = sectionId;
 

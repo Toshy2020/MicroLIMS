@@ -374,17 +374,15 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
     return investigations.filter((i) => i.sectionId === effectiveApprovalSectionId);
   }, [investigations, effectiveApprovalSectionId]);
 
-  // Follow-up (backend, later): derive retest/new-sample availability from the server instead of sectionHasInvestigation.
-  const sectionHasInvestigation = useMemo(
-    () => sectionInvestigations.some((i) => i.kind === "Oos"),
-    [sectionInvestigations]
-  );
-
   useEffect(() => {
-    if (sectionHasInvestigation && (decision === "RetestRetainedSample" || decision === "NewSampleRequest")) {
-      setDecision("Approve");
+    if (decision === "RetestRetainedSample") {
+      const entry = approvalAvailability.get("approval.retestRetainedSample");
+      if (entry && !entry.allowed) setDecision("Approve");
+    } else if (decision === "NewSampleRequest") {
+      const entry = approvalAvailability.get("approval.newSampleRequest");
+      if (entry && !entry.allowed) setDecision("Approve");
     }
-  }, [sectionHasInvestigation, decision]);
+  }, [approvalAvailability, decision]);
 
   const handleOpenInvestigation = async () => {
     if (!sampleId || effectiveApprovalSectionId == null) return;
@@ -685,7 +683,6 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
               onClosingSectionChange={setClosingSectionId}
               onCloseTestingClick={() => setConfirmingClose(true)}
               oosInvestigations={sectionInvestigations}
-              sectionHasInvestigation={sectionHasInvestigation}
               canOpenInvestigation={
                 permissions.includes(PERMISSIONS.OOS_MANAGE) && effectiveApprovalSectionId != null
               }

@@ -78,7 +78,12 @@ public static class BackgroundJobCatalog
             "NotificationWorker", BackgroundJobClassification.Gxp,
             "Evaluates scheduled notifications (incubations, expiries, calibrations, overdue items, config approvals, daily digests) and dispatches due email outbox messages.",
             "Every 5 minutes",
-            "Sends external notification emails and runs retention/digest scheduling; regulated communication runs on schedule only.")
+            "Sends external notification emails and runs retention/digest scheduling; regulated communication runs on schedule only."),
+        new BackgroundJobDefinition(
+            "QualityOverdueWorker", BackgroundJobClassification.Gxp,
+            "Sends daily overdue notifications for open quality records and unfinished quality actions.",
+            "Every 60 minutes (QualityOverdue:IntervalMinutes)",
+            "Sends regulated quality overdue notifications on schedule only; deduplicated per item per laboratory day.")
     };
 
     public static BackgroundJobDefinition? Find(string? name) =>

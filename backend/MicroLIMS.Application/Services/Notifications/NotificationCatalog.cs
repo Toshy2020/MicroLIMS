@@ -45,6 +45,17 @@ public static class NotificationCatalog
         new("MonitoringDueThisMonth", "warning", false, "Monitoring due this month"),
         new("EquipmentCalibrationOverdue", "warning", false, "Equipment calibration task overdue"),
         new("EquipmentPmOverdue", "warning", false, "Equipment preventive maintenance overdue"),
+
+        new("QualityRecordRaised", "info", false, "Quality record raised"),
+        new("QualityRecordAssigned", "info", false, "Quality record assigned"),
+        new("QualityRecordReturned", "warning", false, "Quality record returned"),
+        new("QualityAwaitingQa", "info", false, "Quality record awaiting QA"),
+        new("QualityActionAssigned", "info", false, "Quality action assigned"),
+        new("QualityRecordClosed", "info", false, "Quality record closed"),
+        new("QualityRecordRejected", "warning", false, "Quality record rejected"),
+        new("QualityRecordCancelled", "warning", false, "Quality record cancelled"),
+        new("QualityRecordOverdue", "warning", false, "Quality record overdue"),
+        new("QualityActionOverdue", "warning", false, "Quality action overdue"),
     ];
 
     public static IReadOnlyDictionary<string, NotificationTypeInfo> Types { get; } =

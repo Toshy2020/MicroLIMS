@@ -114,6 +114,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<OosTrendService>();
         services.AddScoped<OosInvestigationReportBuilder>();
         services.AddScoped<OosRecipientResolver>();
+        services.AddScoped<MicroLIMS.Application.Services.Notifications.IPermissionRecipientResolver>(sp => sp.GetRequiredService<OosRecipientResolver>());
         services.AddScoped<IOosNotifier, OosNotifier>();
         services.AddScoped<OosRetestPlanService>();
         services.AddScoped<RetestSampleFactory>();
@@ -231,6 +232,8 @@ public static class ServiceCollectionExtensions
         services.AddHostedService(sp => sp.GetRequiredService<MicroLIMS.API.BackgroundServices.EquipmentOverdueWorker>());
         services.AddSingleton<MicroLIMS.API.BackgroundServices.NotificationWorker>();
         services.AddHostedService(sp => sp.GetRequiredService<MicroLIMS.API.BackgroundServices.NotificationWorker>());
+        services.AddSingleton<MicroLIMS.API.BackgroundServices.QualityOverdueWorker>();
+        services.AddHostedService(sp => sp.GetRequiredService<MicroLIMS.API.BackgroundServices.QualityOverdueWorker>());
         // Background job run log and the admin Jobs screen. Singleton recorder: it owns the per-job run gate.
         services.AddSingleton<MicroLIMS.Application.Services.BackgroundJobs.IBackgroundJobRunRecorder, MicroLIMS.Application.Services.BackgroundJobs.BackgroundJobRunRecorder>();
         services.AddScoped<MicroLIMS.Application.Services.BackgroundJobs.IBackgroundJobAdminService, MicroLIMS.Application.Services.BackgroundJobs.BackgroundJobAdminService>();
@@ -291,6 +294,11 @@ public static class ServiceCollectionExtensions
         services.AddScoped<MicroLIMS.Application.Services.Quality.QualityLinkService>();
         services.AddScoped<MicroLIMS.Application.Services.Quality.QualityAttachmentService>();
         services.AddScoped<MicroLIMS.Application.Services.Quality.QualityCommentService>();
+        services.AddScoped<MicroLIMS.Application.Services.Quality.QualityQueryService>();
+        services.AddScoped<MicroLIMS.Application.Services.Quality.QualityReportBuilder>();
+        services.AddScoped<MicroLIMS.Application.Services.Quality.QualityNotifier>();
+        services.AddScoped<MicroLIMS.Application.Services.Quality.IQualityNotifier>(sp =>
+            sp.GetRequiredService<MicroLIMS.Application.Services.Quality.QualityNotifier>());
         services.AddScoped<DiscussionService>();
         services.AddScoped<MessageService>();
         services.AddScoped<IncubatorEligibilityService>();

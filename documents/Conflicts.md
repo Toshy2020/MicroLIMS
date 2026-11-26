@@ -1353,3 +1353,14 @@ Locations for CONF-001 to CONF-008 were added on 2026-11-12 from the area worker
 - **Question:** Is the link panel enough to satisfy "chosen from the system", or does the impact assessment need a structured selection of the affected records?
 - **Decision:** Not decided.
 - **Date:** 2026-11-25
+
+### CONF-241
+- **Area:** Quality records (D2 T10 trending/dashboard defaults)
+- **Status:** Decided by orchestrator - pending user confirmation
+- **What the code does:** Implements the five orchestrator defaults for D2 Task 10:
+  - **O1:** Product (item) for trending and repeat causes resolves from direct `Item` links, else `ComplaintDetail.ItemId`, else `Sample.ItemId` from linked `Sample`, `TestOrder` (its sample), or `OosInvestigation` (its sample); a record linked to several distinct items is counted under each.
+  - **O2:** Actions (`CapaAction`, `ChangeTask`) count as overdue in `QualityOverdueWorker`, `QualityQueryService.GetDashboardAsync`, and `QualityConfigService.ListOverdueAsync` only once their plan is approved (`CapaStatus.PlanApproved` or later; `ChangeControlStatus.ApprovedForImplementation` or later); record due dates count while open.
+  - **O3:** Cancelled and rejected records are excluded from repeat-cause detection, time-to-close, on-time rate, and CAPA effectiveness rate; trends report them as `CancelledCount` and `RejectedCount` per group while `TotalCount` continues to count all records.
+  - **O4:** Trends without `from`/`to` default to the last 365 lab days (from `ILabClock.LabToday`); the `from`/`to` window is capped at 5 years (`Quality.TrendWindowTooLarge` beyond); a date-only `to` includes that entire day.
+  - **O5:** Each dashboard list returns at most 50 items plus a `TotalCount`; Section Head users (with section scope, not QA) also receive `LaboratoryOpenRecords` and `LaboratoryOpenActions` for their readable sections.
+- **Date:** 2026-11-26

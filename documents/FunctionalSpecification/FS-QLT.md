@@ -19,8 +19,8 @@
 
 ## Scope and reading notes
 
-- This document describes the quality record code merged for D2 Tasks 1 to 8. Nothing here was run. Every statement was written from the code files named in each entry.
-- Not described here, because not merged: the master-data change-control gate (D2 Task 9), queries, report, trending, notifications and the overdue job (Task 10), and all screens (Tasks 11 to 13).
+- This document describes the quality record code merged for D2 Tasks 1 to 10. Every statement was written from the code files named in each entry.
+- Not described here, because not merged: the master-data change-control gate (D2 Task 9) and all screens (Tasks 11 to 13).
 - Where the approved specification and the code disagree, the entry says what the code does and names the `CONF` entry in `documents/Conflicts.md`.
 - In every entry, "refused" means the service throws a coded error (message codes in `backend/MicroLIMS.Shared/Messages/MessageCodes.Quality.cs` and the English texts in `frontend/src/locales/en/serverMessages.json`).
 
@@ -196,3 +196,27 @@
 **Function:** Master-data writes that quality records depend on (the Task 8 fix, merged as commit 9ed6ced). `TestWorkflowStepMasterDataService` takes the caller's user ID on the workflow-type update and on the create, update, move and delete of a step, and checks `TestConfigurationScope.EnsureCanConfigureAsync` for the test's section. The update, move and delete of a step, and the workflow-type update, call `RecordVersion.EnsureCurrent` on the stored row. `TestDefinitionMasterDataService.FreezeTestDefinitionAsync` and `UnfreezeTestDefinitionAsync` take the user ID, check the same scope and version, and then run the change-reason guard (`_reasonGuard.EnsureAsync`) before saving.
 **Code:** `backend/MicroLIMS.Application/Services/MasterData/TestWorkflowStepMasterDataService.cs` — `UpdateWorkflowTypeAsync`, `UpdateTestWorkflowStepAsync`, `MoveTestWorkflowStepAsync`, `DeleteTestWorkflowStepAsync`; `backend/MicroLIMS.Application/Services/MasterData/TestDefinitionMasterDataService.cs` — `FreezeTestDefinitionAsync`, `UnfreezeTestDefinitionAsync`
 **Verified by:** reading (not run). The Task 8 tests (`MasterDataWriteScopePostgresTests`) were not run for this document.
+
+### FS-QLT-019
+*(Draft — pending approval)*
+**Satisfies:** URS-QLT-008, URS-QLT-013, URS-QLT-014, URS-QLT-015
+**Function:** Queries, full detail, PDF report and dashboard (D2 Task 10). `QualityQueryService.ListAsync` (`GET api/quality/records`) filters readable records by type, status (including `Cancelled`), classification, section, owner, overdue flag (reusing `QualityConfigService.IsOpenExpression` / `IsNotOpenExpression`) and raised date range (a date-only `to` includes the entire day), using `AsNoTracking`, SQL projections and `Paging.Normalize` (page size capped at 100). `GetDetailAsync` (`GET api/quality/records/{id}`) projects the header, type detail, path steps, signed timeline (signer full name, UTC time with `UTC` zone, `ReportVocabulary` meaning text), actions, attachments and links count, refusing out-of-scope records with `Quality.NotFound`. `QualityReportBuilder.GeneratePdfAsync` (`GET api/quality/records/{id}/pdf`) renders the PDF via `IPdfGenerator.GenerateReportAsync` with restricted links shown as number/code + `"Restricted"` only, appends `"N more linked records not shown"` when links exceed the 100-link cap, and logs the export via `DataExportAuditService` (`QualityRecordPdf`). `GetDashboardAsync` (`GET api/quality/dashboard`) returns role-scoped lists each capped at 50 items plus `TotalCount` (O5), enforces SoD and completeness rules on `WaitingForMyDecision` (complete non-returned CAPA plans; deviations ready to close only when `CapaRequired == false` or an approved CAPA exists via `DeviationService.IsApprovedCapaExpression`), applies O2 for overdue actions, and provides `LaboratoryOpenRecords` and `LaboratoryOpenActions` for Section Head users (O5).
+**Code:** `backend/MicroLIMS.Application/Services/Quality/QualityQueryService.cs`; `backend/MicroLIMS.Application/Services/Quality/QualityReportBuilder.cs`; `backend/MicroLIMS.API/Controllers/QualityRecordsController.cs`
+**Verified by:** `QualityQueriesPostgresTests`, `QualityTrendsAndDashboardPostgresTests`
+**Conflicts:** CONF-241
+
+### FS-QLT-020
+*(Draft — pending approval)*
+**Satisfies:** URS-QLT-013, URS-QLT-015
+**Function:** Quality trending (D2 Task 10). `QualityQueryService.GetTrendsAsync` (`GET api/quality/trends`) defaults `from`/`to` to the last 365 laboratory days, caps the window at 5 years (`Quality.TrendWindowTooLarge` beyond), and treats a date-only `to` as inclusive of the whole day (O4). It groups readable records by `type`, `classification`, `cause`, `section`, `item` (O1: direct `Item` link, else `ComplaintDetail.ItemId`, else `Sample.ItemId` via linked `Sample`, `TestOrder`, or `OosInvestigation`) or `source` (refusing unknown values with `Quality.TrendGroupByInvalid`), grouping in SQL for `type`, `classification`, `section` and `cause`. Cancelled and rejected records are excluded from time-to-close, on-time rate, CAPA effectiveness rate and repeat-cause detection, and are reported as `CancelledCount` and `RejectedCount` per group while `TotalCount` counts all (O3). Repeat-cause detection reports only the contiguous cluster inside `repeatWindowDays` and masks out-of-scope `Equipment` names as `"{Code} (Restricted)"`.
+**Code:** `backend/MicroLIMS.Application/Services/Quality/QualityQueryService.cs` — `GetTrendsAsync`
+**Verified by:** `QualityTrendsAndDashboardPostgresTests`
+**Conflicts:** CONF-241
+
+### FS-QLT-021
+*(Draft — pending approval)*
+**Satisfies:** URS-QLT-011, URS-QLT-016
+**Function:** Quality notifications and overdue background job (D2 Task 10). `OosRecipientResolver` implements `IPermissionRecipientResolver` (`ResolveAsync(int? sectionId, string permissionCode, CancellationToken)`), preserving existing OOS behaviour while supporting site-wide quality records. `QualityNotifier` sends post-commit notifications (`QualityRecordRaised`, `QualityRecordAssigned` when owner != creator, `QualityRecordReturned`, `QualityAwaitingQa` including deduped CAPA plan save and last CAPA action / CC task completion, `QualityActionAssigned`, `QualityRecordClosed`, `QualityRecordRejected`, `QualityRecordCancelled`) using `CancellationToken.None`; all exceptions including cancellation are logged and never fail or roll back a committed step. `QualityOverdueWorker` (`BackgroundJobClassification.Gxp`, `QualityOverdue:Enabled`, `QualityOverdue:IntervalMinutes` default 60) acquires a PostgreSQL transaction advisory lock (`AdvisoryLockKeys.QualityOverdueWorker`) and runs `QualityNotifier.NotifyOverdueAsync` using `ILabClock.LabToday`, `QualityConfigService.IsActionExecutionActiveExpression` (O2), and batch dedupe via `NotificationPublisher.PublishBatchAsync` to emit at most one notification per recipient per item per laboratory day.
+**Code:** `backend/MicroLIMS.Application/Services/Notifications/IPermissionRecipientResolver.cs`; `backend/MicroLIMS.Application/Services/Oos/OosRecipientResolver.cs`; `backend/MicroLIMS.Application/Services/Quality/QualityNotifier.cs`; `backend/MicroLIMS.API/BackgroundServices/QualityOverdueWorker.cs`; `backend/MicroLIMS.Application/Services/BackgroundJobs/BackgroundJobCatalog.cs`
+**Verified by:** `QualityNotificationsAndWorkerPostgresTests`
+**Conflicts:** CONF-241

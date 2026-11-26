@@ -16,10 +16,57 @@ namespace MicroLIMS.API.Controllers;
 [ApiController]
 [Route("api/quality")]
 public class QualityRecordsController(QualityRecordCore core, QualityLinkService links,
-    QualityAttachmentService attachments, QualityCommentService comments) : ControllerBase
+    QualityAttachmentService attachments, QualityCommentService comments,
+    QualityQueryService queries, QualityReportBuilder reportBuilder) : ControllerBase
 {
     private int Actor => int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "0",
         System.Globalization.CultureInfo.InvariantCulture);
+
+    [HttpGet("records")]
+    [Authorize(Policy = PermissionConstants.QualityView)]
+    public async Task<IActionResult> ListRecords(
+        [FromQuery] QualityRecordType? type = null,
+        [FromQuery] string? status = null,
+        [FromQuery] int? classificationId = null,
+        [FromQuery] int? sectionId = null,
+        [FromQuery] int? ownerUserId = null,
+        [FromQuery] bool? overdue = null,
+        [FromQuery] DateTime? from = null,
+        [FromQuery] DateTime? to = null,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 25,
+        CancellationToken ct = default) =>
+        Ok(ApiResponse<PagedResult<QualityRecordListItemDto>>.Ok(
+            await queries.ListAsync(new QualityRecordFilter(type, status, classificationId, sectionId,
+                ownerUserId, overdue, from, to, page, pageSize), Actor, ct)));
+
+    [HttpGet("records/{id:int}")]
+    [Authorize(Policy = PermissionConstants.QualityView)]
+    public async Task<IActionResult> GetRecordDetail(int id, CancellationToken ct = default) =>
+        Ok(ApiResponse<QualityRecordDetailDto>.Ok(await queries.GetDetailAsync(id, Actor, ct)));
+
+    [HttpGet("records/{id:int}/pdf")]
+    [Authorize(Policy = PermissionConstants.QualityView)]
+    public async Task<IActionResult> GetRecordPdf(int id, CancellationToken ct = default)
+    {
+        var (fileName, bytes) = await reportBuilder.GeneratePdfAsync(id, Actor, ct);
+        return File(bytes, "application/pdf", fileName);
+    }
+
+    [HttpGet("trends")]
+    [Authorize(Policy = PermissionConstants.QualityView)]
+    public async Task<IActionResult> GetTrends(
+        [FromQuery] string groupBy = "type",
+        [FromQuery] DateTime? from = null,
+        [FromQuery] DateTime? to = null,
+        [FromQuery] int repeatWindowDays = 90,
+        CancellationToken ct = default) =>
+        Ok(ApiResponse<QualityTrendReportDto>.Ok(await queries.GetTrendsAsync(groupBy, from, to, repeatWindowDays, Actor, ct)));
+
+    [HttpGet("dashboard")]
+    [Authorize(Policy = PermissionConstants.QualityView)]
+    public async Task<IActionResult> GetDashboard(CancellationToken ct = default) =>
+        Ok(ApiResponse<QualityDashboardDto>.Ok(await queries.GetDashboardAsync(Actor, ct)));
 
     [HttpGet("{id:int}")]
     [Authorize(Policy = PermissionConstants.QualityView)]

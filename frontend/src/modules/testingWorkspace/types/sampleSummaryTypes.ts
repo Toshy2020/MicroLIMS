@@ -106,6 +106,15 @@ export interface CompetencyOverrideManifestation {
   endedAtUtc: string | null;
 }
 
+export interface ReportableRetest {
+  referenceNumber: string;
+  planRevision: number;
+  retestNumber: number;
+  signerFullName: string;
+  signedAtUtc: string;
+  meaningText: string;
+}
+
 export interface TestOrderSummaryDetail extends TestOrderSop {
   isOosInvalidated?: boolean;
   competencyOverrides?: CompetencyOverrideManifestation[];
@@ -129,6 +138,8 @@ export interface TestOrderSummaryDetail extends TestOrderSop {
   isResultEntryAllowed?: boolean;
   resultLockReason?: string | null;
   isSuperseded: boolean;
+  oosInvestigationNumber?: string | null;
+  reportableRetest?: ReportableRetest | null;
   // Set when an outside laboratory ran this test; the result comes from its report.
   outsourcedToLab?: string | null;
   sectionId?: number;

@@ -128,7 +128,8 @@ describe("RetestPlanSection", () => {
           testOrderIds: [55],
           analystUserIds: [10],
           judgingRule: "All retests must conform.",
-          amendmentReason: null
+          amendmentReason: null,
+          reportableRetestNumber: 1
         },
         9
       );
@@ -372,15 +373,15 @@ describe("RetestPlanSection", () => {
     expect(screen.queryByLabelText("Reportable retest")).toBeNull();
 
     const countInput = screen.getByLabelText("Number of Retests (1–10)");
-    await user.clear(countInput);
-    await user.type(countInput, "2");
+    await user.tripleClick(countInput);
+    await user.keyboard("2");
 
     await user.click(screen.getByLabelText("Assigned Analysts"));
     await user.click(await screen.findByRole("option", { name: "Bob Analyst (analyst2)" }));
     await user.click(await screen.findByRole("option", { name: "Carol Analyst (analyst3)" }));
     await user.keyboard("{Escape}");
 
-    await user.click(screen.getByLabelText("Reportable retest"));
+    await user.click(screen.getByLabelText(/Reportable retest/));
     await user.click(await screen.findByRole("option", { name: "Retest 2 - Carol Analyst" }));
 
     await user.type(screen.getByLabelText("Judging Rule"), "Use retest 2.");

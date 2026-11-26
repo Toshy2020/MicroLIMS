@@ -133,7 +133,10 @@
     "meaningStatement": "Retest plan approved",
     "linkedSamples": "Linked Retest Samples",
     "noSamplesYet": "Samples will be created when the plan is signed.",
-    "summaryLine": "{{source}} · {{count}}x · {{rule}}"
+    "summaryLine": "{{source}} · {{count}}x · {{rule}}",
+    "reportableRetest": "Reportable retest",
+    "reportableOption": "Retest {{number}} - {{analyst}}",
+    "reportable": "Reportable"
   },
   "phaseTwo": {
     "title": "Phase II — Full Investigation",

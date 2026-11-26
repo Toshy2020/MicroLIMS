@@ -75,6 +75,9 @@ function RetestPlanDraftForm({
   const [judgingRule, setJudgingRule] = useState<string>(
     unsignedPlan?.judgingRule ?? ""
   );
+  const [reportableRetestNumber, setReportableRetestNumber] = useState<number | "">(
+    unsignedPlan?.reportableRetestNumber ?? ""
+  );
   const [amendmentReason, setAmendmentReason] = useState<string>(
     unsignedPlan?.amendmentReason ?? ""
   );
@@ -88,12 +91,19 @@ function RetestPlanDraftForm({
   };
 
   const missingAmendmentReason = needsAmendmentReason && !amendmentReason.trim();
+  const reportableValid =
+    retestCount === 1 ||
+    (typeof reportableRetestNumber === "number" &&
+      reportableRetestNumber >= 1 &&
+      reportableRetestNumber <= retestCount &&
+      reportableRetestNumber <= analystUserIds.length);
   const draftValid =
     retestCount >= 1 &&
     retestCount <= 10 &&
     testOrderIds.length > 0 &&
     analystUserIds.length > 0 &&
     Boolean(judgingRule.trim()) &&
+    reportableValid &&
     !missingAmendmentReason;
 
   const handleSaveDraft = async () => {
@@ -108,7 +118,9 @@ function RetestPlanDraftForm({
           testOrderIds,
           analystUserIds,
           judgingRule: judgingRule.trim(),
-          amendmentReason: amendmentReason.trim() || null
+          amendmentReason: amendmentReason.trim() || null,
+          reportableRetestNumber:
+            retestCount === 1 ? 1 : Number(reportableRetestNumber)
         },
         detail.version
       );
@@ -202,6 +214,33 @@ function RetestPlanDraftForm({
           </Select>
         </FormControl>
 
+        {retestCount > 1 && (
+          <FormControl size="small" fullWidth required>
+            <InputLabel id="retest-reportable-label">
+              {t("retestPlan.reportableRetest")}
+            </InputLabel>
+            <Select
+              labelId="retest-reportable-label"
+              label={t("retestPlan.reportableRetest")}
+              value={reportableRetestNumber}
+              onChange={(e) => {
+                const val = e.target.value;
+                setReportableRetestNumber(String(val) === "" ? "" : Number(val));
+              }}
+            >
+              {analystUserIds.map((analystId, idx) => {
+                const num = idx + 1;
+                const analystName = analysts.find((a) => a.id === analystId)?.fullName ?? String(analystId);
+                return (
+                  <MenuItem key={`${analystId}-${num}`} value={num}>
+                    {t("retestPlan.reportableOption", { number: num, analyst: analystName })}
+                  </MenuItem>
+                );
+              })}
+            </Select>
+          </FormControl>
+        )}
+
         <TextField
           size="small"
           multiline
@@ -274,7 +313,7 @@ export function RetestPlanSection({
   const [signPlanId, setSignPlanId] = useState<number | null>(null);
 
   const unsignedPlanKey = unsignedPlan
-    ? `${unsignedPlan.id}:${unsignedPlan.revision}:${unsignedPlan.source}:${unsignedPlan.retestCount}:${unsignedPlan.judgingRule}:${unsignedPlan.amendmentReason ?? ""}:${unsignedPlan.testOrderIds.join(",")}:${unsignedPlan.analystUserIds.join(",")}`
+    ? `${unsignedPlan.id}:${unsignedPlan.revision}:${unsignedPlan.source}:${unsignedPlan.retestCount}:${unsignedPlan.reportableRetestNumber ?? ""}:${unsignedPlan.judgingRule}:${unsignedPlan.amendmentReason ?? ""}:${unsignedPlan.testOrderIds.join(",")}:${unsignedPlan.analystUserIds.join(",")}`
     : `none:${detail.results.map((r) => r.testOrderId).join(",")}`;
 
   const handleSignConfirm = async (password: string) => {
@@ -371,6 +410,11 @@ export function RetestPlanSection({
                               {s.referenceNumber}
                             </Box>
                             <StatusBadge status={s.status} />
+                            {(s.isReportable || plan.reportableSampleId === s.sampleId) && (
+                              <Typography component="span" variant="caption" sx={{ fontWeight: 700 }}>
+                                {t("retestPlan.reportable")}
+                              </Typography>
+                            )}
                           </Box>
                         }
                       />

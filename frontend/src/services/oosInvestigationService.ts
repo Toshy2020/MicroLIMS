@@ -112,6 +112,8 @@ export interface OosRetestPlanSampleDto {
   sampleId: number;
   referenceNumber: string;
   status: string;
+  isReportable?: boolean;
+  resultSummaries?: string[];
 }
 
 export interface OosRetestPlanDetailDto {
@@ -128,6 +130,8 @@ export interface OosRetestPlanDetailDto {
   signedByName: string | null;
   samplesCreatedAtUtc: string | null;
   samples: OosRetestPlanSampleDto[];
+  reportableRetestNumber?: number | null;
+  reportableSampleId?: number | null;
 }
 
 export interface OosInvestigationReopeningDto {
@@ -274,6 +278,7 @@ export interface SaveRetestPlanRequest {
   analystUserIds: number[];
   judgingRule: string;
   amendmentReason?: string | null;
+  reportableRetestNumber?: number | null;
 }
 
 export interface OosRetestPlanDto {
@@ -286,6 +291,7 @@ export interface OosRetestPlanDto {
   analystUserIds: number[];
   judgingRule: string;
   amendmentReason: string | null;
+  reportableRetestNumber?: number | null;
 }
 
 export interface SignPhaseOneRequest {

@@ -685,7 +685,12 @@ public sealed class QualityDecisionsPostgresTests(PostgresTestFixture fixture)
     {
         var clock = new MutableClock(BaseNow);
         int clsNullId, clsSetId;
+        int? siteRuleId = null;
+        int? priorSiteWorkingDays = null;
+        var siteRuleCreated = false;
 
+        // Due rules are site-wide configuration shared by every test class in the database,
+        // so this test restores the Complaint site rule and removes its own rules when it ends.
         await using (var db = Context(clock))
         {
             var c1 = new QualityClassification { Name = $"NullDays-{Guid.NewGuid():N}", IsActive = true };
@@ -695,27 +700,49 @@ public sealed class QualityDecisionsPostgresTests(PostgresTestFixture fixture)
             clsNullId = c1.Id;
             clsSetId = c2.Id;
 
-            // Remove any existing site rule for Complaint in this test tx or test on a type with clean rules
             var existingSite = await db.QualityDueRules.SingleOrDefaultAsync(r => r.Type == QualityRecordType.Complaint && r.ClassificationId == null);
             if (existingSite is null)
-                db.QualityDueRules.Add(new QualityDueRule { Type = QualityRecordType.Complaint, ClassificationId = null, WorkingDays = 10 });
+            {
+                existingSite = new QualityDueRule { Type = QualityRecordType.Complaint, ClassificationId = null, WorkingDays = 10 };
+                db.QualityDueRules.Add(existingSite);
+                siteRuleCreated = true;
+            }
             else
+            {
+                priorSiteWorkingDays = existingSite.WorkingDays;
                 existingSite.WorkingDays = 10;
+            }
 
             db.QualityDueRules.Add(new QualityDueRule { Type = QualityRecordType.Complaint, ClassificationId = clsNullId, WorkingDays = null });
             db.QualityDueRules.Add(new QualityDueRule { Type = QualityRecordType.Complaint, ClassificationId = clsSetId, WorkingDays = 2 });
             await db.SaveChangesAsync();
+            siteRuleId = existingSite.Id;
         }
 
-        await using var assertDb = Context(clock);
-        var svc = new QualityDueDateService(assertDb);
-        var siteDue = await svc.ComputeDueAsync(QualityRecordType.Complaint, null, Today);
-        var fallbackDue = await svc.ComputeDueAsync(QualityRecordType.Complaint, clsNullId, Today);
-        var overrideDue = await svc.ComputeDueAsync(QualityRecordType.Complaint, clsSetId, Today);
+        try
+        {
+            await using var assertDb = Context(clock);
+            var svc = new QualityDueDateService(assertDb);
+            var siteDue = await svc.ComputeDueAsync(QualityRecordType.Complaint, null, Today);
+            var fallbackDue = await svc.ComputeDueAsync(QualityRecordType.Complaint, clsNullId, Today);
+            var overrideDue = await svc.ComputeDueAsync(QualityRecordType.Complaint, clsSetId, Today);
 
-        Assert.NotNull(siteDue);
-        Assert.Equal(siteDue, fallbackDue);
-        Assert.NotNull(overrideDue);
-        Assert.NotEqual(siteDue, overrideDue);
+            Assert.NotNull(siteDue);
+            Assert.Equal(siteDue, fallbackDue);
+            Assert.NotNull(overrideDue);
+            Assert.NotEqual(siteDue, overrideDue);
+        }
+        finally
+        {
+            await using var cleanup = Context(clock);
+            cleanup.QualityDueRules.RemoveRange(await cleanup.QualityDueRules
+                .Where(r => r.ClassificationId == clsNullId || r.ClassificationId == clsSetId).ToListAsync());
+            var site = await cleanup.QualityDueRules.SingleAsync(r => r.Id == siteRuleId);
+            if (siteRuleCreated)
+                cleanup.QualityDueRules.Remove(site);
+            else
+                site.WorkingDays = priorSiteWorkingDays;
+            await cleanup.SaveChangesAsync();
+        }
     }
 }

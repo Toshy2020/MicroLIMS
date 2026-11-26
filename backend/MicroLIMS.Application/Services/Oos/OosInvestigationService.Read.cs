@@ -189,6 +189,8 @@ public sealed partial class OosInvestigationService
                 p.TestOrderIdsJson,
                 p.AnalystUserIdsJson,
                 p.JudgingRule,
+                p.ReportableRetestNumber,
+                p.ReportableSampleId,
                 p.AmendmentReason,
                 p.SignedAtUtc,
                 p.SignedByUserId,
@@ -199,19 +201,45 @@ public sealed partial class OosInvestigationService
             .ToListAsync(ct);
 
         var planIds = planRows.Select(p => p.Id).ToArray();
-        var planSamples = planIds.Length == 0
-            ? new Dictionary<int, List<OosRetestPlanSampleDto>>()
-            : (await (from link in db.OosRetestPlanSamples.AsNoTracking()
-                      where planIds.Contains(link.PlanId)
-                      join sample in db.Samples.AsNoTracking() on link.SampleId equals sample.Id
-                      orderby sample.Id
-                      select new
-                      {
-                          link.PlanId,
-                          Sample = new OosRetestPlanSampleDto(sample.Id, sample.ReferenceNumber, sample.Status)
-                      }).ToListAsync(ct))
-                .GroupBy(x => x.PlanId)
-                .ToDictionary(g => g.Key, g => g.Select(x => x.Sample).ToList());
+        var reportableByPlan = planRows.ToDictionary(p => p.Id, p => p.ReportableSampleId);
+        var rawPlanSamples = planIds.Length == 0
+            ? []
+            : await (from link in db.OosRetestPlanSamples.AsNoTracking()
+                     where planIds.Contains(link.PlanId)
+                     join sample in db.Samples.AsNoTracking() on link.SampleId equals sample.Id
+                     orderby sample.Id
+                     select new { link.PlanId, sample.Id, sample.ReferenceNumber, sample.Status })
+                .ToListAsync(ct);
+
+        var retestSampleIds = rawPlanSamples.Select(s => s.Id).Distinct().ToArray();
+        var retestOrders = retestSampleIds.Length == 0
+            ? []
+            : await db.TestOrders.AsNoTracking()
+                .Where(o => retestSampleIds.Contains(o.SampleId))
+                .OrderBy(o => o.Id)
+                .Select(o => new { o.Id, o.SampleId, o.TestCode })
+                .ToListAsync(ct);
+        var summariesByOrder = await rule.ReadResultSummariesAsync(retestOrders.Select(o => o.Id).ToArray(), ct);
+        var summariesBySample = retestOrders
+            .GroupBy(o => o.SampleId)
+            .ToDictionary(
+                g => g.Key,
+                g => (IReadOnlyList<string>)g
+                    .Select(o => summariesByOrder.TryGetValue(o.Id, out var text) && !string.IsNullOrWhiteSpace(text)
+                        ? $"{o.TestCode}: {text}"
+                        : null)
+                    .Where(x => x is not null)
+                    .Cast<string>()
+                    .ToList());
+
+        var planSamples = rawPlanSamples
+            .GroupBy(x => x.PlanId)
+            .ToDictionary(g => g.Key, g => g.Select(x => new OosRetestPlanSampleDto(
+                x.Id,
+                x.ReferenceNumber,
+                x.Status,
+                IsReportable: reportableByPlan.GetValueOrDefault(g.Key) == x.Id,
+                ResultSummaries: summariesBySample.GetValueOrDefault(x.Id) ?? [])).ToList());
 
         var plans = planRows.Select(p => new OosRetestPlanDetailDto(
             p.Id,
@@ -226,7 +254,9 @@ public sealed partial class OosInvestigationService
             p.SignedByUserId,
             p.SignedByName,
             p.SamplesCreatedAtUtc,
-            planSamples.GetValueOrDefault(p.Id) ?? [])).ToList();
+            planSamples.GetValueOrDefault(p.Id) ?? [],
+            p.ReportableRetestNumber,
+            p.ReportableSampleId)).ToList();
 
         var reopenings = await db.OosInvestigationReopenings.AsNoTracking()
             .Where(r => r.InvestigationId == investigationId)

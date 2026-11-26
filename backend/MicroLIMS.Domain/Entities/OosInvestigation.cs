@@ -68,6 +68,8 @@ public class OosRetestPlan
     public string TestOrderIdsJson { get; set; } = string.Empty;
     public string AnalystUserIdsJson { get; set; } = string.Empty;
     public string JudgingRule { get; set; } = string.Empty;
+    public int? ReportableRetestNumber { get; set; }
+    public int? ReportableSampleId { get; set; }
     public string? AmendmentReason { get; set; }
     public DateTime? SignedAtUtc { get; set; }
     public int? SignedByUserId { get; set; }

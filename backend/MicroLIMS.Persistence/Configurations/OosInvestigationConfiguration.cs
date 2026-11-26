@@ -70,6 +70,10 @@ public class OosRetestPlanConfiguration : IEntityTypeConfiguration<OosRetestPlan
         builder.Property(x => x.AmendmentReason).HasMaxLength(4000);
         builder.HasIndex(x => new { x.InvestigationId, x.Revision }).IsUnique();
         builder.HasIndex(x => x.InvestigationId).IsUnique().HasFilter("\"SignedAtUtc\" IS NULL");
+        builder.HasIndex(x => x.ReportableSampleId);
+        builder.ToTable(t => t.HasCheckConstraint(
+            "CK_OosRetestPlans_ReportableRetest",
+            "(\"ReportableRetestNumber\" IS NULL OR (\"ReportableRetestNumber\" BETWEEN 1 AND \"RetestCount\")) AND (\"SignedAtUtc\" IS NULL OR (\"ReportableRetestNumber\" IS NULL) = (\"ReportableSampleId\" IS NULL))"));
 
         builder.HasOne<OosInvestigation>().WithMany().HasForeignKey(x => x.InvestigationId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<User>().WithMany().HasForeignKey(x => x.SignedByUserId).OnDelete(DeleteBehavior.Restrict);

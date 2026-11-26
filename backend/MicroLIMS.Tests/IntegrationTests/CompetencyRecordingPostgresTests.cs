@@ -940,4 +940,70 @@ public class CompetencyRecordingPostgresTests(PostgresTestFixture fixture)
         return new(sample.Id, a, b, qualified.Id, unqualified.Id, await db.AuditLogs.AsNoTracking().CountAsync(),
             await db.ElectronicSignatures.AsNoTracking().CountAsync(), spec.Id, equipment?.Id);
     }
+
+    [PostgresFact]
+    public async Task Completing_session_marks_only_active_orders_and_skips_cancelled_and_superseded()
+    {
+        var setup = await SeedAsync();
+        int cancelledOrderId;
+
+        await using (var arrange = fixture.CreateDbContext())
+        {
+            var point = new WaterSamplingPoint { Code = $"C217-{Guid.NewGuid():N}"[..16], Location = "Shared point" };
+            var locations = await arrange.SampleLocations.Where(l => l.SampleId == setup.SampleId).ToListAsync();
+            foreach (var location in locations)
+            {
+                location.WaterSamplingPoint = point;
+                if (location.TestOrderId == setup.A.Id)
+                {
+                    location.CFUResult = 5m;
+                    location.CalculatedResult = 5m;
+                    location.ReportedResult = "5 CFU";
+                    location.Status = ResultStatus.WithinLimits;
+                    location.EnteredByUserId = setup.QualifiedId;
+                }
+            }
+
+            var supersededOrder = await arrange.TestOrders.SingleAsync(o => o.Id == setup.B.Id);
+            supersededOrder.IsSuperseded = true;
+
+            var cancelledOrder = new TestOrder
+            {
+                SampleId = setup.SampleId,
+                TestCode = $"CAN-{Guid.NewGuid():N}"[..12],
+                SectionId = setup.A.SectionId,
+                AssignedAnalystId = setup.QualifiedId,
+                Status = ApprovalStatus.Cancelled,
+                CurrentStep = WorkflowStep.Running
+            };
+            arrange.TestOrders.Add(cancelledOrder);
+            await arrange.SaveChangesAsync();
+            cancelledOrderId = cancelledOrder.Id;
+        }
+
+        await using (var act = fixture.CreateDbContext())
+        {
+            act.CurrentUserId = setup.QualifiedId;
+            await TestServiceFactory.PathogenSession(act).CompleteSessionAsync(setup.SampleId, setup.QualifiedId);
+        }
+
+        await using var check = fixture.CreateDbContext();
+        var orders = await check.TestOrders.AsNoTracking().Where(o => o.SampleId == setup.SampleId).ToDictionaryAsync(o => o.Id);
+        Assert.Equal(ApprovalStatus.ResultEntered, orders[setup.A.Id].Status);
+        Assert.Equal(WorkflowStep.Ready, orders[setup.A.Id].CurrentStep);
+        Assert.Equal(ApprovalStatus.Cancelled, orders[cancelledOrderId].Status);
+        Assert.Equal(ApprovalStatus.InProgress, orders[setup.B.Id].Status);
+
+        var activeAudit = await check.AuditLogs.AsNoTracking().SingleAsync(a =>
+            a.EntityName == nameof(TestOrder) && a.EntityId == setup.A.Id.ToString() && a.Action == "Update");
+        Assert.Equal(setup.QualifiedId, activeAudit.UserId);
+        using var newOrder = System.Text.Json.JsonDocument.Parse(Assert.IsType<string>(activeAudit.NewValue));
+        Assert.Equal((int)ApprovalStatus.ResultEntered,
+            newOrder.RootElement.GetProperty(nameof(TestOrder.Status)).GetInt32());
+        Assert.False(await check.AuditLogs.AsNoTracking().AnyAsync(a =>
+            a.EntityName == nameof(TestOrder) &&
+            a.UserId == setup.QualifiedId &&
+            (a.EntityId == cancelledOrderId.ToString() || a.EntityId == setup.B.Id.ToString()) &&
+            a.Action == "Update"));
+    }
 }

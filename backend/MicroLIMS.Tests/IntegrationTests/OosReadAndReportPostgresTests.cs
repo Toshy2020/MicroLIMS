@@ -966,6 +966,212 @@ public sealed class OosReadAndReportPostgresTests(PostgresTestFixture fixture) :
         Assert.Equal("Cannot certify because no results are recorded.", certificate.ConclusionText);
     }
 
+    [PostgresFact]
+    public async Task Certificate_reports_only_named_reportable_retest_with_signer_manifestation()
+    {
+        var lab = await _seed.SectionAsync();
+        var head = await _seed.UserAsync(RoleType.SectionHead, HeadOosCodes, lab);
+        var t0 = Utc(11, 1, 9);
+        var signedAt = Utc(11, 2, 14);
+        int originId;
+        string retest2Ref;
+
+        await using (var arrange = fixture.CreateDbContext())
+        {
+            var sOrigin = await _seed.SampleAsync(lab, SampleStatus.Approved, ApprovalStatus.Approved, WorkflowStep.Approved);
+            var sRetest1 = await _seed.SampleAsync(lab, SampleStatus.Approved, ApprovalStatus.Approved, WorkflowStep.Approved);
+            var sRetest2 = await _seed.SampleAsync(lab, SampleStatus.Approved, ApprovalStatus.Approved, WorkflowStep.Approved);
+            originId = sOrigin.Sample.Id;
+            retest2Ref = sRetest2.Sample.ReferenceNumber;
+
+            var originSample = await arrange.Samples.SingleAsync(s => s.Id == originId);
+            var r1Sample = await arrange.Samples.SingleAsync(s => s.Id == sRetest1.Sample.Id);
+            var r2Sample = await arrange.Samples.SingleAsync(s => s.Id == sRetest2.Sample.Id);
+            var oosNumber = $"OOS-COA-{Guid.NewGuid():N}"[..16];
+            originSample.OosGroupCode = oosNumber;
+            r1Sample.OriginSampleId = originId;
+            r1Sample.OosGroupCode = oosNumber;
+            r2Sample.OriginSampleId = originId;
+            r2Sample.OosGroupCode = oosNumber;
+
+            var originOrder = await arrange.TestOrders.SingleAsync(o => o.Id == sOrigin.Orders[0].Id);
+            originOrder.IsSuperseded = true;
+            var r1Order = await arrange.TestOrders.SingleAsync(o => o.Id == sRetest1.Orders[0].Id);
+            var r2Order = await arrange.TestOrders.SingleAsync(o => o.Id == sRetest2.Orders[0].Id);
+            r1Order.TestCode = originOrder.TestCode;
+            r2Order.TestCode = originOrder.TestCode;
+
+            arrange.CountTestReadings.AddRange(
+                new CountTestReading { TestOrderId = originOrder.Id, PlateReadings = "999", DilutionFactor = 1, ReportedResult = "999 CFU/g", Status = ResultStatus.OutOfSpecification, EnteredByUserId = head.Id, EnteredAt = t0 },
+                new CountTestReading { TestOrderId = sRetest1.Orders[0].Id, PlateReadings = "500", DilutionFactor = 1, ReportedResult = "500 CFU/g", Status = ResultStatus.OutOfSpecification, EnteredByUserId = head.Id, EnteredAt = t0.AddHours(1) },
+                new CountTestReading { TestOrderId = sRetest2.Orders[0].Id, PlateReadings = "10", DilutionFactor = 1, ReportedResult = "10 CFU/g", Status = ResultStatus.WithinLimits, EnteredByUserId = head.Id, EnteredAt = t0.AddHours(2) });
+
+            var inv = new OosInvestigation
+            {
+                Number = oosNumber,
+                Kind = OosInvestigationKind.Oos,
+                Status = OosInvestigationStatus.Concluded,
+                Conclusion = OosConclusion.Invalidated,
+                SampleId = originId,
+                SectionId = lab.Id,
+                OpenedAtUtc = t0,
+                OpenedByUserId = head.Id,
+                ConcludedAtUtc = t0.AddHours(3),
+                ConcludedByUserId = head.Id,
+                TemplateSnapshotJson = """{"items":[]}""",
+                Results = { new OosInvestigationResult { TestOrderId = originOrder.Id, OutcomeAtOpening = OosOutcomeClass.Fails, ResultSummaryAtOpening = "999 CFU/g", AddedAtUtc = t0, IsInvalidated = true, InvalidatedAtUtc = t0.AddHours(3) } }
+            };
+            arrange.OosInvestigations.Add(inv);
+            await arrange.SaveChangesAsync();
+
+            var sig = new ElectronicSignature
+            {
+                UserId = head.Id,
+                UserFullNameSnapshot = head.FullName,
+                UsernameSnapshot = head.Username,
+                RoleSnapshot = "SectionHead",
+                EntityType = nameof(OosRetestPlan),
+                EntityId = 0,
+                MeaningOfSignature = SignatureMeaning.OosRetestPlanApproved,
+                SignedAt = signedAt
+            };
+            arrange.ElectronicSignatures.Add(sig);
+            await arrange.SaveChangesAsync();
+
+            var plan = new OosRetestPlan
+            {
+                InvestigationId = inv.Id,
+                Revision = 1,
+                Source = OosRetestSource.RetainedSample,
+                RetestCount = 2,
+                TestOrderIdsJson = $"[{originOrder.Id}]",
+                AnalystUserIdsJson = $"[{head.Id},{head.Id}]",
+                JudgingRule = "Conform to spec",
+                ReportableRetestNumber = 2
+            };
+            arrange.OosRetestPlans.Add(plan);
+            await arrange.SaveChangesAsync();
+
+            arrange.OosRetestPlanSamples.AddRange(
+                new OosRetestPlanSample { PlanId = plan.Id, SampleId = sRetest1.Sample.Id },
+                new OosRetestPlanSample { PlanId = plan.Id, SampleId = sRetest2.Sample.Id });
+            await arrange.SaveChangesAsync();
+
+            plan.ReportableSampleId = sRetest2.Sample.Id;
+            plan.SignedAtUtc = signedAt;
+            plan.SignedByUserId = head.Id;
+            plan.SignatureId = sig.Id;
+            plan.SamplesCreatedAtUtc = signedAt;
+            await arrange.SaveChangesAsync();
+        }
+
+        await using var act = fixture.CreateDbContext();
+        var summary = await TestServiceFactory.SampleSummary(act).GetCertificateSummaryAsync(originId, [lab.Id]);
+        Assert.NotNull(summary);
+        var row = Assert.Single(summary.Certificate.Sample.Simple!.Rows);
+        Assert.Equal("10 CFU/g", row.Result);
+        Assert.True(row.Conform);
+        Assert.NotNull(row.ReportableRetest);
+        Assert.Equal(retest2Ref, row.ReportableRetest.ReferenceNumber);
+        Assert.Equal(2, row.ReportableRetest.RetestNumber);
+        Assert.Equal(1, row.ReportableRetest.PlanRevision);
+        Assert.Equal(head.FullName, row.ReportableRetest.SignerFullName);
+        Assert.Equal("Retest plan approved", row.ReportableRetest.MeaningText);
+
+        var doc = ReportDocumentMapper.ForSample(summary);
+        var cards = doc.Blocks.OfType<CardBlock>().ToList();
+        var card = Assert.Single(cards, c => c.MetaLines.Any(m => m.Contains("Reportable retest")));
+        var line = Assert.Single(card.MetaLines, m => m.Contains("Reportable retest"));
+        Assert.Contains(retest2Ref, line);
+        Assert.Contains("retest 2, plan revision 1", line);
+        Assert.Contains("Retest plan approved by", line);
+        Assert.Contains(head.FullName, line);
+        Assert.Contains("UTC", line);
+    }
+
+    [PostgresFact]
+    public async Task Investigation_report_lists_all_retest_samples_with_results_and_marks_reportable()
+    {
+        var lab = await _seed.SectionAsync();
+        var head = await _seed.UserAsync(RoleType.SectionHead, HeadOosCodes, lab);
+        var t0 = Utc(11, 3, 9);
+        int invId;
+        string r1Ref;
+        string r2Ref;
+
+        await using (var arrange = fixture.CreateDbContext())
+        {
+            var sOrigin = await _seed.SampleAsync(lab, SampleStatus.UnderApproval, ApprovalStatus.Reviewed, WorkflowStep.Reviewed);
+            var sRetest1 = await _seed.SampleAsync(lab, SampleStatus.Approved, ApprovalStatus.Approved, WorkflowStep.Approved);
+            var sRetest2 = await _seed.SampleAsync(lab, SampleStatus.Approved, ApprovalStatus.Approved, WorkflowStep.Approved);
+            r1Ref = sRetest1.Sample.ReferenceNumber;
+            r2Ref = sRetest2.Sample.ReferenceNumber;
+
+            arrange.CountTestReadings.AddRange(
+                new CountTestReading { TestOrderId = sRetest1.Orders[0].Id, PlateReadings = "500", DilutionFactor = 1, ReportedResult = "500 CFU/g", Status = ResultStatus.OutOfSpecification, EnteredByUserId = head.Id, EnteredAt = t0.AddHours(1) },
+                new CountTestReading { TestOrderId = sRetest2.Orders[0].Id, PlateReadings = "10", DilutionFactor = 1, ReportedResult = "10 CFU/g", Status = ResultStatus.WithinLimits, EnteredByUserId = head.Id, EnteredAt = t0.AddHours(2) });
+
+            var inv = new OosInvestigation
+            {
+                Number = $"OOS-RPT-{Guid.NewGuid():N}"[..16],
+                Kind = OosInvestigationKind.Oos,
+                Status = OosInvestigationStatus.PhaseTwo,
+                SampleId = sOrigin.Sample.Id,
+                SectionId = lab.Id,
+                OpenedAtUtc = t0,
+                OpenedByUserId = head.Id,
+                TemplateSnapshotJson = """{"items":[]}""",
+                Results = { new OosInvestigationResult { TestOrderId = sOrigin.Orders[0].Id, OutcomeAtOpening = OosOutcomeClass.Fails, ResultSummaryAtOpening = "999 CFU/g", AddedAtUtc = t0 } }
+            };
+            arrange.OosInvestigations.Add(inv);
+            await arrange.SaveChangesAsync();
+            invId = inv.Id;
+
+            var plan = new OosRetestPlan
+            {
+                InvestigationId = inv.Id,
+                Revision = 1,
+                Source = OosRetestSource.RetainedSample,
+                RetestCount = 2,
+                TestOrderIdsJson = $"[{sOrigin.Orders[0].Id}]",
+                AnalystUserIdsJson = $"[{head.Id},{head.Id}]",
+                JudgingRule = "Conform to spec",
+                ReportableRetestNumber = 2
+            };
+            arrange.OosRetestPlans.Add(plan);
+            await arrange.SaveChangesAsync();
+
+            arrange.OosRetestPlanSamples.AddRange(
+                new OosRetestPlanSample { PlanId = plan.Id, SampleId = sRetest1.Sample.Id },
+                new OosRetestPlanSample { PlanId = plan.Id, SampleId = sRetest2.Sample.Id });
+            await arrange.SaveChangesAsync();
+
+            plan.ReportableSampleId = sRetest2.Sample.Id;
+            plan.SignedAtUtc = t0.AddHours(1);
+            plan.SignedByUserId = head.Id;
+            plan.SamplesCreatedAtUtc = t0.AddHours(1);
+            await arrange.SaveChangesAsync();
+        }
+
+        await using var read = fixture.CreateDbContext();
+        read.CurrentUserId = head.Id;
+        var detail = await TestServiceFactory.OosInvestigation(read).GetByIdAsync(invId);
+        var planDetail = Assert.Single(detail.RetestPlans);
+        Assert.Equal(2, planDetail.Samples.Count);
+        var reportable = Assert.Single(planDetail.Samples, s => s.IsReportable);
+        Assert.Equal(r2Ref, reportable.ReferenceNumber);
+        Assert.All(planDetail.Samples, s => Assert.NotEmpty(s.ResultSummaries));
+
+        var doc = OosInvestigationReportBuilder.Build(detail);
+        var retestBlock = Assert.Single(doc.Blocks.OfType<ListBlock>(), b => b.Label == "retest plans");
+        var text = Assert.Single(retestBlock.Rows).Right;
+        Assert.Contains(r1Ref, text);
+        Assert.Contains(r2Ref, text);
+        Assert.Contains("500 CFU/g", text);
+        Assert.Contains("10 CFU/g", text);
+        Assert.Equal(1, text.Split("Reportable", StringSplitOptions.None).Length - 1);
+    }
+
     private static OosTrendService Trends(MicroLimsDbContext db) =>
         new(db, TestServiceFactory.OosInvestigation(db), LabClock.Default);
 

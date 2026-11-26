@@ -22,6 +22,7 @@ import { SopMethodLine, SopRevisionNotice } from "./components/SopMethodDetails"
 import { reportStyles } from "./reportStyles";
 import { SIGNATURE_STATEMENTS } from "./sampleSummary/summaryFormatting";
 import { dt, d, humanize } from "./SampleReportPage";
+import { formatDateTimeWithTimeZone } from "../../utils/formatDate";
 import { PinnedLightTheme } from "../../theme/PinnedLightTheme";
 import { OosBanner } from "../oosTracking/components/OosBanner";
 import {
@@ -259,6 +260,7 @@ function SupportingRowsTable({ rows }: { rows: CoaSimpleRow[] }) {
 }
 
 function CoaSimpleTable({ simple, testOrders, supportingRows = [] }: { simple: CoaSimpleResult; testOrders: TestOrderSummaryDetail[]; supportingRows?: CoaSimpleRow[] }) {
+  const { t } = useTranslation("testingWorkspace");
   return (
     <div style={{ overflowX: "auto" }}>
       <table className="coa-simple">
@@ -277,7 +279,18 @@ function CoaSimpleTable({ simple, testOrders, supportingRows = [] }: { simple: C
               <tr key={`${r.testOrderId}-${r.testCode}`}>
                 <td>
                   {r.testDisplayName || r.testCode}
-                  {sourceRef && (
+                  {r.reportableRetest ? (
+                    <div style={{ fontSize: 10, color: "var(--coa-ink3)" }}>
+                      {t("sopCapture.reportableRetestLine", {
+                        referenceNumber: r.reportableRetest.referenceNumber,
+                        retestNumber: r.reportableRetest.retestNumber,
+                        planRevision: r.reportableRetest.planRevision,
+                        meaningText: r.reportableRetest.meaningText,
+                        signerFullName: r.reportableRetest.signerFullName,
+                        signedAt: formatDateTimeWithTimeZone(r.reportableRetest.signedAtUtc)
+                      })}
+                    </div>
+                  ) : sourceRef && (
                     <div style={{ fontSize: 10, color: "var(--coa-ink3)" }}>
                       via retest {sourceRef}
                     </div>

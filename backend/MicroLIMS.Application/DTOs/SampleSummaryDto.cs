@@ -130,6 +130,9 @@ public class SamplePreparationSummaryDto
 public sealed record CompetencyOverrideDto(string AnalystName, string GrantedByFullName, DateTime GrantedAtUtc,
     string Meaning, string Reason, DateTime? EndedAtUtc);
 
+public sealed record ReportableRetestDto(string ReferenceNumber, int PlanRevision, int RetestNumber,
+    string SignerFullName, DateTime SignedAtUtc, string MeaningText);
+
 public class TestOrderSummaryDetailDto
 {
     public SopCaptureDto? SopCapture { get; set; }
@@ -168,6 +171,7 @@ public class TestOrderSummaryDetailDto
     public bool IsSuperseded { get; set; }
     public string? OosInvestigationNumber { get; set; }
     public bool IsOosInvalidated { get; set; }
+    public ReportableRetestDto? ReportableRetest { get; set; }
     public string? OutsourcedToLab { get; set; }
 
     // Set only when this section closed testing after another lab

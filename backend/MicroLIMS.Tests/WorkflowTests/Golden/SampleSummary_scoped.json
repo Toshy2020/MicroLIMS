@@ -79,6 +79,7 @@
       "IsSuperseded": false,
       "OosInvestigationNumber": null,
       "IsOosInvalidated": false,
+      "ReportableRetest": null,
       "OutsourcedToLab": null,
       "CancelledAtStep": null,
       "CancelledAtStage": null,
@@ -243,6 +244,7 @@
       "IsSuperseded": false,
       "OosInvestigationNumber": null,
       "IsOosInvalidated": false,
+      "ReportableRetest": null,
       "OutsourcedToLab": null,
       "CancelledAtStep": null,
       "CancelledAtStage": null,
@@ -459,6 +461,7 @@
       "IsSuperseded": false,
       "OosInvestigationNumber": null,
       "IsOosInvalidated": false,
+      "ReportableRetest": null,
       "OutsourcedToLab": null,
       "CancelledAtStep": null,
       "CancelledAtStage": null,
@@ -569,6 +572,7 @@
       "IsSuperseded": false,
       "OosInvestigationNumber": null,
       "IsOosInvalidated": false,
+      "ReportableRetest": null,
       "OutsourcedToLab": null,
       "CancelledAtStep": null,
       "CancelledAtStage": null,
@@ -641,6 +645,7 @@
       "IsSuperseded": true,
       "OosInvestigationNumber": null,
       "IsOosInvalidated": false,
+      "ReportableRetest": null,
       "OutsourcedToLab": null,
       "CancelledAtStep": "Incubating",
       "CancelledAtStage": 1,
@@ -698,6 +703,7 @@
       "IsSuperseded": true,
       "OosInvestigationNumber": null,
       "IsOosInvalidated": false,
+      "ReportableRetest": null,
       "OutsourcedToLab": null,
       "CancelledAtStep": null,
       "CancelledAtStage": null,
@@ -773,6 +779,7 @@
       "IsSuperseded": false,
       "OosInvestigationNumber": null,
       "IsOosInvalidated": false,
+      "ReportableRetest": null,
       "OutsourcedToLab": null,
       "CancelledAtStep": null,
       "CancelledAtStage": null,
@@ -916,7 +923,8 @@
             "TestDisplayName": "E. coli",
             "IsQuantitative": false,
             "Unit": null,
-            "OosInvestigationNumber": null
+            "OosInvestigationNumber": null,
+            "ReportableRetest": null
           }
         ],
         "Rows": [
@@ -1090,7 +1098,8 @@
                 "TestDisplayName": "E. coli",
                 "IsQuantitative": false,
                 "Unit": null,
-                "OosInvestigationNumber": null
+                "OosInvestigationNumber": null,
+                "ReportableRetest": null
               }
             ],
             "Rows": [

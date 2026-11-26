@@ -80,6 +80,7 @@
       "IsSuperseded": false,
       "OosInvestigationNumber": null,
       "IsOosInvalidated": false,
+      "ReportableRetest": null,
       "OutsourcedToLab": null,
       "CancelledAtStep": null,
       "CancelledAtStage": null,
@@ -244,6 +245,7 @@
       "IsSuperseded": false,
       "OosInvestigationNumber": null,
       "IsOosInvalidated": false,
+      "ReportableRetest": null,
       "OutsourcedToLab": null,
       "CancelledAtStep": null,
       "CancelledAtStage": null,
@@ -460,6 +462,7 @@
       "IsSuperseded": false,
       "OosInvestigationNumber": null,
       "IsOosInvalidated": false,
+      "ReportableRetest": null,
       "OutsourcedToLab": null,
       "CancelledAtStep": null,
       "CancelledAtStage": null,
@@ -585,6 +588,7 @@
       "IsSuperseded": false,
       "OosInvestigationNumber": null,
       "IsOosInvalidated": false,
+      "ReportableRetest": null,
       "OutsourcedToLab": null,
       "CancelledAtStep": null,
       "CancelledAtStage": null,
@@ -695,6 +699,7 @@
       "IsSuperseded": false,
       "OosInvestigationNumber": null,
       "IsOosInvalidated": false,
+      "ReportableRetest": null,
       "OutsourcedToLab": null,
       "CancelledAtStep": null,
       "CancelledAtStage": null,
@@ -767,6 +772,7 @@
       "IsSuperseded": false,
       "OosInvestigationNumber": null,
       "IsOosInvalidated": false,
+      "ReportableRetest": null,
       "OutsourcedToLab": null,
       "CancelledAtStep": null,
       "CancelledAtStage": null,
@@ -842,6 +848,7 @@
       "IsSuperseded": true,
       "OosInvestigationNumber": null,
       "IsOosInvalidated": false,
+      "ReportableRetest": null,
       "OutsourcedToLab": null,
       "CancelledAtStep": "Incubating",
       "CancelledAtStage": 1,
@@ -899,6 +906,7 @@
       "IsSuperseded": true,
       "OosInvestigationNumber": null,
       "IsOosInvalidated": false,
+      "ReportableRetest": null,
       "OutsourcedToLab": null,
       "CancelledAtStep": null,
       "CancelledAtStage": null,
@@ -974,6 +982,7 @@
       "IsSuperseded": false,
       "OosInvestigationNumber": null,
       "IsOosInvalidated": false,
+      "ReportableRetest": null,
       "OutsourcedToLab": null,
       "CancelledAtStep": null,
       "CancelledAtStage": null,
@@ -1117,7 +1126,8 @@
             "TestDisplayName": "E. coli",
             "IsQuantitative": false,
             "Unit": null,
-            "OosInvestigationNumber": null
+            "OosInvestigationNumber": null,
+            "ReportableRetest": null
           }
         ],
         "Rows": [
@@ -1291,7 +1301,8 @@
                 "TestDisplayName": "E. coli",
                 "IsQuantitative": false,
                 "Unit": null,
-                "OosInvestigationNumber": null
+                "OosInvestigationNumber": null,
+                "ReportableRetest": null
               }
             ],
             "Rows": [
@@ -1468,6 +1479,7 @@
                 "TestDisplayName": "pH",
                 "Specification": "5.0-7.0 pH",
                 "OosInvestigationNumber": null,
+                "ReportableRetest": null,
                 "Result": "6.2",
                 "AnalystName": "Alice Analyst",
                 "AnalystAt": "2026-03-05T10:00:00Z",
@@ -1483,6 +1495,7 @@
                 "TestDisplayName": "BCC",
                 "Specification": null,
                 "OosInvestigationNumber": null,
+                "ReportableRetest": null,
                 "Result": "—",
                 "AnalystName": null,
                 "AnalystAt": null,

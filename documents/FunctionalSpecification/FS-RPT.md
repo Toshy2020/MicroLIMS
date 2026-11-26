@@ -19,6 +19,7 @@
 | 0.2 | 2026-11-17 | AI coding agent, draft from code | Added row selection and audited CSV export specification (FS-RPT-009). |
 | 0.3 | 2026-11-25 | AI coding agent, draft from code | Added `OosGate.EnsureCertificateAllowedAsync` and OOS reporting fields (FS-RPT-010; Draft — pending approval). |
 | 0.4 | 2026-11-25 | AI coding agent, draft from code | Added captured SOP method documents and newer-revision notices on sample reports and Certificates of Analysis (FS-RPT-011; Draft — pending approval). |
+| 0.5 | 2026-11-26 | AI coding agent, draft from code | Updated FS-RPT-010 for CONF-220 reportable retest selection and 21 CFR 11.50 signer manifestation (Draft — pending approval). |
 
 ## Scope and reading notes
 
@@ -97,10 +98,10 @@
 ### FS-RPT-010
 *(Draft — pending approval)*
 **Satisfies:** URS-RPT-011
-**Function:** Certificate OOS gate and report rendering. `OosGate.EnsureCertificateAllowedAsync` is called by `SampleSummaryService` on certificate summary (`forCertificate`), PDF, Word, and archive paths; it refuses while any covering `Oos`-kind investigation is not `Concluded` (`Oos.InvestigationOpen`) and while a `Concluded`/`Invalidated` investigation on the sample has more than one distinct sample linked across signed retest plans (`Oos.CertificateMultipleRetests`, CONF-220). `SampleSummaryService` populates `OosInvestigationNumber` and `IsOosInvalidated` on test order DTOs, and `ReportDocumentMapper` renders the investigation number and marks invalidated rows `"Invalidated"` / `"INVALIDATED (OOS)"` rather than reporting the invalidated value.
-**Code:** `backend/MicroLIMS.Application/Services/Oos/OosGate.cs` — `EnsureCertificateAllowedAsync`; `backend/MicroLIMS.Application/Services/SampleSummaryService.cs` — `GetCertificateSummaryAsync`, `GenerateSummaryPdfAsync`; `backend/MicroLIMS.Application/Services/ReportDocumentMapper.cs`
-**Verified by:** reading (not run)
-**Conflicts:** CONF-220
+**Function:** Certificate OOS gate and report rendering. `OosGate.EnsureCertificateAllowedAsync` is called by `SampleSummaryService` on certificate summary (`forCertificate`), PDF, Word, and archive paths; it refuses while any covering `Oos`-kind investigation is not `Concluded` (`Oos.InvestigationOpen`) and when `OosReportableRetest.ResolveAsync` finds a `Concluded`/`Invalidated` investigation whose governing signed retest plan (highest `Revision`) has multiple linked samples and no named `ReportableSampleId` (`Oos.CertificateMultipleRetests`, CONF-220). When resolved, `SampleSummaryService.ResolveEffectiveTestOrdersAsync` excludes non-reportable child samples linked to signed plans of that investigation and attaches `ReportableRetest` (reference, plan revision, retest number, signer full name, signed UTC time, and meaning text via `ReportVocabulary` from `ElectronicSignatures` by `plan.SignatureId`) to test-order and CoA row/column DTOs. `ReportDocumentMapper` renders `"Reportable retest {ref} (retest {k}, plan revision {n}) · Retest plan approved by {name} · {UTC time with zone}"` (21 CFR 11.50) and marks invalidated rows `"Invalidated"` / `"INVALIDATED (OOS)"`.
+**Code:** `backend/MicroLIMS.Application/Services/Oos/OosGate.cs` — `EnsureCertificateAllowedAsync`; `backend/MicroLIMS.Application/Services/Oos/OosReportableRetest.cs` — `ResolveAsync`; `backend/MicroLIMS.Application/Services/SampleSummaryService.cs` — `GetCertificateSummaryAsync`, `GenerateSummaryPdfAsync`, `ResolveEffectiveTestOrdersAsync`; `backend/MicroLIMS.Application/Services/ReportDocumentMapper.cs`
+**Verified by:** `OosConclusionPostgresTests`, `OosReadAndReportPostgresTests`
+**Conflicts:** CONF-220, CONF-242
 
 ### FS-RPT-011
 *(Draft — pending approval)*

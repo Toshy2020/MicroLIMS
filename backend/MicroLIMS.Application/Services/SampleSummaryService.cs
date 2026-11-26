@@ -48,14 +48,30 @@ public class SampleSummaryService
     // actually carried that retest to its conclusion - recursing through
     // NewSampleRequest's two siblings and multi-level escalation the same
     // way SampleApprovalService.PropagateOosOutcomeAsync does.
-    private async Task<(List<TestOrder> Orders, Dictionary<int, string> SourceReferenceByOrderId)> ResolveEffectiveTestOrdersAsync(Sample sample, int depth = 0, CancellationToken ct = default)
+    private async Task<(List<TestOrder> Orders, Dictionary<int, string> SourceReferenceByOrderId, Dictionary<int, ResolvedPlanRetest> ReportableByOrderId)> ResolveEffectiveTestOrdersAsync(Sample sample, int depth = 0, CancellationToken ct = default)
     {
         var orders = new List<TestOrder>(sample.TestOrders);
         var sourceRef = new Dictionary<int, string>();
+        var reportableByOrder = new Dictionary<int, ResolvedPlanRetest>();
 
         var supersededTestCodes = sample.TestOrders.Where(o => o.IsSuperseded).Select(o => o.TestCode).ToHashSet();
         if (supersededTestCodes.Count == 0 || sample.OosGroupCode is null || depth > 10)
-            return (orders, sourceRef);
+            return (orders, sourceRef, reportableByOrder);
+
+        HashSet<int>? excludedChildIds = null;
+        Dictionary<int, ResolvedPlanRetest>? reportableBySample = null;
+        if (depth == 0)
+        {
+            var resolution = await OosReportableRetest.ResolveAsync(_db, sample.Id, ct);
+            if (resolution.ByInvestigationId.Count > 0)
+            {
+                reportableBySample = resolution.ByInvestigationId.Values.ToDictionary(r => r.ReportableSampleId);
+                excludedChildIds = resolution.SignedPlanSampleToInvestigationId
+                    .Where(kv => resolution.ByInvestigationId.TryGetValue(kv.Value, out var resolved) && kv.Key != resolved.ReportableSampleId)
+                    .Select(kv => kv.Key)
+                    .ToHashSet();
+            }
+        }
 
         var children = await _db.Samples.Include(c => c.TestOrders)
             .Where(c => c.OriginSampleId == sample.Id)
@@ -63,7 +79,10 @@ public class SampleSummaryService
 
         foreach (var child in children)
         {
-            var (childOrders, childSourceRef) = await ResolveEffectiveTestOrdersAsync(child, depth + 1, ct);
+            if (excludedChildIds is not null && excludedChildIds.Contains(child.Id))
+                continue;
+
+            var (childOrders, childSourceRef, childReportable) = await ResolveEffectiveTestOrdersAsync(child, depth + 1, ct);
             foreach (var order in childOrders)
             {
                 // Only pull in TestCodes this sample actually superseded -
@@ -72,10 +91,14 @@ public class SampleSummaryService
                 if (!supersededTestCodes.Contains(order.TestCode)) continue;
                 orders.Add(order);
                 sourceRef[order.Id] = childSourceRef.TryGetValue(order.Id, out var deeper) ? deeper : child.ReferenceNumber;
+                if (childReportable.TryGetValue(order.Id, out var deeperRep))
+                    reportableByOrder[order.Id] = deeperRep;
+                else if (reportableBySample is not null && reportableBySample.TryGetValue(child.Id, out var directRep))
+                    reportableByOrder[order.Id] = directRep;
             }
         }
 
-        return (orders, sourceRef);
+        return (orders, sourceRef, reportableByOrder);
     }
 
     // sectionIds: the viewer's laboratory sections (null = unrestricted). Only
@@ -110,7 +133,7 @@ public class SampleSummaryService
 
         var timeline = await _reviewGate.GetTimelineAsync(ReviewEntityTypes.Sample, sampleId, ct);
 
-        var (effectiveTestOrders, sourceRefByOrderId) = await ResolveEffectiveTestOrdersAsync(sample, ct: ct);
+        var (effectiveTestOrders, sourceRefByOrderId, reportableByOrderId) = await ResolveEffectiveTestOrdersAsync(sample, ct: ct);
         if (sectionIds is not null)
             effectiveTestOrders = effectiveTestOrders.Where(t => sectionIds.Contains(t.SectionId)).ToList();
         var sectionRows = await _db.DocumentSections.AsNoTracking()
@@ -387,6 +410,21 @@ public class SampleSummaryService
             .GroupBy(o => o.TestCode)
             .ToDictionary(g => g.Key, g => oosByOrderId[g.First().Id].Number);
 
+        var signatureIds = reportableByOrderId.Values
+            .Select(r => r.SignatureId)
+            .Where(id => id.HasValue)
+            .Select(id => id!.Value)
+            .Distinct()
+            .ToArray();
+        var planSignatures = signatureIds.Length == 0
+            ? new Dictionary<int, (string FullName, DateTime SignedAt, string Meaning)>()
+            : await _db.ElectronicSignatures.AsNoTracking()
+                .Where(s => signatureIds.Contains(s.Id))
+                .ToDictionaryAsync(
+                    s => s.Id,
+                    s => (FullName: s.UserFullNameSnapshot, SignedAt: s.SignedAt, Meaning: ReportVocabulary.SignatureMeaning(s.MeaningOfSignature.ToString())),
+                    ct);
+
         foreach (var orderDto in dto.TestOrders)
         {
             if (oosByOrderId.TryGetValue(orderDto.TestOrderId, out var info))
@@ -398,6 +436,19 @@ public class SampleSummaryService
                      oosByTestCode.TryGetValue(orderDto.TestCode, out var originNumber))
             {
                 orderDto.OosInvestigationNumber = originNumber;
+            }
+
+            if (reportableByOrderId.TryGetValue(orderDto.TestOrderId, out var rep) &&
+                rep.SignatureId is int sigId &&
+                planSignatures.TryGetValue(sigId, out var sigInfo))
+            {
+                orderDto.ReportableRetest = new ReportableRetestDto(
+                    orderDto.SourceSampleReferenceNumber ?? string.Empty,
+                    rep.PlanRevision,
+                    rep.ReportableRetestNumber ?? 1,
+                    sigInfo.FullName,
+                    sigInfo.SignedAt,
+                    sigInfo.Meaning);
             }
         }
 

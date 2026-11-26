@@ -50,6 +50,8 @@ public static partial class MessageCodes
     public const string OosRetestPlanPhaseOneRequired = "Oos.RetestPlanPhaseOneRequired";
     public const string OosRetestPlanOrdersInvalid = "Oos.RetestPlanOrdersInvalid";
     public const string OosRetestPlanInvestigationConcluded = "Oos.RetestPlanInvestigationConcluded";
+    public const string OosRetestPlanReportableRetestRequired = "Oos.RetestPlanReportableRetestRequired";
+    public const string OosRetestPlanReportableRetestInvalid = "Oos.RetestPlanReportableRetestInvalid";
 
     public const string OosDeviationReasonInvalid = "Oos.DeviationReasonInvalid";
     public const string OosDeviationCommentInvalid = "Oos.DeviationCommentInvalid";
@@ -134,6 +136,8 @@ public static partial class MessageCodes
         [OosRetestPlanPhaseOneRequired] = [],
         [OosRetestPlanOrdersInvalid] = [],
         [OosRetestPlanInvestigationConcluded] = [],
+        [OosRetestPlanReportableRetestRequired] = [],
+        [OosRetestPlanReportableRetestInvalid] = [],
         [OosDeviationReasonInvalid] = [],
         [OosDeviationCommentInvalid] = [],
         [OosDeviationRequestNotFound] = [],

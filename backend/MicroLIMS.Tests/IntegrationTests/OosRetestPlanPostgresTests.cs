@@ -392,16 +392,17 @@ public sealed class OosRetestPlanPostgresTests(PostgresTestFixture fixture) : IC
         var plan = await DraftAsync(world);
         await SignAsync(world, plan.Id);
         await using var act = fixture.CreateDbContext();
-        foreach (var sql in new[]
+        foreach (var (sql, expectedState) in new[]
         {
-            $"""UPDATE "OosRetestPlanSamples" SET "SampleId" = "SampleId" WHERE "PlanId" = {plan.Id}""",
-            $"""DELETE FROM "OosRetestPlanSamples" WHERE "PlanId" = {plan.Id}""",
-            """TRUNCATE "OosRetestPlanSamples" """
+            ($"""UPDATE "OosRetestPlanSamples" SET "SampleId" = "SampleId" WHERE "PlanId" = {plan.Id}""", Npgsql.PostgresErrorCodes.RaiseException),
+            ($"""DELETE FROM "OosRetestPlanSamples" WHERE "PlanId" = {plan.Id}""", Npgsql.PostgresErrorCodes.RaiseException),
+            ("""TRUNCATE "OosRetestPlanSamples" """, "0A000")
         })
         {
             var error = await Assert.ThrowsAsync<Npgsql.PostgresException>(() => act.Database.ExecuteSqlRawAsync(sql));
-            Assert.Equal(Npgsql.PostgresErrorCodes.RaiseException, error.SqlState);
-            Assert.Contains("OosRetestPlanSamples", error.MessageText);
+            Assert.Equal(expectedState, error.SqlState);
+            if (expectedState == Npgsql.PostgresErrorCodes.RaiseException)
+                Assert.Contains("OosRetestPlanSamples", error.MessageText);
         }
         await AssertExactlyOneSignAsync(world, plan.Id);
     }
@@ -505,6 +506,98 @@ public sealed class OosRetestPlanPostgresTests(PostgresTestFixture fixture) : IC
         await AssertUnsignedAsync(world, next.Id, existingSampleCount: 2);
     }
 
+    [PostgresFact]
+    public async Task Sign_binds_reportable_sample_and_audits_update()
+    {
+        var world = await ArrangeAsync();
+        var thirdAnalyst = await _seed.AnalystAsync(world.Section);
+        var analysts = new[] { world.Analysts[0], world.Analysts[1], thirdAnalyst.Id };
+        var request = Request(world) with
+        {
+            RetestCount = 3,
+            AnalystUserIds = analysts,
+            ReportableRetestNumber = 2
+        };
+        var plan = await DraftAsync(world, request);
+        await SignAsync(world, plan.Id);
+
+        await using var verify = fixture.CreateDbContext();
+        var row = await verify.OosRetestPlans.AsNoTracking().SingleAsync(p => p.Id == plan.Id);
+        Assert.Equal(2, row.ReportableRetestNumber);
+        Assert.NotNull(row.ReportableSampleId);
+
+        var reportableOrder = await verify.TestOrders.AsNoTracking()
+            .SingleAsync(o => o.SampleId == row.ReportableSampleId);
+        Assert.Equal(analysts[1], reportableOrder.AssignedAnalystId);
+
+        var update = await AuditAsync(verify, nameof(OosRetestPlan), plan.Id, world.Head, "Update");
+        using var newPlan = JsonDocument.Parse(Assert.IsType<string>(update.NewValue));
+        Assert.Equal(row.ReportableSampleId.Value,
+            newPlan.RootElement.GetProperty(nameof(OosRetestPlan.ReportableSampleId)).GetInt32());
+    }
+
+    [PostgresFact]
+    public async Task Sign_refuses_old_draft_without_reportable_retest_number()
+    {
+        var world = await ArrangeAsync();
+        int planId;
+        await using (var arrange = fixture.CreateDbContext())
+        {
+            var draft = new OosRetestPlan
+            {
+                InvestigationId = world.Id,
+                Revision = 1,
+                Source = OosRetestSource.RetainedSample,
+                RetestCount = 2,
+                TestOrderIdsJson = JsonSerializer.Serialize(new[] { world.FailingOrder }),
+                AnalystUserIdsJson = JsonSerializer.Serialize(world.Analysts),
+                JudgingRule = "Compare results to the recorded limits.",
+                ReportableRetestNumber = null
+            };
+            arrange.OosRetestPlans.Add(draft);
+            await arrange.SaveChangesAsync();
+            planId = draft.Id;
+        }
+
+        var error = await Assert.ThrowsAsync<BusinessRuleException>(() => SignAsync(world, planId));
+        Assert.Equal(MicroLIMS.Shared.Messages.MessageCodes.OosRetestPlanReportableRetestRequired, error.Code);
+        await AssertUnsignedAsync(world, planId);
+    }
+
+    [PostgresFact]
+    public async Task Trigger_blocks_raw_update_of_reportable_columns_when_signed_and_fk_blocks_foreign_sample()
+    {
+        var world = await ArrangeAsync();
+        var foreign = await _seed.UnderApprovalAsync(world.Section, world.Reviewer, orders: 1, analystId: world.OriginalAnalyst);
+        var plan = await DraftAsync(world);
+
+        await using (var draftAct = fixture.CreateDbContext())
+        {
+            var updated = await draftAct.Database.ExecuteSqlInterpolatedAsync(
+                $"""UPDATE "OosRetestPlans" SET "ReportableRetestNumber" = 1 WHERE "Id" = {plan.Id}""");
+            Assert.Equal(1, updated);
+
+            var fkError = await Assert.ThrowsAsync<Npgsql.PostgresException>(() =>
+                draftAct.Database.ExecuteSqlInterpolatedAsync(
+                    $"""UPDATE "OosRetestPlans" SET "ReportableSampleId" = {foreign.Sample.Id} WHERE "Id" = {plan.Id}"""));
+            Assert.Equal("23503", fkError.SqlState);
+        }
+
+        await DraftAsync(world, Request(world) with { ReportableRetestNumber = 2 });
+        await SignAsync(world, plan.Id);
+
+        await using var signedAct = fixture.CreateDbContext();
+        var numError = await Assert.ThrowsAsync<Npgsql.PostgresException>(() =>
+            signedAct.Database.ExecuteSqlInterpolatedAsync(
+                $"""UPDATE "OosRetestPlans" SET "ReportableRetestNumber" = 1 WHERE "Id" = {plan.Id}"""));
+        Assert.Contains("is signed and immutable", numError.MessageText);
+
+        var sampleError = await Assert.ThrowsAsync<Npgsql.PostgresException>(() =>
+            signedAct.Database.ExecuteSqlInterpolatedAsync(
+                $"""UPDATE "OosRetestPlans" SET "ReportableSampleId" = NULL WHERE "Id" = {plan.Id}"""));
+        Assert.Contains("is signed and immutable", sampleError.MessageText);
+    }
+
     private async Task AssertExactlyOneSignAsync(World world, int planId)
     {
         await using var verify = fixture.CreateDbContext();
@@ -597,7 +690,7 @@ public sealed class OosRetestPlanPostgresTests(PostgresTestFixture fixture) : IC
     }
 
     private static SaveRetestPlanRequest Request(World world) =>
-        new(OosRetestSource.RetainedSample, 2, [world.FailingOrder], world.Analysts, "Compare results to the recorded limits.", null);
+        new(OosRetestSource.RetainedSample, 2, [world.FailingOrder], world.Analysts, "Compare results to the recorded limits.", null, 1);
 
     private async Task<OosRetestPlanDto> DraftAsync(World world, SaveRetestPlanRequest? request = null, int? actor = null)
     {

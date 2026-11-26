@@ -916,17 +916,81 @@ public sealed class OosConclusionPostgresTests(PostgresTestFixture fixture) : IC
     }
 
     [PostgresFact]
-    public async Task Certificate_refuses_an_invalidated_origin_with_multiple_retests()
+    public async Task Certificate_refuses_an_invalidated_origin_when_plan_has_multiple_samples_without_reportable_retest()
     {
         var world = await ArrangeAsync();
-        await AddPlanAsync(world);
-        await AddPlanAsync(world, revision: 2);
+        await AddTwoSamplePlanAsync(world, reportableNumber: null);
         await ConcludeAsync(world, OosConclusion.Invalidated);
         await using var act = fixture.CreateDbContext();
         var refused = await Assert.ThrowsAsync<BusinessRuleException>(() =>
             new OosGate(act, new OosOpeningRule(act)).EnsureCertificateAllowedAsync(world.SampleId));
         Assert.Equal("Oos.CertificateMultipleRetests", refused.Code);
+        Assert.Equal("A certificate cannot be issued because the signed retest plan does not name the reportable retest.", refused.Message);
         await AssertStatusAuditAsync(world, OosInvestigationStatus.PhaseTwo, OosInvestigationStatus.Concluded);
+    }
+
+    [PostgresFact]
+    public async Task Certificate_allows_invalidated_origin_when_plan_names_reportable_sample()
+    {
+        var world = await ArrangeAsync();
+        var (_, s2) = await AddTwoSamplePlanAsync(world, reportableNumber: 2);
+        await ConcludeAsync(world, OosConclusion.Invalidated);
+        await using var act = fixture.CreateDbContext();
+        await new OosGate(act, new OosOpeningRule(act)).EnsureCertificateAllowedAsync(world.SampleId);
+        var resolved = await OosReportableRetest.ResolveAsync(act, world.SampleId);
+        Assert.False(resolved.HasUnclear);
+        Assert.Equal(s2, resolved.ByInvestigationId[world.Id].ReportableSampleId);
+    }
+
+    private async Task<(int Sample1Id, int Sample2Id)> AddTwoSamplePlanAsync(World world, int? reportableNumber)
+    {
+        await using var arrange = fixture.CreateDbContext();
+        var section = await arrange.DocumentSections.AsNoTracking().SingleAsync(s => s.Id == world.SectionId);
+        var analyst1 = await _seed.AnalystAsync(section);
+        var analyst2 = await _seed.AnalystAsync(section);
+        var c1 = await _seed.UnderApprovalAsync(section, world.Reviewer, analystId: analyst1.Id);
+        var c2 = await _seed.UnderApprovalAsync(section, world.Reviewer, analystId: analyst2.Id);
+        var row = new OosRetestPlan
+        {
+            InvestigationId = world.Id, Revision = 1, RetestCount = 2, JudgingRule = Summary,
+            ReportableRetestNumber = reportableNumber,
+            TestOrderIdsJson = $"[{world.OrderId}]", AnalystUserIdsJson = $"[{analyst1.Id},{analyst2.Id}]"
+        };
+        arrange.OosRetestPlans.Add(row);
+        await arrange.SaveChangesAsync();
+        var signature = await new ElectronicSignatureService(arrange).SignAsync(world.Head, ActionGuardScenarios.Password,
+            SignatureMeaning.OosRetestPlanApproved, nameof(OosRetestPlan), row.Id, null, null);
+        await arrange.SaveChangesAsync();
+        arrange.OosRetestPlanSamples.AddRange(
+            new OosRetestPlanSample { PlanId = row.Id, SampleId = c1.Sample.Id },
+            new OosRetestPlanSample { PlanId = row.Id, SampleId = c2.Sample.Id });
+        arrange.Results.AddRange(
+            new Result { TestOrderId = c1.Orders[0].Id, EnteredByUserId = analyst1.Id, InterpretedValue = nameof(ResultStatus.NotDetected) },
+            new Result { TestOrderId = c2.Orders[0].Id, EnteredByUserId = analyst2.Id, InterpretedValue = nameof(ResultStatus.NotDetected) });
+        await arrange.SaveChangesAsync();
+
+        row.ReportableSampleId = reportableNumber switch { 1 => c1.Sample.Id, 2 => c2.Sample.Id, _ => null };
+        row.SignedAtUtc = ActionGuardScenarios.Now;
+        row.SignedByUserId = world.Head;
+        row.SignatureId = signature.Id;
+        row.SamplesCreatedAtUtc = ActionGuardScenarios.Now;
+        await arrange.SaveChangesAsync();
+        return (c1.Sample.Id, c2.Sample.Id);
+    }
+
+    [PostgresFact]
+    public async Task Certificate_uses_highest_signed_revision_when_amendments_exist()
+    {
+        var world = await ArrangeAsync();
+        await AddPlanAsync(world, revision: 1);
+        var (rev2Sample, _) = await AddPlanAsync(world, revision: 2);
+        await ConcludeAsync(world, OosConclusion.Invalidated);
+        await using var act = fixture.CreateDbContext();
+        await new OosGate(act, new OosOpeningRule(act)).EnsureCertificateAllowedAsync(world.SampleId);
+        var resolved = await OosReportableRetest.ResolveAsync(act, world.SampleId);
+        Assert.False(resolved.HasUnclear);
+        Assert.Equal(rev2Sample, resolved.ByInvestigationId[world.Id].ReportableSampleId);
+        Assert.Equal(2, resolved.ByInvestigationId[world.Id].PlanRevision);
     }
 
     private async Task DecideAsync(World world, int sampleId, ApprovalDecision decision)

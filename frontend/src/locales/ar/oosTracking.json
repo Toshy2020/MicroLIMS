@@ -133,7 +133,10 @@
     "meaningStatement": "تم اعتماد خطة إعادة الاختبار",
     "linkedSamples": "عينات إعادة الاختبار المرتبطة",
     "noSamplesYet": "ستُنشأ العينات عند توقيع الخطة.",
-    "summaryLine": "{{source}} · {{count}}× · {{rule}}"
+    "summaryLine": "{{source}} · {{count}}× · {{rule}}",
+    "reportableRetest": "إعادة الاختبار القابلة للإبلاغ",
+    "reportableOption": "إعادة الاختبار {{number}} - {{analyst}}",
+    "reportable": "قابل للإبلاغ"
   },
   "phaseTwo": {
     "title": "المرحلة الثانية — التحقيق الكامل",

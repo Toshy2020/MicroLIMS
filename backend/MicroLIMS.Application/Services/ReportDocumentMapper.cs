@@ -365,6 +365,7 @@ public static class ReportDocumentMapper
         };
 
         AddSpecificationLine(card, t);
+        AddReportableRetestLine(card, t);
 
         if (t.Incubations.Count > 0)
             card.Tables.Add(ToIncubationTable(t.Incubations));
@@ -481,6 +482,13 @@ public static class ReportDocumentMapper
             card.MetaLines.Add($"Specification: {t.SpecificationText}");
     }
 
+    private static void AddReportableRetestLine(CardBlock card, TestOrderSummaryDetailDto t)
+    {
+        if (t.ReportableRetest is not { } r) return;
+        card.MetaLines.Add(
+            $"Reportable retest {r.ReferenceNumber} (retest {r.RetestNumber}, plan revision {r.PlanRevision}) · {r.MeaningText} by {r.SignerFullName} · {Oos.OosInvestigationService.FormatUtcWithZone(r.SignedAtUtc)}");
+    }
+
     // One row per incubation, every value in full. The stage is named only
     // when the step really was split into two incubation stages; separate
     // steps (TSB, RVS, XLD) are told apart by their step name.
@@ -545,6 +553,7 @@ public static class ReportDocumentMapper
         };
 
         AddSpecificationLine(card, t);
+        AddReportableRetestLine(card, t);
 
         var instrument = a.EquipmentCode is null ? a.EquipmentName ?? "-"
             : a.EquipmentCode + (a.EquipmentName is null ? "" : $" ({a.EquipmentName})");

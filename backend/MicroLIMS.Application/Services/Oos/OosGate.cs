@@ -86,15 +86,10 @@ public sealed class OosGate(IMicroLimsDbContext db, OosOpeningRule rule)
         if (number is not null) InvestigationOpen(number).ThrowIfRefused();
 
         // No approved reporting rule selects a reportable result from several retests.
-        if (await db.OosInvestigations.AsNoTracking()
-            .Where(i => i.SampleId == sampleId && i.Kind == OosInvestigationKind.Oos &&
-                i.Status == OosInvestigationStatus.Concluded && i.Conclusion == OosConclusion.Invalidated)
-            .AnyAsync(i => (from plan in db.OosRetestPlans
-                            join link in db.OosRetestPlanSamples on plan.Id equals link.PlanId
-                            where plan.InvestigationId == i.Id && plan.SignedAtUtc != null
-                            select link.SampleId).Distinct().Count() > 1, ct))
+        var resolution = await OosReportableRetest.ResolveAsync(db, sampleId, ct);
+        if (resolution.HasUnclear)
             ActionCheck.No(MessageCodes.OosCertificateMultipleRetests,
-                "A certificate cannot be issued until the reporting rule for multiple retests is resolved.").ThrowIfRefused();
+                "A certificate cannot be issued because the signed retest plan does not name the reportable retest.").ThrowIfRefused();
     }
 
     private IQueryable<OosInvestigation> Covering(int sampleId, int? sectionId)

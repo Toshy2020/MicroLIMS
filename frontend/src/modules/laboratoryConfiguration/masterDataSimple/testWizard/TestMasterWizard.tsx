@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { ConfigWizard } from "../../../../components/config/ConfigWizard";
 import type { WizardSaveContext, WizardStep } from "../../../../components/config/useWizard";
 import type { TestDefinitionOption } from "../../../../hooks/useTestDefinitions";
+import { useChangeControlGate } from "../../../../hooks/useChangeControlGate";
 import {
   getMySections,
   getSections,
@@ -59,12 +60,14 @@ export interface TestMasterWizardProps {
   sections?: LaboratorySection[];
   mySections?: LaboratorySection[];
   hplcMethods?: HplcMethodChoice[];
-  onCreateWithSteps: (payload: SaveTestWithStepsPayload) => Promise<TestDefinitionOption>;
+  // The trailing changeControl on both saves is the approved change control number (CONF-227), only passed when one was chosen.
+  onCreateWithSteps: (payload: SaveTestWithStepsPayload, changeControl?: string) => Promise<TestDefinitionOption>;
   onUpdateTest: (
     id: number,
     payload: UpdateTestDefinitionPayload,
     reason?: string,
-    version?: number
+    version?: number,
+    changeControl?: string
   ) => Promise<TestDefinitionOption>;
   onReloadDefinitions?: () => Promise<void>;
   onClose: () => void;
@@ -353,31 +356,50 @@ function OpenTestMasterWizard({
     [isEditing, editingTest?.id, lab, area, defaultSectionId]
   );
 
+  // Every gated write of one save (the test, then its stages and steps) goes through the gate, so a
+  // refusal opens the prompt for that write alone and a number the server accepted is reused for the rest.
+  const gate = useChangeControlGate({
+    sectionId: editingTest?.sectionId ?? null,
+    recordKey: editingTest ? `test-${editingTest.id}` : duplicateFrom ? `test-new-from-${duplicateFrom.id}` : "test-new"
+  });
+  const resetGate = gate.reset;
+  useEffect(() => {
+    if (!open) resetGate();
+  }, [open, resetGate]);
+  const gateRun = gate.run;
+
   const handleSave = useCallback(
     async (model: TestFormModel, reason: string | null, saveCtx: WizardSaveContext<TestFormModel>) => {
+      const scope = { sectionId: model.editingId != null ? (model.editingSectionId ?? null) : model.sectionId === "" ? null : model.sectionId };
       if (model.editingId != null) {
         const editId = model.editingId;
         const updatePayload = toTestPayload(model) as UpdateTestDefinitionPayload;
         const version = saveCtx.recordVersion ?? editingTest?.version;
-        const updated =
-          version != null
-            ? await onUpdateTest(editId, updatePayload, reason ?? undefined, version)
-            : await onUpdateTest(editId, updatePayload, reason ?? undefined);
+        const updated = await gateRun(
+          (cc) =>
+            cc
+              ? onUpdateTest(editId, updatePayload, reason ?? undefined, version, cc)
+              : version != null
+                ? onUpdateTest(editId, updatePayload, reason ?? undefined, version)
+                : onUpdateTest(editId, updatePayload, reason ?? undefined),
+          scope
+        );
 
         const stagePlan = planStageOperations(model.initialStages, model.stages);
         for (const del of stagePlan.deletes) {
-          await masterDataOptions.deleteTestDefinitionStageReplicate(editId, del.id);
+          await gateRun((cc) => (cc ? masterDataOptions.deleteTestDefinitionStageReplicate(editId, del.id, cc) : masterDataOptions.deleteTestDefinitionStageReplicate(editId, del.id)), scope);
         }
         for (const upd of stagePlan.updates) {
-          await masterDataOptions.updateTestDefinitionStageReplicate(
-            editId,
-            upd.id,
-            { sampleReplicates: upd.sampleReplicates },
-            upd.version
+          await gateRun(
+            (cc) =>
+              cc
+                ? masterDataOptions.updateTestDefinitionStageReplicate(editId, upd.id, { sampleReplicates: upd.sampleReplicates }, upd.version, cc)
+                : masterDataOptions.updateTestDefinitionStageReplicate(editId, upd.id, { sampleReplicates: upd.sampleReplicates }, upd.version),
+            scope
           );
         }
         for (const cre of stagePlan.creates) {
-          await masterDataOptions.createTestDefinitionStageReplicate(editId, cre);
+          await gateRun((cc) => (cc ? masterDataOptions.createTestDefinitionStageReplicate(editId, cre, cc) : masterDataOptions.createTestDefinitionStageReplicate(editId, cre)), scope);
         }
 
         const stepPlan = planStepOperations(
@@ -386,13 +408,13 @@ function OpenTestMasterWizard({
           lookupRef.current.conditions
         );
         for (const del of stepPlan.deletes) {
-          await masterDataOptions.deleteTestWorkflowStep(del.id, del.version);
+          await gateRun((cc) => (cc ? masterDataOptions.deleteTestWorkflowStep(del.id, del.version, cc) : masterDataOptions.deleteTestWorkflowStep(del.id, del.version)), scope);
         }
         for (const upd of stepPlan.updates) {
-          await masterDataOptions.updateTestWorkflowStep(upd.id, upd.payload, upd.version);
+          await gateRun((cc) => (cc ? masterDataOptions.updateTestWorkflowStep(upd.id, upd.payload, upd.version, cc) : masterDataOptions.updateTestWorkflowStep(upd.id, upd.payload, upd.version)), scope);
         }
         for (const cre of stepPlan.creates) {
-          await masterDataOptions.createTestWorkflowStep(editId, cre);
+          await gateRun((cc) => (cc ? masterDataOptions.createTestWorkflowStep(editId, cre, cc) : masterDataOptions.createTestWorkflowStep(editId, cre)), scope);
         }
 
         const hasChildChanges =
@@ -410,10 +432,10 @@ function OpenTestMasterWizard({
         stages: toStagePayloads(model.stages),
         steps: toStepPayloads(model.steps, lookupRef.current.conditions)
       };
-      const created = await onCreateWithSteps(payload);
+      const created = await gateRun((cc) => (cc ? onCreateWithSteps(payload, cc) : onCreateWithSteps(payload)), scope);
       await Promise.resolve(onSaved?.(created, model, "create"));
     },
-    [editingTest?.version, onCreateWithSteps, onUpdateTest, onReloadDefinitions, onSaved]
+    [editingTest?.version, gateRun, onCreateWithSteps, onUpdateTest, onReloadDefinitions, onSaved]
   );
 
   const title = editingTest
@@ -433,6 +455,7 @@ function OpenTestMasterWizard({
   const draftKey = isReady ? baseDraftKey : `${baseDraftKey}:loading`;
 
   return (
+    <>
     <ConfigWizard
       open={open}
       title={title}
@@ -460,5 +483,7 @@ function OpenTestMasterWizard({
         />
       )}
     />
+    {gate.prompt}
+    </>
   );
 }

@@ -1,4 +1,4 @@
-import { apiClient } from "../../../services/apiClient";
+import { apiClient, withChangeControl } from "../../../services/apiClient";
 import type { ApiResponse } from "../masterDataSimple/services/EquipmentConfigurationService";
 import type { MasterDataImport, MasterDataImportResult, WorkbookReport } from "./types";
 
@@ -31,12 +31,16 @@ export const masterDataWorkbookService = {
     return res.data.data;
   },
 
-  async load(file: File, password: string, comment: string): Promise<MasterDataImportResult> {
+  // changeControl is the approved change control number for a laboratory whose gate is on (CONF-227);
+  // it is sent as X-Change-Control on this one request. The server reports refused rows as row errors.
+  async load(file: File, password: string, comment: string, changeControl?: string): Promise<MasterDataImportResult> {
     const form = new FormData();
     form.append("file", file);
     form.append("password", password);
     form.append("comment", comment);
-    const res = await apiClient.post<ApiResponse<MasterDataImportResult>>(`${BASE}/import`, form);
+    const res = changeControl
+      ? await apiClient.post<ApiResponse<MasterDataImportResult>>(`${BASE}/import`, form, withChangeControl(undefined, changeControl))
+      : await apiClient.post<ApiResponse<MasterDataImportResult>>(`${BASE}/import`, form);
     return res.data.data;
   },
 

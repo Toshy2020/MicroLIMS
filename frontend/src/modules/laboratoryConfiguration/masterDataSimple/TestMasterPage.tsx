@@ -10,6 +10,7 @@ import { useTranslation } from "../../../i18n";
 import { LoadErrorAlert } from "../../../components/LoadErrorAlert";
 import { FloatingDialog } from "../../../components/FloatingDialog";
 import { useTestDefinitions, TestDefinitionOption } from "../../../hooks/useTestDefinitions";
+import { useChangeControlGate } from "../../../hooks/useChangeControlGate";
 import { ChangeReasonDialog } from "../../../components/config/ChangeReasonDialog";
 import { HplcMethodService, HplcMethodListItem } from "./services/HplcMethodService";
 import { PageArea, areaIncludes } from "./testMasterArea";
@@ -145,13 +146,19 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
     setPendingReasonAction({ kind: "freeze", test: t });
   };
 
+  // Freezing or unfreezing a test is a gated write (CONF-227); the number is remembered for this test only.
+  const freezeGate = useChangeControlGate({
+    sectionId: pendingReasonAction?.test.sectionId ?? null,
+    recordKey: pendingReasonAction ? `test-${pendingReasonAction.test.id}` : null
+  });
+
   const confirmReasonAction = async (reason: string) => {
     if (!pendingReasonAction) return;
     setReasonSaving(true);
     setReasonDialogError(null);
     try {
       const test = pendingReasonAction.test;
-      await setActive(test.id, !test.isActive, reason);
+      await freezeGate.run((changeControl) => setActive(test.id, !test.isActive, reason, changeControl));
       setMessage({
         text: test.isActive
           ? tr("testMasterPage.frozenMsg", { code: test.code })
@@ -337,7 +344,7 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
         mySections={mySections}
         hplcMethods={hplcMethods}
         onCreateWithSteps={addWithSteps}
-        onUpdateTest={(id, payload, reason, version) => update(id, payload, undefined, undefined, reason, version)}
+        onUpdateTest={(id, payload, reason, version, changeControl) => update(id, payload, undefined, undefined, reason, version, changeControl)}
         onReloadDefinitions={reload}
         onClose={() => setWizardMode(null)}
         onSaved={(saved, savedModel, mode) => {
@@ -379,6 +386,7 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
           }
         }}
       />
+      {freezeGate.prompt}
     </>
   );
 }

@@ -16,6 +16,7 @@ import { LoadErrorAlert } from "../../../../components/LoadErrorAlert";
 import { ToneBadge } from "../../../../components/StatusBadge";
 import type { TFunction } from "i18next";
 import { useTranslation } from "../../../../i18n";
+import { ChangeControlPromptCancelled, useChangeControlGate } from "../../../../hooks/useChangeControlGate";
 import { Item, ItemService } from "../services/ItemService";
 import {
   SpecificationService,
@@ -75,6 +76,10 @@ export const CopySpecificationsDialog: React.FC<CopySpecificationsDialogProps> =
   const [tickedIds, setTickedIds] = useState<ReadonlySet<number>>(new Set());
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+
+  // Copying creates specifications, a gated write (CONF-227). The target item's laboratory is not known
+  // here, so the prompt lists the approved change controls of every laboratory.
+  const gate = useChangeControlGate({ sectionId: null, recordKey: `item-${item.id}-copy` });
 
   const mountedRef = useRef(true);
   useEffect(() => {
@@ -199,18 +204,17 @@ export const CopySpecificationsDialog: React.FC<CopySpecificationsDialogProps> =
     setSaving(true);
     setSaveError(null);
     try {
-      const createdCount = await SpecificationService.copySpecifications({
-        sourceItemId: source.id,
-        targetItemId: item.id,
-        specificationIds: orderedTickedIds
-      });
+      const request = { sourceItemId: source.id, targetItemId: item.id, specificationIds: orderedTickedIds };
+      const createdCount = await gate.run((cc) =>
+        cc ? SpecificationService.copySpecifications(request, cc) : SpecificationService.copySpecifications(request)
+      );
       if (!mountedRef.current) return;
       onSpecsCreated();
       onCompleted(createdCount);
       onClose();
     } catch (err: unknown) {
       if (mountedRef.current) {
-        setSaveError(errorMessage(err, t("items.copySpecs.copyFailed")));
+        setSaveError(err instanceof ChangeControlPromptCancelled ? err.message : errorMessage(err, t("items.copySpecs.copyFailed")));
       }
     } finally {
       if (mountedRef.current) setSaving(false);
@@ -223,6 +227,7 @@ export const CopySpecificationsDialog: React.FC<CopySpecificationsDialogProps> =
   };
 
   return (
+    <>
     <FormDialog
       open
       title={t("items.copySpecs.title", { name: item.name, code: item.code })}
@@ -353,5 +358,7 @@ export const CopySpecificationsDialog: React.FC<CopySpecificationsDialogProps> =
         </Box>
       )}
     </FormDialog>
+    {gate.prompt}
+    </>
   );
 };

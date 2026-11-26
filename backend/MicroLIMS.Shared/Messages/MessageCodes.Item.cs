@@ -5,6 +5,7 @@ public static partial class MessageCodes
 {
     public const string ItemCannotDeleteNotApplicable = "Item.CannotDeleteNotApplicable";
     public const string ItemCannotDeleteUsed = "Item.CannotDeleteUsed";
+    public const string ItemDeleteBlockedByChangeControlGate = "Item.DeleteBlockedByChangeControlGate";
     public const string ItemCategoryNotAllowed = "Item.CategoryNotAllowed";
     public const string ItemDuplicateCode = "Item.DuplicateCode";
     public const string ItemFileSizeRange = "Item.FileSizeRange";
@@ -18,6 +19,7 @@ public static partial class MessageCodes
     {
         [ItemCannotDeleteNotApplicable] = ["name", "naCount"],
         [ItemCannotDeleteUsed] = ["name", "sampleCount"],
+        [ItemDeleteBlockedByChangeControlGate] = [],
         [ItemCategoryNotAllowed] = [],
         [ItemDuplicateCode] = ["code"],
         [ItemFileSizeRange] = [],

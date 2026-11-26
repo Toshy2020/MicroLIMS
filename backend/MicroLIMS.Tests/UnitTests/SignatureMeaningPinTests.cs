@@ -76,6 +76,7 @@ public class SignatureMeaningPinTests
             ("ChangeRejected", 60),
             ("ComplaintConcluded", 61),
             ("QualityExtensionDecided", 62),
+            ("ChangeControlGateChanged", 63),
         };
 
         var actual = Enum.GetValues<SignatureMeaning>()

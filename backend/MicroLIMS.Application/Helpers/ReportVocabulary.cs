@@ -46,6 +46,7 @@ public static class ReportVocabulary
         ["ChangeRejected"] = "Change control rejected",
         ["ComplaintConcluded"] = "Complaint concluded",
         ["QualityExtensionDecided"] = "Due-date extension decided",
+        ["ChangeControlGateChanged"] = "Change control gate changed",
     };
 
     public static string SignatureMeaning(string? meaning) =>

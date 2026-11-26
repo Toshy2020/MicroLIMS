@@ -12,7 +12,8 @@ using MicroLIMS.Shared.Messages;
 namespace MicroLIMS.Application.Services.Quality;
 
 public sealed partial class QualityConfigService(IMicroLimsDbContext db, QualityRecordCore core,
-    PermissionService permissions, IUserSectionScopeService scope, TimeProvider clock)
+    PermissionService permissions, IUserSectionScopeService scope, TimeProvider clock,
+    IElectronicSignatureService? signatures = null)
 {
     internal static readonly System.Linq.Expressions.Expression<Func<QualityRecord, bool>> IsOpenExpression =
         r => !r.IsCancelled
@@ -285,5 +286,106 @@ public sealed partial class QualityConfigService(IMicroLimsDbContext db, Quality
     {
         var (number, size) = Paging.Normalize(page, pageSize, 1);
         return (int.CreateSaturating((long)(number - 1) * size), size);
+    }
+
+    public async Task<QualitySectionSettingDto> GetSectionSettingAsync(int sectionId, int userId,
+        CancellationToken ct = default)
+    {
+        var isQa = await permissions.UserHasPermissionAsync(userId, PermissionConstants.QualityApprove, ct);
+        var canManageMasterData = !isQa && await permissions.UserHasPermissionAsync(userId, PermissionConstants.MasterDataManage, ct);
+        if (!isQa && !canManageMasterData)
+            throw QualityRecordCore.Denied();
+
+        if (canManageMasterData)
+        {
+            var sections = await scope.GetConfigurableSectionIdsAsync(userId, ct);
+            if (sections is not null && !sections.Contains(sectionId))
+                throw QualityRecordCore.Denied();
+        }
+
+        if (!await db.DocumentSections.AsNoTracking().AnyAsync(s => s.Id == sectionId, ct))
+            throw QualityRecordCore.Missing();
+
+        var setting = await db.QualitySectionSettings.AsNoTracking()
+            .Where(s => s.SectionId == sectionId)
+            .Select(s => new QualitySectionSettingDto(s.SectionId, s.ChangeControlRequired, s.Version))
+            .SingleOrDefaultAsync(ct);
+
+        return setting ?? new QualitySectionSettingDto(sectionId, false, 0u);
+    }
+
+    public Task<QualitySectionSettingDto> SetSectionSettingAsync(int sectionId, bool changeControlRequired,
+        string reason, string password, uint? expectedVersion, int userId, string? ip = null,
+        CancellationToken ct = default) => UnitOfWork.RunAsync(db, async () =>
+    {
+        await RequireAsync(userId, PermissionConstants.QualityApprove, ct);
+
+        if (string.IsNullOrWhiteSpace(reason))
+            throw new BusinessRuleException(MessageCodes.ChangeControlGateReasonRequired,
+                "A reason is required to change the change-control gate.");
+        var reasonText = QualityRecordCore.RequiredText(reason, 4000);
+
+        if (!await db.DocumentSections.AsNoTracking().AnyAsync(s => s.Id == sectionId, ct))
+            throw QualityRecordCore.Missing();
+
+        await db.Database.ExecuteSqlRawAsync(
+            """LOCK TABLE "QualitySectionSettings" IN SHARE ROW EXCLUSIVE MODE""", ct);
+
+        var row = await db.QualitySectionSettings
+            .SingleOrDefaultAsync(s => s.SectionId == sectionId, ct);
+
+        if (row is not null)
+        {
+            if (expectedVersion is null)
+                throw new BusinessRuleException(MessageCodes.QualityVersionRequired,
+                    "An If-Match quality record version is required.");
+            if (expectedVersion.Value != row.Version)
+                throw new StaleSectionSettingException();
+        }
+        else if (expectedVersion is uint v && v != 0u)
+        {
+            throw new StaleSectionSettingException();
+        }
+
+        var sigService = signatures ?? new ElectronicSignatureService(db, clock);
+        var signature = await sigService.SignAsync(userId, password ?? string.Empty,
+            SignatureMeaning.ChangeControlGateChanged, nameof(QualitySectionSetting), sectionId,
+            reasonText, ip, ct);
+        signature.SignedAt = clock.GetUtcNow().UtcDateTime;
+
+        if (row is null)
+        {
+            row = new QualitySectionSetting { SectionId = sectionId };
+            db.QualitySectionSettings.Add(row);
+        }
+
+        row.ChangeControlRequired = changeControlRequired;
+
+        var previousActor = db.CurrentUserId;
+        var previousReason = db.CurrentReason;
+        db.CurrentUserId = userId;
+        db.CurrentReason = reasonText;
+        try
+        {
+            await db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateException ex) when (ex.InnerException is System.Data.Common.DbException { SqlState: "23505" })
+        {
+            throw new StaleSectionSettingException();
+        }
+        finally
+        {
+            db.CurrentUserId = previousActor;
+            db.CurrentReason = previousReason;
+        }
+
+        return new QualitySectionSettingDto(sectionId, row.ChangeControlRequired, row.Version);
+    }, ct);
+
+    private sealed class StaleSectionSettingException() : DbUpdateConcurrencyException(
+        "The change-control settings changed after they were loaded. Reload and try again."), ICodedMessage
+    {
+        public string Code => MessageCodes.ChangeControlGateVersionStale;
+        public IReadOnlyDictionary<string, string>? Parameters => null;
     }
 }

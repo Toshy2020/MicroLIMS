@@ -5,6 +5,7 @@ using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.DTOs.Responses;
 using MicroLIMS.Application.Helpers;
 using MicroLIMS.Application.Interfaces;
+using MicroLIMS.Application.Services.Quality;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Shared.Constants;
@@ -19,14 +20,20 @@ public class TestWorkflowStepMasterDataService
 {
     private readonly IMicroLimsDbContext _db;
     private readonly IUserSectionScopeService _scope;
+    private readonly ChangeControlGate _gate;
 
-    public TestWorkflowStepMasterDataService(IMicroLimsDbContext db, IUserSectionScopeService scope)
+    public TestWorkflowStepMasterDataService(
+        IMicroLimsDbContext db,
+        IUserSectionScopeService scope,
+        ChangeControlGate? changeControlGate = null)
     {
         _db = db;
         _scope = scope;
+        _gate = changeControlGate ?? new ChangeControlGate(db, NullChangeControlContext.Instance, TimeProvider.System);
     }
 
-    public async Task<TestDefinitionResponse> UpdateWorkflowTypeAsync(int currentUserId, int id, UpdateWorkflowTypeRequest request, CancellationToken cancellationToken = default)
+    public Task<TestDefinitionResponse> UpdateWorkflowTypeAsync(int currentUserId, int id, UpdateWorkflowTypeRequest request, CancellationToken cancellationToken = default) =>
+        UnitOfWork.RunAsync(_db, async () =>
     {
         var entity = await _db.TestDefinitions.FirstOrDefaultAsync(t => t.Id == id, cancellationToken)
             ?? throw new NotFoundException(
@@ -35,6 +42,8 @@ public class TestWorkflowStepMasterDataService
                 new Dictionary<string, string> { ["id"] = id.ToString(CultureInfo.InvariantCulture) });
         await TestConfigurationScope.EnsureCanConfigureAsync(_scope, currentUserId, entity.SectionId, cancellationToken);
         RecordVersion.EnsureCurrent(_db, entity);
+        var grant = await _gate.EnsureAllowedAsync(entity.SectionId, QualityLinkTargetType.TestDefinition, entity.Id, entity.Code, cancellationToken);
+        using var _ = AuditReasonScope.Append(_db, grant is null ? null : $"Change control {grant.Number}");
         // Only the step-driven workflows (CountTest <-> Observation) can be
         // switched here; every other workflow is set by the test type and
         // paired with its equation in TestDefinitionMasterDataService.
@@ -50,8 +59,9 @@ public class TestWorkflowStepMasterDataService
                 "The workflow type of this test is set by its test type; change it in the test settings.");
         entity.WorkflowType = request.WorkflowType;
         await _db.SaveChangesAsync(cancellationToken);
+        await _gate.RecordAppliedAsync(grant, nameof(TestDefinition), entity.Id.ToString(CultureInfo.InvariantCulture), cancellationToken);
         return TestDefinitionResponse.From(entity);
-    }
+    }, cancellationToken);
 
     public async Task<object> GetTestWorkflowStepsAsync(int id) =>
         await _db.TestWorkflowSteps
@@ -86,7 +96,8 @@ public class TestWorkflowStepMasterDataService
             })
             .ToListAsync();
 
-    public async Task<object> CreateTestWorkflowStepAsync(int currentUserId, int id, CreateTestWorkflowStepRequest request, CancellationToken cancellationToken = default)
+    public Task<object> CreateTestWorkflowStepAsync(int currentUserId, int id, CreateTestWorkflowStepRequest request, CancellationToken cancellationToken = default) =>
+        UnitOfWork.RunAsync<object>(_db, async () =>
     {
         var test = await _db.TestDefinitions.FirstOrDefaultAsync(t => t.Id == id, cancellationToken)
             ?? throw new NotFoundException(
@@ -99,6 +110,8 @@ public class TestWorkflowStepMasterDataService
                 MessageCodes.WorkflowStepWorkflowTypeHasNoSteps,
                 $"{test.WorkflowType} tests have no workflow steps.",
                 new Dictionary<string, string> { ["workflowType"] = test.WorkflowType.ToString() });
+        var grant = await _gate.EnsureAllowedAsync(test.SectionId, QualityLinkTargetType.TestDefinition, test.Id, test.Code, cancellationToken);
+        using var _ = AuditReasonScope.Append(_db, grant is null ? null : $"Change control {grant.Number}");
 
         var nextOrder = 1 + await _db.TestWorkflowSteps.Where(s => s.TestDefinitionId == id)
             .Select(s => (int?)s.StepOrder).MaxAsync(cancellationToken) ?? 1;
@@ -136,14 +149,16 @@ public class TestWorkflowStepMasterDataService
         _db.TestWorkflowSteps.Add(entity);
         await _db.SaveChangesAsync(cancellationToken);
         await ValidateContiguousStepOrderAsync(id, cancellationToken);
+        await _gate.RecordAppliedAsync(grant, nameof(TestWorkflowStep), entity.Id.ToString(CultureInfo.InvariantCulture), cancellationToken);
         return new { entity.Id, entity.StepOrder, entity.StepName };
-    }
+    }, cancellationToken);
 
     // Editing is always allowed, even for a step already used by a real
     // TestOrder - unlike delete, it can't corrupt anything, since a
     // completed Incubation row already has its own copied-at-the-time
     // Temperature/Duration and isn't affected retroactively.
-    public async Task<object> UpdateTestWorkflowStepAsync(int currentUserId, int stepId, UpdateTestWorkflowStepRequest request, CancellationToken cancellationToken = default)
+    public Task<object> UpdateTestWorkflowStepAsync(int currentUserId, int stepId, UpdateTestWorkflowStepRequest request, CancellationToken cancellationToken = default) =>
+        UnitOfWork.RunAsync<object>(_db, async () =>
     {
         var step = await _db.TestWorkflowSteps.Include(s => s.TestDefinition).Include(s => s.StepMedia).Include(s => s.IncubationStages).Include(s => s.PhenotypicTests)
             .FirstOrDefaultAsync(s => s.Id == stepId, cancellationToken)
@@ -153,6 +168,8 @@ public class TestWorkflowStepMasterDataService
                 new Dictionary<string, string> { ["stepId"] = stepId.ToString(CultureInfo.InvariantCulture) });
         await EnsureCanConfigureStepAsync(currentUserId, step, cancellationToken);
         RecordVersion.EnsureCurrent(_db, step);
+        var grant = await _gate.EnsureAllowedAsync(step.TestDefinition!.SectionId, QualityLinkTargetType.TestDefinition, step.TestDefinitionId, step.TestDefinition.Code, cancellationToken);
+        using var _ = AuditReasonScope.Append(_db, grant is null ? null : $"Change control {grant.Number}");
 
         var rebuiltStepMedia = await BuildStepMediaAsync(
             request.StepMedia, step.StepMedia.Where(m => m.MediaProductId != null).Select(m => m.MediaProductId!.Value).ToHashSet(), cancellationToken);
@@ -207,9 +224,10 @@ public class TestWorkflowStepMasterDataService
 
         await ValidateStepRulesAsync(step.TestDefinitionId, excludeStepId: stepId, step, cancellationToken);
         await _db.SaveChangesAsync(cancellationToken);
+        await _gate.RecordAppliedAsync(grant, nameof(TestWorkflowStep), step.Id.ToString(CultureInfo.InvariantCulture), cancellationToken);
 
         return new { step.Id, step.StepOrder, step.StepName };
-    }
+    }, cancellationToken);
 
     // Swaps StepOrder with the adjacent step - simpler and safer than
     // accepting an arbitrary new position from the client (no risk of
@@ -233,6 +251,8 @@ public class TestWorkflowStepMasterDataService
         // so nothing tracked has been changed when either refusal is thrown.
         await EnsureCanConfigureStepAsync(currentUserId, step, cancellationToken);
         RecordVersion.EnsureCurrent(_db, step);
+        var grant = await _gate.EnsureAllowedAsync(step.TestDefinition!.SectionId, QualityLinkTargetType.TestDefinition, step.TestDefinitionId, step.TestDefinition.Code, cancellationToken);
+        using var _ = AuditReasonScope.Append(_db, grant is null ? null : $"Change control {grant.Number}");
 
         var neighborOrder = request.Direction == "up" ? step.StepOrder - 1 : step.StepOrder + 1;
         var neighbor = await _db.TestWorkflowSteps.FirstOrDefaultAsync(s => s.TestDefinitionId == step.TestDefinitionId && s.StepOrder == neighborOrder, cancellationToken);
@@ -251,6 +271,7 @@ public class TestWorkflowStepMasterDataService
         step.StepOrder = neighborStepOrder;
         await _db.SaveChangesAsync(cancellationToken);
         await ValidateContiguousStepOrderAsync(step.TestDefinitionId, cancellationToken);
+        await _gate.RecordAppliedAsync(grant, nameof(TestWorkflowStep), step.Id.ToString(CultureInfo.InvariantCulture), cancellationToken);
 
         return new { };
     }
@@ -258,7 +279,8 @@ public class TestWorkflowStepMasterDataService
     // Blocked if any real TestOrder for this test code has already used
     // this step (an Incubation row referencing it exists) - same
     // "guard with a clear message" pattern as ItemService.DeleteAsync.
-    public async Task<object> DeleteTestWorkflowStepAsync(int currentUserId, int stepId, CancellationToken cancellationToken = default)
+    public Task<object> DeleteTestWorkflowStepAsync(int currentUserId, int stepId, CancellationToken cancellationToken = default) =>
+        UnitOfWork.RunAsync<object>(_db, async () =>
     {
         var step = await _db.TestWorkflowSteps.Include(s => s.TestDefinition).FirstOrDefaultAsync(s => s.Id == stepId, cancellationToken)
             ?? throw new NotFoundException(
@@ -267,6 +289,8 @@ public class TestWorkflowStepMasterDataService
                 new Dictionary<string, string> { ["stepId"] = stepId.ToString(CultureInfo.InvariantCulture) });
         await EnsureCanConfigureStepAsync(currentUserId, step, cancellationToken);
         RecordVersion.EnsureCurrent(_db, step);
+        var grant = await _gate.EnsureAllowedAsync(step.TestDefinition!.SectionId, QualityLinkTargetType.TestDefinition, step.TestDefinitionId, step.TestDefinition.Code, cancellationToken);
+        using var _ = AuditReasonScope.Append(_db, grant is null ? null : $"Change control {grant.Number}");
 
         var inUse = await _db.Incubations.Include(i => i.TestOrder)
             .AnyAsync(i => i.StepName == step.StepName && i.TestOrder!.TestCode == step.TestDefinition!.Code, cancellationToken);
@@ -288,8 +312,9 @@ public class TestWorkflowStepMasterDataService
             laterStep.StepOrder -= 1;
 
         await _db.SaveChangesAsync(cancellationToken);
+        await _gate.RecordAppliedAsync(grant, nameof(TestWorkflowStep), step.Id.ToString(CultureInfo.InvariantCulture), cancellationToken);
         return new { };
-    }
+    }, cancellationToken);
 
     // A step belongs to the laboratory of its test.
     private Task EnsureCanConfigureStepAsync(int currentUserId, TestWorkflowStep step, CancellationToken cancellationToken) =>

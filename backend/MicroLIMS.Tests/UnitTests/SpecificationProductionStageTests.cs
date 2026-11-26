@@ -183,13 +183,21 @@ public class SpecificationProductionStageTests
             LimitType = LimitType.Qualitative, ExpectedResultText = "x", ProductionStageRole = stage
         };
 
-        await service.CreateAsync(New(ProductionStageRole.Bulk));
-        await service.CreateAsync(New(ProductionStageRole.Finished));
-        await service.CreateAsync(New(null));
+        async Task CreateSpecAsync(Specification spec)
+        {
+            SpecificationService.ApplyCanonicalSpecLimit(spec);
+            await service.ValidateAsync(spec);
+            db.Specifications.Add(spec);
+            await db.SaveChangesAsync();
+        }
 
-        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => service.CreateAsync(New(ProductionStageRole.Bulk)));
+        await CreateSpecAsync(New(ProductionStageRole.Bulk));
+        await CreateSpecAsync(New(ProductionStageRole.Finished));
+        await CreateSpecAsync(New(null));
+
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => CreateSpecAsync(New(ProductionStageRole.Bulk)));
         Assert.Contains("Bulk", ex.Message);
-        await Assert.ThrowsAsync<BusinessRuleException>(() => service.CreateAsync(New(null)));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => CreateSpecAsync(New(null)));
     }
 
     [Fact]
@@ -198,11 +206,12 @@ public class SpecificationProductionStageTests
         await using var db = NewDb();
         var seed = SeedProduct(db, SampleCategory.RawMaterial);
 
-        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => TestServiceFactory.Specification(db).CreateAsync(new Specification
+        var spec = new Specification
         {
             ItemId = seed.Item.Id, TestCode = seed.Test.Code, ParameterName = "Appearance",
             LimitType = LimitType.Qualitative, ExpectedResultText = "x", ProductionStageRole = ProductionStageRole.Bulk
-        }));
+        };
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => TestServiceFactory.Specification(db).ValidateAsync(spec));
         Assert.Contains("Finished Product", ex.Message);
     }
 

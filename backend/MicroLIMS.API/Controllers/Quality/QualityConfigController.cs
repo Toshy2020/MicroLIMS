@@ -87,6 +87,19 @@ public sealed class QualityConfigController(QualityConfigService service, ILabCl
     public async Task<IActionResult> ListOverdue(int page = 1, int pageSize = 25, CancellationToken ct = default) =>
         Result(await service.ListOverdueAsync(clock.LabToday, Actor, page, pageSize, ct));
 
+    [HttpGet("section-settings/{sectionId:int}")]
+    [Authorize(Policy = PermissionPolicyProvider.QualityApproveOrMasterDataManage)]
+    public async Task<IActionResult> GetSectionSetting(int sectionId, CancellationToken ct = default) =>
+        Result(await service.GetSectionSettingAsync(sectionId, Actor, ct));
+
+    [HttpPut("section-settings/{sectionId:int}")]
+    [Authorize(Policy = PermissionConstants.QualityApprove)]
+    public async Task<IActionResult> SetSectionSetting(int sectionId, UpdateQualitySectionSettingRequest request,
+        CancellationToken ct = default) =>
+        Result(await service.SetSectionSettingAsync(sectionId, request.ChangeControlRequired, request.Reason,
+            request.Password, RecordVersionMiddleware.ParseExpectedVersion(Request), Actor,
+            HttpContext.Connection.RemoteIpAddress?.ToString(), ct));
+
     private IActionResult Result<T>(T value) => Ok(ApiResponse<T>.Ok(value));
 
     private uint Version() => RecordVersionMiddleware.ParseExpectedVersion(Request)

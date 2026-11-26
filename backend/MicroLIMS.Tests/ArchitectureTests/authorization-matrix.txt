@@ -588,6 +588,7 @@ PreparationConfigurationQueueController.Unmapped(): SystemAdministrator,SectionH
 QualityConfigController.Answer(Int32, String, SaveQualityAnswerRequest, CancellationToken): SectionHead,Reviewer,Analyst,QcManager,Qa
 QualityConfigController.CreateClassification(SaveQualityClassificationRequest, CancellationToken): Qa
 QualityConfigController.DecideExtension(Int32, DecideQualityExtensionRequest, CancellationToken): Qa
+QualityConfigController.GetSectionSetting(Int32, CancellationToken): SystemAdministrator,SectionHead,Qa
 QualityConfigController.GetTemplate(QualityRecordType, Nullable`1, CancellationToken): SectionHead,Reviewer,Analyst,QcManager,Qa
 QualityConfigController.ListAnswers(Int32, Int32, Int32, CancellationToken): SectionHead,Reviewer,Analyst,QcManager,Qa
 QualityConfigController.ListClassifications(Int32, Int32, CancellationToken): SectionHead,Reviewer,Analyst,QcManager,Qa
@@ -598,6 +599,7 @@ QualityConfigController.RequestExtension(Int32, RequestQualityExtensionRequest, 
 QualityConfigController.SaveClassification(Int32, SaveQualityClassificationRequest, CancellationToken): Qa
 QualityConfigController.SaveDueRule(QualityRecordType, SaveQualityDueRuleRequest, CancellationToken): Qa
 QualityConfigController.SaveTemplate(QualityRecordType, Nullable`1, SaveQualityTemplateRequest, CancellationToken): SectionHead,Qa
+QualityConfigController.SetSectionSetting(Int32, UpdateQualitySectionSettingRequest, CancellationToken): Qa
 QualityRecordsController.AddComment(Int32, AddQualityCommentRequest, CancellationToken): SectionHead,Reviewer,Analyst,QcManager,Qa
 QualityRecordsController.AddLink(Int32, QualityLinkRequest, CancellationToken): SectionHead,Reviewer,Analyst,QcManager,Qa
 QualityRecordsController.Create(QualityRecordType, CreateQualityRecordRequest, CancellationToken): SectionHead,Reviewer,Analyst,QcManager,Qa
@@ -760,10 +762,10 @@ TestDefinitionMasterDataController.UpdateTestDefinition(Int32, UpdateTestDefinit
 TestDefinitionMasterDataController.ValidateTestDefinition(ValidateTestDefinitionRequest, Nullable`1): SystemAdministrator,SectionHead
 TestSelfAssignmentController.Release(Int32, CancellationToken): Analyst
 TestSelfAssignmentController.Take(Int32, CancellationToken): Analyst
-TestStageReplicateMasterDataController.CreateTestDefinitionStageReplicate(Int32, CreateTestDefinitionStageReplicateRequest): SystemAdministrator,SectionHead
-TestStageReplicateMasterDataController.DeleteTestDefinitionStageReplicate(Int32, Int32): SystemAdministrator,SectionHead
+TestStageReplicateMasterDataController.CreateTestDefinitionStageReplicate(Int32, CreateTestDefinitionStageReplicateRequest, CancellationToken): SystemAdministrator,SectionHead
+TestStageReplicateMasterDataController.DeleteTestDefinitionStageReplicate(Int32, Int32, CancellationToken): SystemAdministrator,SectionHead
 TestStageReplicateMasterDataController.GetTestDefinitionStageReplicates(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
-TestStageReplicateMasterDataController.UpdateTestDefinitionStageReplicate(Int32, Int32, UpdateTestDefinitionStageReplicateRequest): SystemAdministrator,SectionHead
+TestStageReplicateMasterDataController.UpdateTestDefinitionStageReplicate(Int32, Int32, UpdateTestDefinitionStageReplicateRequest, CancellationToken): SystemAdministrator,SectionHead
 TestWorkflowController.BatchSelectMedia(BatchSelectMediaRequest, CancellationToken): SectionHead,Reviewer,Analyst
 TestWorkflowController.CloseIncubationWindow(Int32, CancellationToken): SectionHead,Reviewer,Analyst
 TestWorkflowController.GetActionableGroups(String, String, String, CancellationToken): SectionHead,Reviewer,Analyst

@@ -26,15 +26,6 @@ public class SpecificationService
             .ThenBy(s => s.Id)
             .ToListAsync();
 
-    public async Task<Specification> CreateAsync(Specification spec)
-    {
-        ApplyCanonicalSpecLimit(spec);
-        await ValidateAsync(spec);
-        _db.Specifications.Add(spec);
-        await _db.SaveChangesAsync();
-        return spec;
-    }
-
     public static string BuildCanonicalSpecLimit(Specification spec)
     {
         ArgumentNullException.ThrowIfNull(spec);

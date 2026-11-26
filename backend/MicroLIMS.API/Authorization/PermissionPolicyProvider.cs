@@ -17,10 +17,13 @@ public class PermissionPolicyProvider : IAuthorizationPolicyProvider
 
     public const string QualityApproveOrInvestigate = "Quality.ApproveOrInvestigate";
 
+    public const string QualityApproveOrMasterDataManage = "Quality.ApproveOrMasterDataManage";
+
     public static IReadOnlyList<string> PermissionsFor(string policyName) => policyName switch
     {
         OosContributeOrManage => [PermissionConstants.OosContribute, PermissionConstants.OosManage],
         QualityApproveOrInvestigate => [PermissionConstants.QualityApprove, PermissionConstants.QualityInvestigate],
+        QualityApproveOrMasterDataManage => [PermissionConstants.QualityApprove, PermissionConstants.MasterDataManage],
         _ => [policyName]
     };
 
@@ -37,7 +40,7 @@ public class PermissionPolicyProvider : IAuthorizationPolicyProvider
 
     public Task<AuthorizationPolicy?> GetPolicyAsync(string policyName)
     {
-        if (policyName is OosContributeOrManage or QualityApproveOrInvestigate)
+        if (policyName is OosContributeOrManage or QualityApproveOrInvestigate or QualityApproveOrMasterDataManage)
         {
             var permissions = PermissionsFor(policyName);
             return Task.FromResult<AuthorizationPolicy?>(new AuthorizationPolicyBuilder()

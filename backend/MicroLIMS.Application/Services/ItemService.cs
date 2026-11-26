@@ -219,6 +219,17 @@ public class ItemService
                 $"Cannot delete '{item.Name}' - it has {naCount} not-applicable record(s). Freeze it instead to keep that history.",
                 new Dictionary<string, string> { ["name"] = item.Name, ["naCount"] = naCount.ToString(CultureInfo.InvariantCulture) });
 
+        var hasGatedSpec = await (
+            from s in _db.Specifications.AsNoTracking()
+            join t in _db.TestDefinitions.AsNoTracking() on s.TestCode equals t.Code
+            join q in _db.QualitySectionSettings.AsNoTracking() on t.SectionId equals q.SectionId
+            where s.ItemId == id && q.ChangeControlRequired
+            select s.Id).AnyAsync(cancellationToken);
+        if (hasGatedSpec)
+            throw new BusinessRuleException(
+                MessageCodes.ItemDeleteBlockedByChangeControlGate,
+                "Delete or retire this item's specifications first; each specification change needs an approved change control.");
+
         await _reasonGuard.EnsureAsync(MasterRecordType.Item, id, ChangeKind.Delete, changeReason, currentUserId, cancellationToken);
         if (_db.CurrentUserId is null && currentUserId > 0)
             _db.CurrentUserId = currentUserId;

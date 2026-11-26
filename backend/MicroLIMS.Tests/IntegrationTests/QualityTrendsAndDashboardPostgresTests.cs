@@ -321,9 +321,9 @@ public sealed class QualityTrendsAndDashboardPostgresTests(PostgresTestFixture f
             dLab = await devSvc.SaveInvestigationAsync(dLab.Id, new SaveDeviationInvestigationRequest("Impact", cause.Id, "Root", "Prop"), dLab.Version, ownerA);
             devWaitingLabId = dLab.Id;
 
-            // 2. Deviation in Approved with CapaRequired = false (ready to close)
+            // 2. Deviation in Approved with CapaRequired = false (ready to close, due 2090-07-11 -> overdue at 07-12)
             var dNoCapa = await devSvc.RaiseAsync(new RaiseDeviationRequest("Ready No CAPA", "Desc", Utc(2090, 7, 1), null, "Imm", secA, null), null, analystA);
-            dNoCapa = await devSvc.AssessAsync(dNoCapa.Id, new AssessDeviationRequest(true, cls.Id, ownerA, new DateOnly(2090, 7, 20), Password), dNoCapa.Version, qaId);
+            dNoCapa = await devSvc.AssessAsync(dNoCapa.Id, new AssessDeviationRequest(true, cls.Id, ownerA, new DateOnly(2090, 7, 11), Password), dNoCapa.Version, qaId);
             dNoCapa = await devSvc.SaveInvestigationAsync(dNoCapa.Id, new SaveDeviationInvestigationRequest("Impact", cause.Id, "Root", "Prop"), dNoCapa.Version, ownerA);
             dNoCapa = await devSvc.SignLabConclusionAsync(dNoCapa.Id, Password, dNoCapa.Version, headA);
             dNoCapa = await devSvc.ApproveAsync(dNoCapa.Id, new ApproveDeviationRequest(false, null, Password), dNoCapa.Version, qaId);
@@ -363,9 +363,9 @@ public sealed class QualityTrendsAndDashboardPostgresTests(PostgresTestFixture f
                 [new CapaActionInput(QualityActionKind.Corrective, "QA Act", analystA, new DateOnly(2090, 7, 12))],
                 "Crit", "Meth", new DateOnly(2090, 7, 15)), cQa.Version, ownerA);
 
-            // 8. 52 open deviations owned by/raised by headA to verify O5 50-item cap + TotalCount
+            // 8. 52 open CAPAs (incomplete plan, so they don't fill QA's WaitingForMyDecision) raised by headA for O5 50-item cap + TotalCount
             for (var i = 0; i < 52; i++)
-                await devSvc.RaiseAsync(new RaiseDeviationRequest($"Bulk Dev {i:D2}", "Desc", Utc(2090, 7, 2), null, "Imm", secA, null), null, headA);
+                await capaSvc.CreateAsync(new CreateCapaRequest($"Bulk CAPA {i:D2}", "Desc", secA, null, null, ownerA), headA);
         }
 
         // Advance clock to 2090-07-12 so capaPlanActionId (due 07-11) is past due, but still in Plan status (O2!)
@@ -405,6 +405,7 @@ public sealed class QualityTrendsAndDashboardPostgresTests(PostgresTestFixture f
         {
             var dash = await QueryService(actHeadB, clock).GetDashboardAsync(headB);
             Assert.DoesNotContain(dash.MyOpenRecords, x => x.Id == devWaitingLabId);
+            Assert.DoesNotContain(dash.OverdueRecords, x => x.Id == devReadyToCloseId);
             Assert.Contains(dash.MyOpenRecords, x => x.Id == secBDevId);
             Assert.DoesNotContain(dash.LaboratoryOpenRecords ?? [], x => x.Id == devWaitingLabId);
         }

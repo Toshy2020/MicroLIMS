@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.Helpers;
@@ -15,11 +16,15 @@ namespace MicroLIMS.Application.Services.Quality;
 
 public sealed partial class DeviationService(IMicroLimsDbContext db, QualityRecordCore core,
     PermissionService permissions, IUserSectionScopeService scope, SegregationOfDutiesGuard duties, ILabClock clock,
-    QualityDueDateService dueDates)
+    QualityDueDateService dueDates, IQualityNotifier? notifier = null, ILogger<DeviationService>? logger = null)
 {
-    public Task<DeviationDto> RaiseAsync(RaiseDeviationRequest request, uint? expectedVersion, int userId,
-        string? ip = null, CancellationToken ct = default) => UnitOfWork.RunAsync(db,
-        () => CreateAsync(request, userId, ct), ct);
+    public async Task<DeviationDto> RaiseAsync(RaiseDeviationRequest request, uint? expectedVersion, int userId,
+        string? ip = null, CancellationToken ct = default)
+    {
+        var dto = await UnitOfWork.RunAsync(db, () => CreateAsync(request, userId, ct), ct);
+        await NotifyAsync(n => n.RaisedAsync(dto.Id, ct), dto.Id);
+        return dto;
+    }
 
     private async Task<DeviationDto> CreateAsync(RaiseDeviationRequest request, int userId, CancellationToken ct,
         bool fromSource = false)
@@ -42,9 +47,10 @@ public sealed partial class DeviationService(IMicroLimsDbContext db, QualityReco
         return DeviationDto.From(record, detail);
     }
 
-    public Task<DeviationDto> AssessAsync(int id, AssessDeviationRequest request, uint expectedVersion, int userId,
-        string? ip = null, CancellationToken ct = default) =>
-        ChangeAsync(id, expectedVersion, userId, PermissionConstants.QualityApprove, async (record, detail) =>
+    public async Task<DeviationDto> AssessAsync(int id, AssessDeviationRequest request, uint expectedVersion, int userId,
+        string? ip = null, CancellationToken ct = default)
+    {
+        var dto = await ChangeAsync(id, expectedVersion, userId, PermissionConstants.QualityApprove, async (record, detail) =>
         {
             RequireStatus(detail, QualityDeviationStatus.Raised);
             if (!request.Accept)
@@ -66,6 +72,9 @@ public sealed partial class DeviationService(IMicroLimsDbContext db, QualityReco
             detail.Status = QualityDeviationStatus.Investigation;
             await db.SaveChangesAsync(ct);
         }, ct);
+        await NotifyAsync(n => n.AssignedAsync(dto.Id, ct), dto.Id);
+        return dto;
+    }
 
     public Task<DeviationDto> RejectAsync(int id, string reason, string password, uint expectedVersion, int userId,
         string? ip = null, CancellationToken ct = default) =>
@@ -98,9 +107,10 @@ public sealed partial class DeviationService(IMicroLimsDbContext db, QualityReco
             await db.SaveChangesAsync(ct);
         }, ct);
 
-    public Task<DeviationDto> SignLabConclusionAsync(int id, string password, uint expectedVersion, int userId,
-        string? ip = null, CancellationToken ct = default) =>
-        ChangeAsync(id, expectedVersion, userId, PermissionConstants.QualityLabConclude, async (record, detail) =>
+    public async Task<DeviationDto> SignLabConclusionAsync(int id, string password, uint expectedVersion, int userId,
+        string? ip = null, CancellationToken ct = default)
+    {
+        var dto = await ChangeAsync(id, expectedVersion, userId, PermissionConstants.QualityLabConclude, async (record, detail) =>
         {
             RequireStatus(detail, QualityDeviationStatus.Investigation);
             if (record.OwnerUserId == userId)
@@ -116,6 +126,9 @@ public sealed partial class DeviationService(IMicroLimsDbContext db, QualityReco
                 new { detail.ImpactAssessment, detail.RootCauseCategoryId, detail.RootCauseDescription, detail.ProposedActions, Links = links },
                 password, null, userId, ip, ct);
         }, ct);
+        await NotifyAsync(n => n.AwaitingQaAsync(dto.Id, ct), dto.Id);
+        return dto;
+    }
 
     public Task<DeviationDto> ApproveAsync(int id, ApproveDeviationRequest request, uint expectedVersion, int userId,
         string? ip = null, CancellationToken ct = default) =>
@@ -130,9 +143,10 @@ public sealed partial class DeviationService(IMicroLimsDbContext db, QualityReco
                     .Max(s => s.Id) }, request.Password, request.Comment, userId, ip, ct);
         }, ct);
 
-    public Task<DeviationDto> ReturnAsync(int id, string comment, uint expectedVersion, int userId,
-        string? ip = null, CancellationToken ct = default) =>
-        ChangeAsync(id, expectedVersion, userId, PermissionConstants.QualityApprove, async (record, detail) =>
+    public async Task<DeviationDto> ReturnAsync(int id, string comment, uint expectedVersion, int userId,
+        string? ip = null, CancellationToken ct = default)
+    {
+        var dto = await ChangeAsync(id, expectedVersion, userId, PermissionConstants.QualityApprove, async (record, detail) =>
         {
             RequireStatus(detail, QualityDeviationStatus.LabConcluded);
             core.EnsureNotRaiserOrOwner(record, userId);
@@ -146,10 +160,14 @@ public sealed partial class DeviationService(IMicroLimsDbContext db, QualityReco
             core.AdvanceVersion(record);
             await db.SaveChangesAsync(ct);
         }, ct);
+        await NotifyAsync(n => n.ReturnedAsync(dto.Id, ct), dto.Id);
+        return dto;
+    }
 
-    public Task<DeviationDto> CloseAsync(int id, string password, uint expectedVersion, int userId,
-        string? ip = null, CancellationToken ct = default) =>
-        ChangeAsync(id, expectedVersion, userId, PermissionConstants.QualityApprove, async (record, detail) =>
+    public async Task<DeviationDto> CloseAsync(int id, string password, uint expectedVersion, int userId,
+        string? ip = null, CancellationToken ct = default)
+    {
+        var dto = await ChangeAsync(id, expectedVersion, userId, PermissionConstants.QualityApprove, async (record, detail) =>
         {
             RequireStatus(detail, QualityDeviationStatus.Approved);
             core.EnsureNotRaiserOrOwner(record, userId);
@@ -167,6 +185,9 @@ public sealed partial class DeviationService(IMicroLimsDbContext db, QualityReco
             await core.SignStepAsync(record, QualityStepKind.DeviationClosed, SignatureMeaning.QualityClosed,
                 new { detail.CapaRequired, CapaId = capaId }, password, null, userId, ip, ct);
         }, ct);
+        await NotifyAsync(n => n.ClosedAsync(dto.Id, ct), dto.Id);
+        return dto;
+    }
 
     public Task<DeviationDto> CancelAsync(int id, string reason, string password, uint expectedVersion, int userId,
         string? ip = null, CancellationToken ct = default) =>
@@ -248,5 +269,22 @@ public sealed partial class DeviationService(IMicroLimsDbContext db, QualityReco
     private async Task RequirePermissionAsync(int userId, string permission, CancellationToken ct)
     {
         if (!await HoldsAsync(userId, permission, ct)) throw QualityRecordCore.Denied();
+    }
+
+    private async Task NotifyAsync(Func<IQualityNotifier, Task> send, int recordId)
+    {
+        if (notifier is null) return;
+        try
+        {
+            await send(notifier);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            logger?.LogWarning(ex, "Failed to send quality notification for deviation {RecordId}.", recordId);
+        }
     }
 }

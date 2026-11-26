@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.Helpers;
@@ -17,10 +18,13 @@ public sealed class CapaService(
     PermissionService permissions,
     IUserSectionScopeService scope,
     ILabClock clock,
-    QualityDueDateService dueDates)
+    QualityDueDateService dueDates,
+    IQualityNotifier? notifier = null,
+    ILogger<CapaService>? logger = null)
 {
-    public Task<CapaDto> CreateAsync(CreateCapaRequest request, int userId, CancellationToken ct = default) =>
-        UnitOfWork.RunAsync(db, async () =>
+    public async Task<CapaDto> CreateAsync(CreateCapaRequest request, int userId, CancellationToken ct = default)
+    {
+        var dto = await UnitOfWork.RunAsync(db, async () =>
         {
             db.CurrentUserId = userId;
             var record = await core.CreateAsync(QualityRecordType.Capa,
@@ -49,10 +53,15 @@ public sealed class CapaService(
             await db.SaveChangesAsync(ct);
             return CapaDto.From(record, detail, []);
         }, ct);
+        await QualityNotifier.SendPostCommitAsync(notifier, n => n.RaisedAsync(dto.Id, ct), logger, dto.Id);
+        await QualityNotifier.SendPostCommitAsync(notifier, n => n.AssignedAsync(dto.Id, ct), logger, dto.Id);
+        return dto;
+    }
 
-    public Task<CapaDto> SavePlanAsync(int id, SaveCapaPlanRequest request, uint expectedVersion, int userId,
-        string? ip = null, CancellationToken ct = default) =>
-        ChangeAsync(id, expectedVersion, userId, null, async (record, detail) =>
+    public async Task<CapaDto> SavePlanAsync(int id, SaveCapaPlanRequest request, uint expectedVersion, int userId,
+        string? ip = null, CancellationToken ct = default)
+    {
+        var dto = await ChangeAsync(id, expectedVersion, userId, null, async (record, detail) =>
         {
             if (record.OwnerUserId != userId || await HoldsAsync(userId, PermissionConstants.QualityApprove, ct))
                 throw QualityRecordCore.Denied();
@@ -115,10 +124,14 @@ public sealed class CapaService(
             core.AdvanceVersion(record);
             await db.SaveChangesAsync(ct);
         }, ct);
+        await QualityNotifier.SendPostCommitAsync(notifier, n => n.AwaitingQaAsync(dto.Id, ct), logger, dto.Id);
+        return dto;
+    }
 
-    public Task<CapaDto> ApprovePlanAsync(int id, string password, uint expectedVersion, int userId,
-        string? ip = null, CancellationToken ct = default) =>
-        ChangeAsync(id, expectedVersion, userId, PermissionConstants.QualityApprove, async (record, detail) =>
+    public async Task<CapaDto> ApprovePlanAsync(int id, string password, uint expectedVersion, int userId,
+        string? ip = null, CancellationToken ct = default)
+    {
+        var dto = await ChangeAsync(id, expectedVersion, userId, PermissionConstants.QualityApprove, async (record, detail) =>
         {
             RequireStatus(detail, CapaStatus.Plan);
             core.EnsureNotRaiserOrOwner(record, userId);
@@ -137,10 +150,14 @@ public sealed class CapaService(
             detail.Status = CapaStatus.PlanApproved;
             await db.SaveChangesAsync(ct);
         }, ct);
+        await QualityNotifier.SendPostCommitAsync(notifier, n => n.ActionAssignedAsync(dto.Id, dto.Actions.Select(a => a.Id).ToList(), ct), logger, dto.Id);
+        return dto;
+    }
 
-    public Task<CapaDto> ReturnPlanAsync(int id, string comment, uint expectedVersion, int userId,
-        string? ip = null, CancellationToken ct = default) =>
-        ChangeAsync(id, expectedVersion, userId, PermissionConstants.QualityApprove, async (record, detail) =>
+    public async Task<CapaDto> ReturnPlanAsync(int id, string comment, uint expectedVersion, int userId,
+        string? ip = null, CancellationToken ct = default)
+    {
+        var dto = await ChangeAsync(id, expectedVersion, userId, PermissionConstants.QualityApprove, async (record, detail) =>
         {
             RequireStatus(detail, CapaStatus.Plan);
             core.EnsureNotRaiserOrOwner(record, userId);
@@ -153,6 +170,9 @@ public sealed class CapaService(
             core.AdvanceVersion(record);
             await db.SaveChangesAsync(ct);
         }, ct);
+        await QualityNotifier.SendPostCommitAsync(notifier, n => n.ReturnedAsync(dto.Id, ct), logger, dto.Id);
+        return dto;
+    }
 
     public Task<CapaDto> CompleteActionAsync(int actionId, CompleteCapaActionRequest request, uint expectedVersion,
         int userId, string? ip = null, CancellationToken ct = default) => UnitOfWork.RunAsync(db, async () =>
@@ -218,9 +238,10 @@ public sealed class CapaService(
             await db.SaveChangesAsync(ct);
         }, ct);
 
-    public Task<CapaDto> SignEffectivenessAsync(int id, SignCapaEffectivenessRequest request, uint expectedVersion,
-        int userId, string? ip = null, CancellationToken ct = default) =>
-        ChangeAsync(id, expectedVersion, userId, PermissionConstants.QualityApprove, async (record, detail) =>
+    public async Task<CapaDto> SignEffectivenessAsync(int id, SignCapaEffectivenessRequest request, uint expectedVersion,
+        int userId, string? ip = null, CancellationToken ct = default)
+    {
+        var dto = await ChangeAsync(id, expectedVersion, userId, PermissionConstants.QualityApprove, async (record, detail) =>
         {
             RequireStatus(detail, CapaStatus.CompletionVerified);
             core.EnsureNotRaiserOrOwner(record, userId);
@@ -256,6 +277,9 @@ public sealed class CapaService(
             detail.Status = CapaStatus.Closed;
             await db.SaveChangesAsync(ct);
         }, ct);
+        await QualityNotifier.SendPostCommitAsync(notifier, n => n.ClosedAsync(dto.Id, ct), logger, dto.Id);
+        return dto;
+    }
 
     public Task<CapaDto> CancelAsync(int id, string reason, string password, uint expectedVersion, int userId,
         string? ip = null, CancellationToken ct = default) =>

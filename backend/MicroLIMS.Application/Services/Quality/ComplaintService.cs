@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.Helpers;
@@ -17,52 +18,60 @@ public sealed class ComplaintService(
     PermissionService permissions,
     IUserSectionScopeService scope,
     ILabClock clock,
-    QualityDueDateService dueDates)
+    QualityDueDateService dueDates,
+    IQualityNotifier? notifier = null,
+    ILogger<ComplaintService>? logger = null)
 {
-    public Task<ComplaintDto> ReceiveAsync(ReceiveComplaintRequest request, int userId,
-        CancellationToken ct = default) => UnitOfWork.RunAsync(db, async () =>
+    public async Task<ComplaintDto> ReceiveAsync(ReceiveComplaintRequest request, int userId,
+        CancellationToken ct = default)
     {
-        await RequirePermissionAsync(userId, PermissionConstants.QualityApprove, ct);
-
-        var source = QualityRecordCore.RequiredText(request.Source, 200);
-        if (request.ReceivedOn == default || request.ReceivedOn > clock.LabToday)
-            throw new BusinessRuleException(MessageCodes.ComplaintFutureReceivedOn,
-                "The complaint received date cannot be in the future.");
-        var externalReference = string.IsNullOrWhiteSpace(request.ExternalReference)
-            ? null
-            : QualityRecordCore.RequiredText(request.ExternalReference, 200);
-        var lotText = string.IsNullOrWhiteSpace(request.LotText)
-            ? null
-            : QualityRecordCore.RequiredText(request.LotText, 200);
-        var complaintText = QualityRecordCore.RequiredText(request.ComplaintText, 4000);
-
-        if (request.ItemId is int itemId &&
-            !await db.Items.AsNoTracking().AnyAsync(i => i.Id == itemId && i.IsActive, ct))
-            throw QualityRecordCore.Missing();
-
-        db.CurrentUserId = userId;
-        var record = await core.CreateAsync(QualityRecordType.Complaint,
-            new(request.Title, complaintText, request.SectionId, null), userId, ct);
-
-        var detail = new ComplaintDetail
+        var dto = await UnitOfWork.RunAsync(db, async () =>
         {
-            RecordId = record.Id,
-            Status = ComplaintStatus.Received,
-            Source = source,
-            ReceivedOn = request.ReceivedOn,
-            ExternalReference = externalReference,
-            ItemId = request.ItemId,
-            LotText = lotText,
-            ComplaintText = complaintText
-        };
-        db.ComplaintDetails.Add(detail);
-        await db.SaveChangesAsync(ct);
-        return ComplaintDto.From(record, detail);
-    }, ct);
+            await RequirePermissionAsync(userId, PermissionConstants.QualityApprove, ct);
 
-    public Task<ComplaintDto> RequestInvestigationAsync(int id, RequestComplaintInvestigationRequest request,
-        uint expectedVersion, int userId, CancellationToken ct = default) =>
-        ChangeAsync(id, expectedVersion, userId, PermissionConstants.QualityApprove, async (record, detail) =>
+            var source = QualityRecordCore.RequiredText(request.Source, 200);
+            if (request.ReceivedOn == default || request.ReceivedOn > clock.LabToday)
+                throw new BusinessRuleException(MessageCodes.ComplaintFutureReceivedOn,
+                    "The complaint received date cannot be in the future.");
+            var externalReference = string.IsNullOrWhiteSpace(request.ExternalReference)
+                ? null
+                : QualityRecordCore.RequiredText(request.ExternalReference, 200);
+            var lotText = string.IsNullOrWhiteSpace(request.LotText)
+                ? null
+                : QualityRecordCore.RequiredText(request.LotText, 200);
+            var complaintText = QualityRecordCore.RequiredText(request.ComplaintText, 4000);
+
+            if (request.ItemId is int itemId &&
+                !await db.Items.AsNoTracking().AnyAsync(i => i.Id == itemId && i.IsActive, ct))
+                throw QualityRecordCore.Missing();
+
+            db.CurrentUserId = userId;
+            var record = await core.CreateAsync(QualityRecordType.Complaint,
+                new(request.Title, complaintText, request.SectionId, null), userId, ct);
+
+            var detail = new ComplaintDetail
+            {
+                RecordId = record.Id,
+                Status = ComplaintStatus.Received,
+                Source = source,
+                ReceivedOn = request.ReceivedOn,
+                ExternalReference = externalReference,
+                ItemId = request.ItemId,
+                LotText = lotText,
+                ComplaintText = complaintText
+            };
+            db.ComplaintDetails.Add(detail);
+            await db.SaveChangesAsync(ct);
+            return ComplaintDto.From(record, detail);
+        }, ct);
+        await QualityNotifier.SendPostCommitAsync(notifier, n => n.RaisedAsync(dto.Id, ct), logger, dto.Id);
+        return dto;
+    }
+
+    public async Task<ComplaintDto> RequestInvestigationAsync(int id, RequestComplaintInvestigationRequest request,
+        uint expectedVersion, int userId, CancellationToken ct = default)
+    {
+        var dto = await ChangeAsync(id, expectedVersion, userId, PermissionConstants.QualityApprove, async (record, detail) =>
         {
             RequireStatus(detail, ComplaintStatus.Received);
             if (!await db.QualityClassifications.AsNoTracking()
@@ -85,6 +94,9 @@ public sealed class ComplaintService(
             core.AdvanceVersion(record);
             await db.SaveChangesAsync(ct);
         }, ct);
+        await QualityNotifier.SendPostCommitAsync(notifier, n => n.AssignedAsync(dto.Id, ct), logger, dto.Id);
+        return dto;
+    }
 
     public Task<ComplaintDto> SaveInvestigationAsync(int id, SaveComplaintInvestigationRequest request,
         uint expectedVersion, int userId, CancellationToken ct = default) =>
@@ -122,9 +134,10 @@ public sealed class ComplaintService(
             await db.SaveChangesAsync(ct);
         }, ct);
 
-    public Task<ComplaintDto> SignLabReportAsync(int id, string password, uint expectedVersion, int userId,
-        string? ip = null, CancellationToken ct = default) =>
-        ChangeAsync(id, expectedVersion, userId, PermissionConstants.QualityLabConclude, async (record, detail) =>
+    public async Task<ComplaintDto> SignLabReportAsync(int id, string password, uint expectedVersion, int userId,
+        string? ip = null, CancellationToken ct = default)
+    {
+        var dto = await ChangeAsync(id, expectedVersion, userId, PermissionConstants.QualityLabConclude, async (record, detail) =>
         {
             RequireStatus(detail, ComplaintStatus.Investigation);
             if (record.OwnerUserId == userId)
@@ -144,6 +157,9 @@ public sealed class ComplaintService(
             await core.SignStepAsync(record, QualityStepKind.ComplaintLabReport, SignatureMeaning.QualityLabConclusion,
                 new { detail.WhatToTest, detail.Findings, Links = links }, password, null, userId, ip, ct);
         }, ct);
+        await QualityNotifier.SendPostCommitAsync(notifier, n => n.AwaitingQaAsync(dto.Id, ct), logger, dto.Id);
+        return dto;
+    }
 
     public Task<ComplaintDto> ConcludeAsync(int id, ConcludeComplaintRequest request, uint expectedVersion, int userId,
         string? ip = null, CancellationToken ct = default) =>
@@ -170,9 +186,10 @@ public sealed class ComplaintService(
                 }, request.Password, null, userId, ip, ct);
         }, ct);
 
-    public Task<ComplaintDto> CloseAsync(int id, string password, uint expectedVersion, int userId,
-        string? ip = null, CancellationToken ct = default) =>
-        ChangeAsync(id, expectedVersion, userId, PermissionConstants.QualityApprove, async (record, detail) =>
+    public async Task<ComplaintDto> CloseAsync(int id, string password, uint expectedVersion, int userId,
+        string? ip = null, CancellationToken ct = default)
+    {
+        var dto = await ChangeAsync(id, expectedVersion, userId, PermissionConstants.QualityApprove, async (record, detail) =>
         {
             RequireStatus(detail, ComplaintStatus.Concluded);
             core.EnsureNotRaiserOrOwner(record, userId);
@@ -191,6 +208,9 @@ public sealed class ComplaintService(
             await core.SignStepAsync(record, QualityStepKind.ComplaintClosed, SignatureMeaning.QualityClosed,
                 new { detail.Outcome, detail.ConclusionSummary }, password, null, userId, ip, ct);
         }, ct);
+        await QualityNotifier.SendPostCommitAsync(notifier, n => n.ClosedAsync(dto.Id, ct), logger, dto.Id);
+        return dto;
+    }
 
     public Task<ComplaintDto> CancelAsync(int id, string reason, string password, uint expectedVersion, int userId,
         string? ip = null, CancellationToken ct = default) =>

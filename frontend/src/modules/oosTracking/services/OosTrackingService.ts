@@ -57,8 +57,8 @@ export const OosTrackingService = {
     return (await apiClient.get("/oos-tracking")).data.data;
   },
 
-  async getDocuments(oosGroupCode: string): Promise<OosInvestigationDocument[]> {
-    return (await apiClient.get(`/oos-tracking/${encodeURIComponent(oosGroupCode)}/investigation-documents`)).data.data;
+  async getDocuments(oosGroupCode: string, signal?: AbortSignal): Promise<OosInvestigationDocument[]> {
+    return (await apiClient.get(`/oos-tracking/${encodeURIComponent(oosGroupCode)}/investigation-documents`, { signal })).data.data;
   },
 
   async uploadDocument(oosGroupCode: string, file: File): Promise<OosInvestigationDocument> {

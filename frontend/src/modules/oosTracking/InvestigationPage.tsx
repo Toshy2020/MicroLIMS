@@ -43,6 +43,7 @@ import { RetestPlanSection } from "./components/RetestPlanSection";
 import { PhaseTwoSection } from "./components/PhaseTwoSection";
 import { ConclusionSection } from "./components/ConclusionSection";
 import { DeviationRequestsPanel } from "./components/DeviationRequestsPanel";
+import { AttachmentsPanel } from "./components/AttachmentsPanel";
 import { QualityRecordsPanel } from "../quality/components/QualityRecordsPanel";
 import { SignedTimeline } from "../../components/SignedTimeline";
 
@@ -512,6 +513,8 @@ export function InvestigationPage() {
         }
         onDeviationRaised={() => void reloadAll()}
       />
+
+      <AttachmentsPanel oosGroupCode={detail.number} canManage={canManage} />
 
       <QualityRecordsPanel
         targetType="OosInvestigation"

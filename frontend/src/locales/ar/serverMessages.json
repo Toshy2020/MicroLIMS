@@ -1,5 +1,4 @@
 {
-  "Deviation.RaiseRoute": "أنشئ الانحراف مع تفاصيل حدوثه والإجراء الفوري المتخذ.",
   "Deviation.OccurrenceUtc": "أدخل وقت حدوث الانحراف بالتوقيت العالمي المنسق.",
   "Deviation.UseReject": "استخدم خطوة الرفض لرفض الانحراف.",
   "Deviation.Classification": "اختر تصنيفًا نشطًا للانحراف.",
@@ -34,7 +33,7 @@
   "ChangeControl.InvalidAffectedType": "يجب أن تكون السجلات المتأثرة صنفًا أو مواصفات أو اختبار أو معدات أو مستند.",
   "ChangeControl.InvalidAffectedTarget": "حدد سجلًا قائمًا أو رمز سجل جديدًا لكل بند متأثر.",
   "ChangeControl.DuplicateAffected": "هذا السجل المتأثر مدرج بالفعل.",
-  "ChangeControl.AffectedFrozen": "لا يمكن إضافة سجلات متأثرة بعد اعتماد طلب التغيير.",
+  "ChangeControl.AffectedFrozen": "لا يمكن إضافة سجلات متأثرة بعد توقيع تقييم الأثر.",
   "ChangeControl.TaskResponsibleInvalid": "اختر مستخدمًا نشطًا في المختبر ضمن قسم طلب التغيير ليكون مسؤول المهمة.",
   "ChangeControl.TaskPastDueDate": "لا يمكن أن يكون تاريخ استحقاق المهمة قبل تاريخ المختبر الحالي.",
   "ChangeControl.TaskCannotBeRemoved": "لا يمكن إزالة مهام طلب التغيير الحالية.",

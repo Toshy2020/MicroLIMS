@@ -25,7 +25,6 @@ public static partial class MessageCodes
     public const string QualityExtensionSignatureFailed = "Quality.ExtensionSignatureFailed";
     public const string QualityRecordTerminal = "Quality.RecordTerminal";
 
-    public const string DeviationRaiseRoute = "Deviation.RaiseRoute";
     public const string DeviationOccurrenceUtc = "Deviation.OccurrenceUtc";
     public const string DeviationUseReject = "Deviation.UseReject";
     public const string DeviationClassification = "Deviation.Classification";
@@ -154,7 +153,6 @@ public static partial class MessageCodes
         [CapaInvalidOwner] = [],
         [CapaWrongState] = [],
         [CapaFinalCancellation] = [],
-        [DeviationRaiseRoute] = [],
         [DeviationOccurrenceUtc] = [],
         [DeviationUseReject] = [],
         [DeviationClassification] = [],

@@ -196,7 +196,16 @@ public class ActionAvailabilityPostgresTests
     {
         var expected = new Dictionary<string, string[]>
         {
-            ["sample"] = new[] { GatedActions.ReviewComplete, GatedActions.ApprovalApprove, GatedActions.ApprovalReject, GatedActions.SampleVoid, GatedActions.SampleAssign },
+            ["sample"] = new[]
+            {
+                GatedActions.ReviewComplete,
+                GatedActions.ApprovalApprove,
+                GatedActions.ApprovalReject,
+                GatedActions.ApprovalRetestRetainedSample,
+                GatedActions.ApprovalNewSampleRequest,
+                GatedActions.SampleVoid,
+                GatedActions.SampleAssign
+            },
             ["test-order"] = new[] { GatedActions.ReviewReturn, GatedActions.TestTake, GatedActions.TestRelease },
             ["media"] = new[] { GatedActions.MediaRelease },
             ["document-revision"] = new[] { GatedActions.DocumentApprove }
@@ -497,7 +506,7 @@ public class ActionAvailabilityPostgresTests
         Assert.Equal(approveOne, approveEight);
 
         // A ceiling, so a change that adds a query per call is noticed too.
-        Assert.InRange(approveEight, 1, 60);
+        Assert.InRange(approveEight, 1, 75);
     }
 
     // The action itself costs the same pre-signing checks whatever the number of tests: the approval that follows

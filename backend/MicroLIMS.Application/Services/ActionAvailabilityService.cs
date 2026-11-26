@@ -25,6 +25,8 @@ public static class GatedActions
     public const string ReviewReturn = "review.return";
     public const string ApprovalApprove = "approval.approve";
     public const string ApprovalReject = "approval.reject";
+    public const string ApprovalRetestRetainedSample = "approval.retestRetainedSample";
+    public const string ApprovalNewSampleRequest = "approval.newSampleRequest";
     public const string SampleVoid = "sample.void";
     public const string SampleAssign = "sample.assign";
     public const string TestTake = "test.take";
@@ -77,7 +79,7 @@ public sealed class ActionAvailabilityService
         _documents = documents;
     }
 
-    // review.complete, approval.approve, approval.reject, sample.void, sample.assign.
+    // review.complete, approval.approve, approval.reject, approval.retestRetainedSample, approval.newSampleRequest, sample.void, sample.assign.
     // sectionId: the laboratory section a review or decision is for, as the two endpoints take it.
     public async Task<IReadOnlyList<ActionAvailability>?> ForSampleAsync(int sampleId, int? sectionId, int userId, CancellationToken ct = default)
     {
@@ -101,6 +103,12 @@ public sealed class ActionAvailabilityService
             await FirstRefusalAsync(GatedActions.ApprovalReject,
                 () => Holds(permissions, PermissionConstants.SamplesApprove),
                 async () => (await _approval.CheckDecideAsync(sample, userId, ApprovalDecision.Reject, sectionId, ct)).Check),
+            await FirstRefusalAsync(GatedActions.ApprovalRetestRetainedSample,
+                () => Holds(permissions, PermissionConstants.SamplesApprove),
+                async () => (await _approval.CheckDecideAsync(sample, userId, ApprovalDecision.RetestRetainedSample, sectionId, ct)).Check),
+            await FirstRefusalAsync(GatedActions.ApprovalNewSampleRequest,
+                () => Holds(permissions, PermissionConstants.SamplesApprove),
+                async () => (await _approval.CheckDecideAsync(sample, userId, ApprovalDecision.NewSampleRequest, sectionId, ct)).Check),
             await FirstRefusalAsync(GatedActions.SampleVoid,
                 () => Holds(permissions, PermissionConstants.SamplesCorrect),
                 () => Task.FromResult(memberOfSample),

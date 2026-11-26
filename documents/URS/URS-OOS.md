@@ -51,7 +51,7 @@ Each requirement below is a need that the code as built serves. Gaps found in th
 
 ### URS-OOS-005
 *(Draft — pending approval)*
-**Requirement:** After Phase I is signed, the system shall allow an authorized Section Head to draft and electronically sign a retest plan specifying 1 to 10 retests, source (`RetainedSample` or `NewSample`), eligible failing test orders, one assignable analyst per sample, and a written judging rule, and shall create the linked retest samples only upon signing. Any amendment shall require a written reason and a new signature.
+**Requirement:** After Phase I is signed, the system shall allow an authorized Section Head to draft and electronically sign a retest plan specifying 1 to 10 retests, source (`RetainedSample` or `NewSample`), eligible failing test orders, one assignable analyst per sample, which retest provides the reportable result (required when more than one retest is planned), and a written judging rule, and shall create the linked retest samples and bind the reportable sample only upon signing. Any amendment shall require a written reason and a new signature, and may name only one of its own retest samples as reportable.
 **GxP:** Yes
 **Serves:** 21 CFR 11.50, 211.192; FDA OOS Guidance (to be confirmed by QA)
 **Status:** Active

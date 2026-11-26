@@ -1154,10 +1154,11 @@ Locations for CONF-001 to CONF-008 were added on 2026-11-12 from the area worker
 
 ### CONF-217
 - **Area:** PAT
-- **Status:** Open
-- **What the code does:** CompleteSessionAsync evaluates competency for every entry in sample.TestOrders. On completion it marks every entry ResultEntered, including cancelled or superseded orders. Marking every order was existing behavior before the competency change.
+- **Status:** Decided
+- **What the code does:** `PathogenSessionService.CompleteSessionCoreAsync` filters `eligibleOrders` to active orders (`!o.IsSuperseded`, status not `Voided`, `Cancelled`, `Approved`, `Rejected`, `Reviewed`, `RetestRequested`, and `CurrentStep != WorkflowStep.Reviewed`), evaluates competency only for them, and marks only those active orders `ResultEntered`. Cancelled and superseded orders retain their existing status.
 - **Question:** Which orders should participate in session completion, and which should retain their existing status?
-- **Date:** 2026-11-20
+- **Decision:** Pathogen session completion marks only ACTIVE orders of that session as `ResultEntered` and evaluates competency only for them; cancelled and superseded orders keep their status (user, 2026-11-26).
+- **Date:** 2026-11-26
 
 ### CONF-218
 - **Area:** REV
@@ -1176,10 +1177,10 @@ Locations for CONF-001 to CONF-008 were added on 2026-11-12 from the area worker
 
 ### CONF-220
 - **Area:** REV
-- **Status:** Open
+- **Status:** Decided
 - **Question:** Which results should appear on the origin certificate after invalidation when several signed-plan retest samples exist?
-- **Current behavior:** The certificate gate refuses issuance for that origin while the reporting rule is unresolved.
-- **Date:** 2026-11-24
+- **Decision:** The signed retest plan names which retest result is reportable (`ReportableRetestNumber`, bound to `ReportableSampleId` on signing); the origin certificate shows that named reportable retest result with its 21 CFR 11.50 signer manifestation (`OosReportableRetest.ResolveAsync`); the investigation report lists all retest results across all revisions and marks the reportable sample. An amended retest plan may name only one of its own retest samples as reportable (enforced by composite FK `FK_OosRetestPlans_ReportableSample`); the signed plan with the highest revision governs. A failing non-reportable retest keeps blocking origin approval (every plan sample must be approved). R3 supports one named reportable retest only; combining results (averaging etc.) is tracked separately as CONF-242 (user, 2026-11-26).
+- **Date:** 2026-11-26
 
 ### CONF-221
 - **Area:** Quality records
@@ -1363,4 +1364,11 @@ Locations for CONF-001 to CONF-008 were added on 2026-11-12 from the area worker
   - **O3:** Cancelled and rejected records are excluded from repeat-cause detection, time-to-close, on-time rate, and CAPA effectiveness rate; trends report them as `CancelledCount` and `RejectedCount` per group while `TotalCount` continues to count all records.
   - **O4:** Trends without `from`/`to` default to the last 365 lab days (from `ILabClock.LabToday`); the `from`/`to` window is capped at 5 years (`Quality.TrendWindowTooLarge` beyond); a date-only `to` includes that entire day.
   - **O5:** Each dashboard list returns at most 50 items plus a `TotalCount`; Section Head users (with section scope, not QA) also receive `LaboratoryOpenRecords` and `LaboratoryOpenActions` for their readable sections.
+- **Date:** 2026-11-26
+
+### CONF-242
+- **Area:** REV / RPT
+- **Status:** Open
+- **Question:** Combining several retest results (averaging, rounding, and eligibility rules) on an origin certificate after OOS invalidation.
+- **Current behavior:** R3 supports one named reportable retest (`OosRetestPlan.ReportableRetestNumber` / `ReportableSampleId`, per CONF-220). Combining several retest results needs a formula, rounding rule, and eligibility specification from the approved documents before implementation.
 - **Date:** 2026-11-26

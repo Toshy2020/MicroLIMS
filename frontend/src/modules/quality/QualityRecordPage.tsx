@@ -26,6 +26,7 @@ import {
 } from "../../services/qualityService";
 import { saveBlob } from "./saveBlob";
 import { qualityTypeActionsFor } from "./typeActions";
+import { isOpenRecord } from "./steps/stepKit";
 import { ActionsPanel } from "./components/ActionsPanel";
 import { AttachmentsPanel } from "./components/AttachmentsPanel";
 import { CommentsPanel } from "./components/CommentsPanel";
@@ -214,6 +215,7 @@ export function QualityRecordPage() {
   }
 
   const isOwner = userId !== null && detail.ownerUserId === userId;
+  const isOpen = isOpenRecord(detail);
   // The server lets only the owner or a Quality.Investigate holder void an attachment or remove a link.
   const canRemove = isOwner || can.investigate;
   const TypeActions = qualityTypeActionsFor(detail.type);
@@ -296,7 +298,7 @@ export function QualityRecordPage() {
       <TypeDetails record={detail} />
 
       <ActionsPanel
-        record={{ id: detail.id, type: detail.type, version: detail.version, isCancelled: detail.isCancelled }}
+        record={{ id: detail.id, type: detail.type, version: detail.version, isCancelled: detail.isCancelled, ownerUserId: detail.ownerUserId, isOpen }}
         actions={detail.actions}
         links={links}
         currentUserId={userId}
@@ -310,8 +312,11 @@ export function QualityRecordPage() {
         <ExtensionsPanel
           extensions={extensions}
           actions={detail.actions}
-          canRequest={isOwner && !detail.isCancelled}
-          canDecide={can.approve && !detail.isCancelled}
+          canRequest={isOwner && isOpen}
+          canDecide={can.approve && isOpen}
+          currentUserId={userId}
+          raisedByUserId={detail.raisedByUserId}
+          ownerUserId={detail.ownerUserId}
           onRequest={() =>
             setExtensionMode({ kind: "request", actionId: null, actionDescription: null, currentDueDate: detail.dueDate })
           }
@@ -327,8 +332,8 @@ export function QualityRecordPage() {
           recordVersion={detail.version}
           links={links}
           totalCount={linksTotalCount}
-          canEdit={can.raise}
-          canRemove={canRemove}
+          canEdit={can.raise && isOpen}
+          canRemove={canRemove && isOpen}
           onChanged={reload}
         />
       )}

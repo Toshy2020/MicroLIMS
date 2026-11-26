@@ -16,7 +16,7 @@ import { PanelFrame } from "./PanelFrame";
 const TEXT_MAX = 4000;
 
 interface ActionsPanelProps {
-  record: { id: number; type: QualityRecordType; version: number; isCancelled: boolean };
+  record: { id: number; type: QualityRecordType; version: number; isCancelled: boolean; ownerUserId?: number | null; isOpen?: boolean };
   actions: QualityActionDetailDto[];
   // The record's links, offered as the evidence link; null when they could not be loaded.
   links: QualityLinkDto[] | null;
@@ -72,8 +72,11 @@ export function ActionsPanel({ record, actions, links, currentUserId, onChanged,
         <List disablePadding>
           {actions.map((action) => {
             const done = action.doneAtUtc !== null;
+            const open = !done && !record.isCancelled && (record.isOpen ?? true);
             const mine = currentUserId !== null && action.responsibleUserId === currentUserId;
-            const canAct = !done && mine && !record.isCancelled;
+            const isOwner = currentUserId !== null && record.ownerUserId === currentUserId;
+            const canComplete = open && completable && mine;
+            const canRequestExtension = open && (mine || isOwner);
             return (
               <ListItem key={action.id} divider sx={{ display: "block", px: 0 }}>
                 <Stack direction="row" spacing={1} sx={{ alignItems: "center", flexWrap: "wrap", mb: 0.5 }}>
@@ -105,9 +108,9 @@ export function ActionsPanel({ record, actions, links, currentUserId, onChanged,
                     )}
                   </Box>
                 )}
-                {canAct && (
+                {(canComplete || canRequestExtension) && (
                   <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
-                    {completable && (
+                    {canComplete && (
                       <Button
                         size="small"
                         variant="contained"
@@ -117,14 +120,16 @@ export function ActionsPanel({ record, actions, links, currentUserId, onChanged,
                         {t("actions.complete")}
                       </Button>
                     )}
-                    <Button
-                      size="small"
-                      variant="outlined"
-                      aria-label={t("actions.requestExtensionAria", { description: action.description })}
-                      onClick={() => onRequestExtension(action)}
-                    >
-                      {t("actions.requestExtension")}
-                    </Button>
+                    {canRequestExtension && (
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        aria-label={t("actions.requestExtensionAria", { description: action.description })}
+                        onClick={() => onRequestExtension(action)}
+                      >
+                        {t("actions.requestExtension")}
+                      </Button>
+                    )}
                   </Stack>
                 )}
               </ListItem>

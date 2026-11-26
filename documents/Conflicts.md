@@ -1226,7 +1226,7 @@ Locations for CONF-001 to CONF-008 were added on 2026-11-12 from the area worker
 
 ### CONF-227
 - **Area:** Quality records (Master-data change-control gate)
-- **Status:** Decided
+- **Status:** Decided (user confirmed 2026-11-26)
 - **Decision (gated writes):** The gate covers 16 writes: `SpecificationMasterDataService` (`CreateSpecificationAsync`, `UpdateSpecificationAsync`, `DeleteSpecificationAsync`, `ReinstateSpecificationAsync`), `TestDefinitionMasterDataService` (`CreateTestDefinitionAsync`, `UpdateTestDefinitionAsync`, `FreezeTestDefinitionAsync`, `UnfreezeTestDefinitionAsync`), `TestWorkflowStepMasterDataService` (`UpdateWorkflowTypeAsync`, `CreateTestWorkflowStepAsync`, `UpdateTestWorkflowStepAsync`, `MoveTestWorkflowStepAsync`, `DeleteTestWorkflowStepAsync`), and `TestStageReplicateMasterDataService` (`CreateTestDefinitionStageReplicateAsync`, `UpdateTestDefinitionStageReplicateAsync`, `DeleteTestDefinitionStageReplicateAsync`). Batch/copy/workbook specification paths route through `CreateSpecificationAsync`. `SpecificationService.CreateAsync` was unused in production and removed.
 - **Decision (follow-up):** Water/EM limits, chemistry limits, HPLC/ICP methods, and item test assignments stay ungated in R3.
 - **Decision (matching):** Each specification must be listed individually for updates, deletes, and reinstates (matched by `Specification` ID). A new specification is matched by an affected `Item` (`ItemId`) or `TestDefinition` (`TestCode`). A listed test or item does not cover edits to existing specifications. A created test definition is matched by `NewRecordCode` (trimmed, case-insensitive); later edits of that created test in other requests also match that same link by code while the change control is `ApprovedForImplementation`. For a specification create, the matching link (`Item` or `TestDefinition`) is marked changed; repeated changes keep the latest `ChangedAtUtc` and `ChangeAuditLogId`.
@@ -1239,21 +1239,21 @@ Locations for CONF-001 to CONF-008 were added on 2026-11-12 from the area worker
 
 ### CONF-228
 - **Area:** Quality records
-- **Status:** Open
+- **Status:** Decided
 - **What the code does:** `DeviationService.AssessAsync` and `DeviationService.RejectAsync` do not call `QualityRecordCore.EnsureNotRaiserOrOwner`. A user who holds `Quality.Approve` and raised the deviation can assess or reject it. `QualityConfigService.DecideAsync` (extension decision) refuses only the user who requested the extension (`Quality.ExtensionSelfDecision`); it does not refuse the raiser or the owner. Every other approval or closure step does call `EnsureNotRaiserOrOwner`: deviation approve, return and close; CAPA plan approve and return, completion verification and effectiveness check; change control approve, reject and close; complaint conclude and close.
 - **What the other source says:** Specification section 5.9: "Nobody signs an approval or closure of a record they raised or own." The plan's Review Focus item 4 requires the raiser to be refused at each type's closing step.
 - **Question:** Should the raiser and owner exclusion also apply to assessment, rejection and extension decisions? For assessment and rejection the owner is not yet named, so the question concerns the raiser.
-- **Decision:** Not decided.
-- **Date:** 2026-11-25
+- **Decision:** Raiser/owner exclusion ALSO applies to extension decisions (`QualityConfigService.DecideAsync`): the person who requested an extension cannot decide it (`Quality.ExtensionSelfDecision`), and the raiser or owner of the record cannot decide extensions on it (`Quality.RaiserOrOwner`). Deviation assessment and rejection remain unchanged.
+- **Date:** 2026-11-26
 
 ### CONF-229
 - **Area:** Quality records
-- **Status:** Open
+- **Status:** Decided
 - **What the code does:** Cancellation of a deviation, CAPA, change control or complaint (`CancelAsync` in each service, which calls `QualityRecordCore.CancelAsync`) requires `Quality.Approve` and only refuses the states listed for each type. It does not refuse the raiser or the owner.
 - **What the other source says:** Specification section 5.1: "Any record can be cancelled only by QA with a reason and signature." Section 5.9 forbids the raiser or owner from signing "an approval or closure". Cancellation is named in neither.
 - **Question:** Is cancellation an approval or a closure for the purposes of section 5.9? If so, the raiser and owner must be refused.
-- **Decision:** Not decided.
-- **Date:** 2026-11-25
+- **Decision:** Cancellation counts as closure: the raiser and the owner may not cancel their own record (`QualityRecordCore.CancelAsync` calls `EnsureNotRaiserOrOwner`), for all four types.
+- **Date:** 2026-11-26
 
 ### CONF-230
 - **Area:** Quality records
@@ -1275,88 +1275,88 @@ Locations for CONF-001 to CONF-008 were added on 2026-11-12 from the area worker
 
 ### CONF-232
 - **Area:** Quality records (Change control)
-- **Status:** Open
-- **What the code does:** `ChangeControlService.CloseAsync` refuses closure without `UnchangedJustification` when any affected link of type `Specification` or `TestDefinition` has `ChangedAtUtc == null`. No merged code writes `ChangedAtUtc`; the only planned writer is the master-data gate (D2 Task 9, not merged). In the merged build, therefore, every change control that lists a specification or test definition needs a justification to close. Affected links of type `Item`, `Equipment` and `DocumentMaster` are not checked.
+- **Status:** Fixed
+- **What the code does:** `ChangeControlService.CloseAsync` refuses closure without `UnchangedJustification` when any affected link of type `Specification` or `TestDefinition` has `ChangedAtUtc == null`. Since D2 T9, the master-data change-control gate writes `ChangedAtUtc` (and `ChangeAuditLogId`) on matching affected links, and the detail view lists unchanged records (`Unchanged`). Affected links of type `Item`, `Equipment` and `DocumentMaster` are not checked.
 - **What the other source says:** Specification section 5.5: "A change control cannot be closed while it lists a record that has not been changed, unless QA records why at closure." The wording covers any listed record. Section 5.5 is written about specifications, tests and workflows.
 - **Question:** Which affected types must be changed before closure, and should closure wait until the gate exists? Until the gate is built, should closure always require the justification for specifications and tests?
-- **Decision:** Not decided.
-- **Date:** 2026-11-25
+- **Decision:** Fixed by D2 T9 (master-data gate writes `ChangedAtUtc` and `ChangeAuditLogId`; detail lists unchanged records).
+- **Date:** 2026-11-26
 
 ### CONF-233
 - **Area:** Quality records (Complaint)
-- **Status:** Open
+- **Status:** Decided
 - **What the code does:** `ComplaintService.ReceiveAsync` takes `ItemId` (checked to be an active item) and `LotText` (free text, up to 200 characters). The lot is not linked to any stock or media lot record.
 - **What the other source says:** Specification section 5.8: the complaint records "product and lot (chosen from the system where known)".
 - **Question:** Should the lot be chosen from the system, for example from a stock lot or media lot, or remain free text?
-- **Decision:** Not decided.
-- **Date:** 2026-11-25
+- **Decision:** Complaint lot stays free text (`LotText`); no code change.
+- **Date:** 2026-11-26
 
 ### CONF-234
 - **Area:** Quality records (Complaint)
-- **Status:** Open
+- **Status:** Decided
 - **What the code does:** `ComplaintService.ConcludeAsync` stores `Outcome` (`Justified`, `NotJustified` or `Inconclusive`) and `ConclusionSummary`. Nothing records whether a deviation or a CAPA is raised as a result, and no link is created.
 - **What the other source says:** Specification section 5.8, Conclusion row: "whether a deviation or CAPA is raised".
 - **Question:** Should the conclusion record and link the follow-up deviation or CAPA, and should it be required when the outcome is Justified?
-- **Decision:** Not decided.
-- **Date:** 2026-11-25
+- **Decision:** Concluding a complaint as `Justified` requires a linked non-cancelled follow-up deviation or CAPA (`QualityRecordLink` from the complaint to a non-cancelled Deviation or CAPA, or passed via `FollowUpRecordId` in `ConcludeComplaintRequest` which creates the link); refused with `Complaint.FollowUpRequired` ("A justified complaint needs a linked deviation or CAPA.") otherwise. Optional for `NotJustified` and `Inconclusive`.
+- **Date:** 2026-11-26
 
 ### CONF-235
 - **Area:** Quality records (Change control)
-- **Status:** Open
+- **Status:** Decided
 - **What the code does:** `ChangeControlService.IsAllowedAffectedType` accepts `Item`, `Specification`, `TestDefinition`, `Equipment` and `DocumentMaster`. `QualityLinkTargetType` has no workflow-step value, and `DocumentRevision` is not accepted for a change control.
 - **What the other source says:** Specification section 5.4 (Proposed): "what is affected, chosen from the system: items, specifications, tests, workflow steps, equipment, documents".
 - **Question:** Should workflow steps be selectable as affected records, or is the link to the test definition enough? Should a document revision be selectable as well as a document?
-- **Decision:** Not decided.
-- **Date:** 2026-11-25
+- **Decision:** Test definition and document master are enough as affected records; no code change.
+- **Date:** 2026-11-26
 
 ### CONF-236
 - **Area:** Quality records (Change control)
-- **Status:** Open
+- **Status:** Decided
 - **What the code does:** `ChangeControlService.SaveAssessmentAsync` and `SignAssessmentAsync` require the `Quality.Investigate` permission. They do not accept the named owner in its place. `ChangeControlService.EnsureChangeControlOwnerAsync` accepts an owner whose role is `SectionHead` or `QcManager`. The seeded `QcManager` role holds `Quality.Raise` and `Quality.LabConclude` but not `Quality.Investigate` (`DbSeeder`). A QC Manager named as owner therefore cannot save or sign the impact assessment.
 - **What the other source says:** Specification section 5.9: `Quality.Investigate` is for "Section Head; the named owner of a record", covering "Investigation, plans, tasks, laboratory signature".
 - **Question:** Should the named owner of a change control be able to save and sign the impact assessment without the permission, or should only a Section Head be named as owner?
-- **Decision:** Not decided.
-- **Date:** 2026-11-25
+- **Decision:** The named change-control owner (Section Head or QC Manager) may save and sign the impact assessment even without `Quality.Investigate`; others still need `Quality.Investigate`. QA (`Quality.Approve`) is refused on assessment, and QA approval with raiser/owner exclusion stays.
+- **Date:** 2026-11-26
 
 ### CONF-237
 - **Area:** Quality records (Due dates and extensions)
-- **Status:** Open
+- **Status:** Decided
 - **What the code does:** `QualityConfigService.RequestAsync` lets the record owner request an extension of the record's own due date (no action), and lets the responsible user request an extension of that action. The owner cannot request an action extension, and the responsible user cannot request a record extension.
 - **What the other source says:** Specification section 5.7: "The owner can ask for an extension with a reason". The plan (Task 4) says "owner or action responsible".
 - **Question:** May the record owner request an extension of an action, as well as the responsible user?
-- **Decision:** Not decided.
-- **Date:** 2026-11-25
+- **Decision:** The record owner may also request an extension of an action (besides the responsible user).
+- **Date:** 2026-11-26
 
 ### CONF-238
 - **Area:** Quality records
-- **Status:** Open
+- **Status:** Decided
 - **What the code does:** Ordinary links (`QualityLinkService.AddAsync`), attachments (`QualityAttachmentService.UploadAsync` and `VoidAsync`) and comments (`QualityCommentService.AddAsync`) run through `QualityRecordCore.MutateAsync`. That checks the version, readability, `Quality.Raise` (or owner or `Quality.Investigate` for removal and voiding) and nothing else. They are not refused on a closed, rejected or cancelled record. Only checklist answers (`QualityConfigService.AnswerAsync`) and extension requests (`RequestAsync`) call `EnsureOpenAsync`, which refuses with `Quality.RecordTerminal`.
 - **What the other source says:** Not stated in the specification or the plan.
 - **Question:** May evidence (a link, an attachment or a comment) be added to a closed, rejected or cancelled record? If yes, should it be a dated addendum that the record's signed content does not change?
-- **Decision:** Not decided.
-- **Date:** 2026-11-25
+- **Decision:** After closed/rejected/cancelled: links are blocked (`Quality.RecordTerminal`); comments and attachments are allowed as a dated addendum, derived from the record's terminal step timestamp vs the comment/attachment timestamp, clearly marked "Added after closure" with date and person in the UI and PDF report; signed content never changes.
+- **Date:** 2026-11-26
 
 ### CONF-239
 - **Area:** Quality records (Due dates)
-- **Status:** Open
+- **Status:** Decided
 - **What the code does:** `QualityDueDateService.ComputeDueAsync` takes the rule for the classification when one exists, otherwise the site rule (`ClassificationId` null), and returns that rule's `WorkingDays`. If the classification rule exists but its `WorkingDays` is empty, the result is empty, and the site rule is not used.
 - **What the other source says:** Specification section 5.7: due times are "configurable per type and classification, in working days; empty until the site sets them".
 - **Question:** Should an empty classification rule fall back to the site rule for the same type?
-- **Decision:** Not decided.
-- **Date:** 2026-11-25
+- **Decision:** A classification due rule with empty `WorkingDays` falls back to the site (default) rule for that type.
+- **Date:** 2026-11-26
 
 ### CONF-240
 - **Area:** Quality records (Deviation)
-- **Status:** Open
+- **Status:** Decided
 - **What the code does:** `DeviationService.SaveInvestigationAsync` stores `ImpactAssessment` as free text (1 to 4000 characters). Affected samples, results, lots and equipment are recorded only as links, added through `QualityLinkService.AddAsync`. The assessment does not select them.
 - **What the other source says:** Specification section 5.2, Investigation row: impact is "chosen from the system, 5.6".
 - **Question:** Is the link panel enough to satisfy "chosen from the system", or does the impact assessment need a structured selection of the affected records?
-- **Decision:** Not decided.
-- **Date:** 2026-11-25
+- **Decision:** The links panel is enough; no code change.
+- **Date:** 2026-11-26
 
 ### CONF-241
 - **Area:** Quality records (D2 T10 trending/dashboard defaults)
-- **Status:** Decided by orchestrator - pending user confirmation
+- **Status:** Decided (user confirmed 2026-11-26)
 - **What the code does:** Implements the five orchestrator defaults for D2 Task 10:
   - **O1:** Product (item) for trending and repeat causes resolves from direct `Item` links, else `ComplaintDetail.ItemId`, else `Sample.ItemId` from linked `Sample`, `TestOrder` (its sample), or `OosInvestigation` (its sample); a record linked to several distinct items is counted under each.
   - **O2:** Actions (`CapaAction`, `ChangeTask`) count as overdue in `QualityOverdueWorker`, `QualityQueryService.GetDashboardAsync`, and `QualityConfigService.ListOverdueAsync` only once their plan is approved (`CapaStatus.PlanApproved` or later; `ChangeControlStatus.ApprovedForImplementation` or later); record due dates count while open.

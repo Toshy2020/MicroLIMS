@@ -339,7 +339,7 @@ describe("CapaActions", () => {
       renderStep(CapaActions, verified("2000-01-01"), { permissions: QA, currentUserId: 8 });
 
       expect((screen.getByRole("button", { name: "Sign effectiveness check" }) as HTMLButtonElement).disabled).toBe(true);
-      expect(screen.getByText("You raised or own this record, so you cannot approve or close it.")).toBeTruthy();
+      expect(screen.getAllByText("You raised or own this record, so you cannot approve or close it.").length).toBeGreaterThan(0);
     });
   });
 

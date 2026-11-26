@@ -209,13 +209,30 @@ describe("QualityRecordPage", () => {
     expect(screen.queryByRole("button", { name: /^Remove link / })).toBeNull();
   });
 
-  it("offers the owner a request for more time and an approver the decision on a pending request", async () => {
-    serve({ extensions: () => ok([extension({ requestedDueDate: "2026-12-20" })]) });
+  it("offers the owner a request for more time, disables Decide for the owner/requester, and lets another approver decide", async () => {
+    serve({ extensions: () => ok([extension({ requestedDueDate: "2026-12-20", requestedByUserId: 8 })]) });
     setAuth(APPROVE, 8);
     renderPage();
 
     expect(await screen.findByRole("button", { name: "Request extension" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Decide the extension request to 2026-12-20" })).toBeTruthy();
+    expect((screen.getByRole("button", { name: "Decide the extension request to 2026-12-20" }) as HTMLButtonElement).disabled).toBe(true);
+
+    cleanup();
+    serve({ extensions: () => ok([extension({ requestedDueDate: "2026-12-20", requestedByUserId: 8 })]) });
+    setAuth(APPROVE, 99);
+    renderPage();
+    expect((await screen.findByRole("button", { name: "Decide the extension request to 2026-12-20" }) as HTMLButtonElement).disabled).toBe(false);
+  });
+
+  it("hides link controls on a closed record while keeping comments and attachments open", async () => {
+    serve({ detail: () => ok(recordDetail({ status: "Closed", attachments: [attachment()] })) });
+    setAuth([...RAISE, "Quality.Investigate"], 8);
+    renderPage();
+
+    expect(await screen.findByRole("button", { name: "Post comment" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Upload" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Add link" })).toBeNull();
+    expect(screen.queryByRole("button", { name: /^Remove link / })).toBeNull();
   });
 
   it("does not offer a request for more time to someone who does not own the record", async () => {

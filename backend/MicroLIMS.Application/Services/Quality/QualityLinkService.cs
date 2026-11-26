@@ -20,6 +20,7 @@ public class QualityLinkService(IMicroLimsDbContext db, QualityRecordCore core, 
         uint version, CancellationToken ct = default, bool isAffectedByChange = false) =>
         core.MutateAsync(recordId, version, userId, false, async record =>
     {
+        await core.EnsureOpenAsync(recordId, ct);
         if (targetType == QualityLinkTargetType.QualityRecord && targetId == recordId)
             throw new BusinessRuleException(MessageCodes.QualitySelfLink, "A quality record cannot link to itself.");
 

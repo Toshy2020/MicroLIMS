@@ -335,7 +335,8 @@ public partial class QualityDeviationPostgresTests
         Assert.Contains($"\"TargetId\":{source.Id}", audit.NewValue);
         Assert.False(await db.AuditLogs.AsNoTracking().AnyAsync(a =>
             a.EntityName == nameof(MonitoringDeviation) && a.EntityId == source.Id.ToString() && a.Action == "Update"));
-        await ActAsync(w.Qa, s => s.CancelAsync(raised.Id, "Cancelled duplicate", Password, raised.Version, w.Qa));
+        var qa2 = await ActorAsync(db, RoleType.Qa);
+        await ActAsync(qa2, s => s.CancelAsync(raised.Id, "Cancelled duplicate", Password, raised.Version, qa2));
         var replacement = await ActAsync(w.Qa, s => s.EscalateMonitoringDeviationAsync(source.Id, SourceDetails, source.Version, w.Qa));
         Assert.NotEqual(raised.Id, replacement.Id);
     }

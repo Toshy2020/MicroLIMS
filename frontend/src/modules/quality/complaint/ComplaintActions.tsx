@@ -80,7 +80,7 @@ export function ComplaintActions({ record, permissions, currentUserId, onChanged
         ) : (
           <Waiting title={t("steps.complaint.close.title")} text={t("steps.complaint.close.waitingForQa")} />
         ))}
-      <CancelRecordAction record={record} canApprove={permissions.approve} onChanged={onChanged} />
+      <CancelRecordAction record={record} canApprove={permissions.approve} currentUserId={currentUserId} onChanged={onChanged} />
     </Stack>
   );
 }

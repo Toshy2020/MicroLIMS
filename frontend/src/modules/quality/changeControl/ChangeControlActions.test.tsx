@@ -469,5 +469,25 @@ describe("ChangeControlActions", () => {
 
       expect(await screen.findByText("No further steps are open on this record.")).toBeTruthy();
     });
+
+    it("lets the named owner save and sign the impact assessment without Quality.Investigate, and locks Cancel for raiser/owner", async () => {
+      const user = userEvent.setup();
+      renderStep(ChangeControlActions, changeControl("Proposed", { impactSummary: "Low risk" }), {
+        permissions: { raise: true, investigate: false, labConclude: false, approve: false },
+        currentUserId: 8
+      });
+
+      expect(await screen.findByRole("button", { name: "Save assessment" })).toBeTruthy();
+      expect(screen.getByRole("button", { name: "Sign impact assessment" })).toBeTruthy();
+      await user.click(screen.getByRole("button", { name: "Save assessment" }));
+      await waitFor(() => {
+        expect(http.put).toHaveBeenCalledWith("/quality/change-controls/1/assessment", expect.anything(), versionHeader(3));
+      });
+
+      cleanup();
+      renderStep(ChangeControlActions, changeControl("Proposed"), { permissions: QA, currentUserId: 7 });
+      expect((screen.getByRole("button", { name: "Cancel record" }) as HTMLButtonElement).disabled).toBe(true);
+      expect(screen.getAllByText("You raised or own this record, so you cannot approve or close it.").length).toBeGreaterThan(0);
+    });
   });
 });

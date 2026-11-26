@@ -186,9 +186,38 @@ public class QualityRecordCore(
 
     internal void AdvanceVersion(QualityRecord record) => db.Entry(record).Property(r => r.Title).IsModified = true;
 
+    internal static readonly QualityStepKind[] TerminalStepKinds =
+    [
+        QualityStepKind.DeviationClosed,
+        QualityStepKind.DeviationRejected,
+        QualityStepKind.CapaEffectivenessChecked,
+        QualityStepKind.ChangeClosed,
+        QualityStepKind.ChangeRejected,
+        QualityStepKind.ComplaintClosed,
+        QualityStepKind.QualityCancelled
+    ];
+
+    internal async Task EnsureOpenAsync(int recordId, CancellationToken ct)
+    {
+        if (!await db.QualityRecords.AsNoTracking().Where(r => r.Id == recordId).AnyAsync(QualityConfigService.IsOpenExpression, ct))
+            throw new BusinessRuleException(MessageCodes.QualityRecordTerminal,
+                "This quality record is closed, rejected, or cancelled.");
+    }
+
+    internal async Task<DateTime?> GetTerminalAtUtcAsync(int recordId, CancellationToken ct)
+    {
+        if (await db.QualityRecords.AsNoTracking().Where(r => r.Id == recordId).AnyAsync(QualityConfigService.IsOpenExpression, ct))
+            return null;
+        return await db.QualityRecordSteps.AsNoTracking()
+            .Where(s => s.RecordId == recordId && TerminalStepKinds.Contains(s.Kind))
+            .Select(s => (DateTime?)s.SignedAtUtc)
+            .MaxAsync(ct);
+    }
+
     internal Task<QualityRecordStep> CancelAsync(QualityRecord record, string reason, string password, int userId,
         string? ip, CancellationToken ct)
     {
+        EnsureNotRaiserOrOwner(record, userId);
         record.CancelReason = RequiredText(reason, 4000);
         record.IsCancelled = true;
         db.SetNextAuditReason(record, record.CancelReason);

@@ -221,6 +221,12 @@ public sealed class QualityQueryService(
                 actionExecutionActive && a.DoneAtUtc == null && a.DueDate < today))
             .ToListAsync(ct);
 
+        var terminalAtUtc = isOpen
+            ? (DateTime?)null
+            : timelineRows.Where(s => QualityRecordCore.TerminalStepKinds.Contains(s.Kind))
+                .Select(s => (DateTime?)s.SignedAtUtc)
+                .Max();
+
         var attachments = await db.QualityAttachments.AsNoTracking()
             .Where(a => a.RecordId == id)
             .OrderBy(a => a.Id)
@@ -228,7 +234,8 @@ public sealed class QualityQueryService(
                 a.Id, a.OriginalFileName, a.ContentType, a.FileSizeBytes,
                 a.UploadedByUserId, a.UploadedAtUtc, a.VoidedAtUtc, a.VoidedByUserId, a.VoidReason,
                 db.Users.Where(u => u.Id == a.UploadedByUserId).Select(u => u.FullName).FirstOrDefault() ?? string.Empty,
-                a.VoidedByUserId == null ? null : db.Users.Where(u => u.Id == a.VoidedByUserId).Select(u => u.FullName).FirstOrDefault()))
+                a.VoidedByUserId == null ? null : db.Users.Where(u => u.Id == a.VoidedByUserId).Select(u => u.FullName).FirstOrDefault(),
+                terminalAtUtc != null && a.UploadedAtUtc > terminalAtUtc))
             .ToListAsync(ct);
 
         var affected = row.ChangeControl is null

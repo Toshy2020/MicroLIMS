@@ -382,7 +382,7 @@ describe("DeviationActions", () => {
       renderStep(DeviationActions, approved(false), { permissions: QA, currentUserId: 8 });
 
       expect((screen.getByRole("button", { name: "Close and sign" }) as HTMLButtonElement).disabled).toBe(true);
-      expect(screen.getByText("You raised or own this record, so you cannot approve or close it.")).toBeTruthy();
+      expect(screen.getAllByText("You raised or own this record, so you cannot approve or close it.").length).toBeGreaterThan(0);
     });
 
     it("creates the CAPA from the deviation with the deviation as its source, and opens it", async () => {

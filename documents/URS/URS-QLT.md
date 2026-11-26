@@ -48,14 +48,14 @@
 
 ### URS-QLT-004
 *(Draft — pending approval)*
-**Requirement:** The system shall run the change control path: a Section Head, QC Manager or QA proposes a change and the records it affects (items, specifications, tests, equipment or controlled documents); the Section Head records an impact assessment with a checklist and implementation tasks; QA approves the change for implementation or rejects it; each task owner records completion with evidence; QA closes the change after a post-change review, once every task is done and every affected specification or test has been changed or justified. The affected list shall be frozen when the impact assessment is signed.
+**Requirement:** The system shall run the change control path: a Section Head, QC Manager or QA proposes a change and the records it affects (items, specifications, tests, equipment or controlled documents); the named owner or a user with investigation permission records an impact assessment with a checklist and implementation tasks; QA approves the change for implementation or rejects it; each task owner records completion with evidence; QA closes the change after a post-change review, once every task is done and every affected specification or test has been changed or justified. The affected list shall be frozen when the impact assessment is signed.
 **GxP:** Yes
 **Serves:** 21 CFR 11.10(e), 211.100; EU GMP Annex 11 clause 10 (to be confirmed by QA)
 **Status:** Active
 
 ### URS-QLT-005
 *(Draft — pending approval)*
-**Requirement:** The system shall run the complaint path: QA records a received complaint with its source, date received, optional external reference, optional item and lot, and text; QA requests a laboratory investigation with a classification, an owner, a due date and what to test; the owner records findings and links samples; the laboratory signs the report; QA concludes the complaint as justified, not justified or inconclusive, and closes it.
+**Requirement:** The system shall run the complaint path: QA records a received complaint with its source, date received, optional external reference, optional item and lot, and text; QA requests a laboratory investigation with a classification, an owner, a due date and what to test; the owner records findings and links samples; the laboratory signs the report; QA concludes the complaint as justified (requiring a linked non-cancelled follow-up deviation or CAPA), not justified or inconclusive, and closes it.
 **GxP:** Yes
 **Serves:** 21 CFR 211.198; EU GMP Annex 11 clause 14 (to be confirmed by QA)
 **Status:** Active
@@ -97,7 +97,7 @@
 
 ### URS-QLT-011
 *(Draft — pending approval)*
-**Requirement:** The system shall answer each checklist item with yes, no or not applicable, keeping the item text as it was when answered; shall compute due dates in working days from site-configured rules per type and classification, leaving the due date empty when no rule is set; shall allow the record owner to request an extension of the record's due date, and the responsible user to request an extension of an action's due date, each with a reason; shall allow QA to approve or refuse an extension with an electronic signature and keep every request in the record's history; and shall list open records and actions whose due date has passed.
+**Requirement:** The system shall answer each checklist item with yes, no or not applicable, keeping the item text as it was when answered; shall compute due dates in working days from site-configured rules per type and classification (falling back to the site rule when a classification rule is empty), leaving the due date empty when no rule is set; shall allow the record owner to request an extension of the record's or an action's due date, and the responsible user to request an extension of an action's due date, each with a reason; shall allow QA (other than the requester, raiser, or owner) to approve or refuse an extension with an electronic signature and keep every request in the record's history; and shall list open records and actions whose due date has passed.
 **GxP:** Yes
 **Serves:** 21 CFR 11.10(e), 211.192 (to be confirmed by QA)
 **Status:** Active

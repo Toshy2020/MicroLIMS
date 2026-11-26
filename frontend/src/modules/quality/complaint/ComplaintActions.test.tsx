@@ -240,8 +240,20 @@ describe("ComplaintActions", () => {
   });
 
   describe("conclusion and closure (QA)", () => {
-    it("concludes with an outcome and a summary, signed with the server's meaning", async () => {
+    it("concludes as NotJustified without a follow-up, and requires a follow-up deviation or CAPA for Justified", async () => {
       const user = userEvent.setup();
+      serveLookups(http, {
+        "/search/global": () => ok(SEARCH),
+        "/quality/records": () =>
+          ok({
+            items: [
+              { id: 71, number: "DEV-2026-0071", type: "Deviation", title: "Seal defect", status: "Investigation", isCancelled: false }
+            ],
+            totalCount: 1,
+            page: 1,
+            pageSize: 100
+          })
+      });
       const { onChanged } = renderStep(ComplaintActions, complaint("LabReported", { findings: "Confirmed" }), { permissions: QA, currentUserId: 9 });
 
       const sign = screen.getByRole("button", { name: "Conclude and sign" });
@@ -249,6 +261,11 @@ describe("ComplaintActions", () => {
       await user.click(screen.getByRole("combobox", { name: /^Outcome/ }));
       await user.click(await screen.findByRole("option", { name: "Justified" }));
       await user.type(screen.getByLabelText(/^Summary of the conclusion/), "Storage fault at the supplier");
+      expect((sign as HTMLButtonElement).disabled).toBe(true);
+      expect(screen.getByText("A justified complaint needs a linked deviation or CAPA.")).toBeTruthy();
+
+      await user.click(await screen.findByRole("combobox", { name: /^Follow-up deviation or CAPA/ }));
+      await user.click(await screen.findByRole("option", { name: /DEV-2026-0071/ }));
       await user.click(screen.getByRole("button", { name: "Conclude and sign" }));
       expect(within(await screen.findByRole("dialog", { name: /sign/i })).getByText("Complaint concluded")).toBeTruthy();
       await signWith(user, "pw");
@@ -256,7 +273,7 @@ describe("ComplaintActions", () => {
       await waitFor(() => {
         expect(http.post).toHaveBeenCalledWith(
           "/quality/complaints/1/conclude",
-          { outcome: "Justified", summary: "Storage fault at the supplier", password: "pw" },
+          { outcome: "Justified", summary: "Storage fault at the supplier", password: "pw", followUpRecordId: 71 },
           versionHeader(3)
         );
       });
@@ -267,7 +284,7 @@ describe("ComplaintActions", () => {
       renderStep(ComplaintActions, complaint("LabReported"), { permissions: QA, currentUserId: 7 });
 
       expect((screen.getByRole("button", { name: "Conclude and sign" }) as HTMLButtonElement).disabled).toBe(true);
-      expect(screen.getByText("You raised or own this record, so you cannot approve or close it.")).toBeTruthy();
+      expect(screen.getAllByText("You raised or own this record, so you cannot approve or close it.").length).toBeGreaterThan(0);
     });
 
     it("closes with a signature and shows the server's refusal in the dialog, which stays open", async () => {

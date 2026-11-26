@@ -168,7 +168,7 @@ Plan a change to a specification, test, item, equipment or controlled document, 
 
 #### Who can use it
 - **Propose**: a user with *Quality Raise* (`Quality.Raise`) whose role is Section Head, QC Manager or QA; the server refuses anyone else. The owner named in the proposal must be an active Section Head or QC Manager of the laboratory.
-- **Impact assessment, checklist and tasks**: a user with *Quality Investigate* (`Quality.Investigate`), by default the Section Head.
+- **Impact assessment, checklist and tasks**: the named owner (Section Head or QC Manager) or a non-QA user with *Quality Investigate* (`Quality.Investigate`).
 - **Approval and rejection**: QA.
 - **Each task**: the responsible person named on that task.
 - **Closure**: QA.
@@ -190,7 +190,7 @@ Shown in the record path as **Proposed**, **Impact assessed**, **Approved for im
 
 #### Important rules
 - The owner cannot approve or close a change control they raised or own.
-- The impact assessment is saved and signed by a user with Investigate, normally the Section Head. The owner named on the change must be a Section Head or QC Manager.
+- The impact assessment is saved and signed by the named owner (Section Head or QC Manager) or a non-QA user with *Quality Investigate*. The owner named on the change must be a Section Head or QC Manager.
 
 #### What happens next
 An approved change control stays open until its tasks are done and QA closes it.
@@ -213,11 +213,11 @@ Shown in the record path as **Received**, **Investigation**, **Laboratory report
 1. **Receive complaint** (from the register). Enter **Title**, **Source** (for example a customer or a regulator), **Date received** (cannot be in the future), **Complaint text** and the laboratory section (or **Whole site**). Optionally enter the **External reference**, the **Product** (searched from the items list), and the **Lot** as written in the complaint. Click **Receive**.
 2. **Request investigation (QA).** Choose a **Classification**, an **Owner**, an optional **Due date**, and write **What to test**. Click **Request investigation**. This step is not signed.
 3. **Laboratory investigation.** The owner records the **Findings** and can link the complaint samples with the sample search, which offers samples. Click **Save investigation**. A user with LabConclude who is not the owner then clicks **Sign laboratory report** ("Laboratory conclusion signed").
-4. **Conclusion (QA).** Choose the **Outcome** (**Justified**, **Not justified** or **Inconclusive**), write the **Summary of the conclusion**, and click **Conclude and sign** ("Complaint concluded").
+4. **Conclusion (QA).** Choose the **Outcome** (**Justified**, **Not justified** or **Inconclusive**), choose a **Follow-up deviation or CAPA** (required when **Justified**, optional otherwise), write the **Summary of the conclusion**, and click **Conclude and sign** ("Complaint concluded").
 5. **Closure (QA).** Click **Close and sign** ("Quality record closed").
 
 #### Important rules
-- The conclusion does not record a follow-up deviation or CAPA. Raise one separately if it is needed (section 46.7).
+- Concluding a complaint as **Justified** requires a linked non-cancelled follow-up deviation or CAPA; it is optional for **Not justified** and **Inconclusive**.
 
 #### What happens next
 A concluded complaint is closed by QA.
@@ -295,8 +295,8 @@ Keep track of due dates, ask for more time, and see when items are overdue.
 
 #### Who can use it
 - **Request an extension for a record**: the owner of the record.
-- **Request an extension for an action**: the responsible person of the action. The button is shown on that action in the **Actions** panel.
-- **Decide an extension**: QA.
+- **Request an extension for an action**: the responsible person of the action or the record owner. The button is shown on that action in the **Actions** panel.
+- **Decide an extension**: QA (other than the requester, raiser, or owner).
 
 #### How to use it
 1. To request an extension, click **Request extension** (in **Due-date extensions** for the record, or on the action). Enter a **New due date**, which must be a later date, and a **Reason**, then click **Send request**.
@@ -305,13 +305,13 @@ Keep track of due dates, ask for more time, and see when items are overdue.
 4. An approved extension replaces the due date of the record or action.
 
 #### System behavior
-- A due date is set from the due rule for the record's type and classification, in working days. When there is no rule, there is no due date.
+- A due date is set from the due rule for the record's type and classification, in working days; when a classification rule is empty, it falls back to the default rule for that type. When neither has working days, there is no due date.
 - An action or task counts as overdue only once its CAPA plan or change control has been approved.
 - The overdue check runs about every 60 minutes by default. Administrators set the interval in the system configuration.
 - Each person gets at most one overdue notification per item per laboratory day.
 
 #### Important rules
-- The person who asked for an extension cannot decide it.
+- The person who asked for an extension cannot decide it, and the raiser or owner of the record cannot decide extensions on it.
 - A decided extension request cannot be changed.
 
 #### Notifications
@@ -346,7 +346,8 @@ Add supporting evidence and notes to a record.
 - Links can be removed only before the first signed step on the record.
 - A voided attachment is never deleted. Its reason and date stay on the record.
 - Comments cannot be edited or deleted after posting.
-- Links, attachments and comments can be added to a cancelled or closed record.
+- Adding links is blocked on a closed, rejected or cancelled record.
+- Comments and attachments can still be added after closure, rejection or cancellation as a dated addendum, marked **Added after closure** with the person and date in the UI and PDF report; signed content never changes.
 
 ---
 

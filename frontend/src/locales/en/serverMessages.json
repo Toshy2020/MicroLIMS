@@ -67,6 +67,7 @@
   "Complaint.UnfinishedActions": "Complete the unfinished action before closure: {{action}}",
   "Complaint.WrongState": "This step is unavailable in the complaint's current state.",
   "Complaint.FinalCancellation": "A closed complaint cannot be cancelled.",
+  "Complaint.FollowUpRequired": "A justified complaint needs a linked deviation or CAPA.",
   "Quality.NotFound": "Quality record or related resource was not found.",
   "Quality.AccessDenied": "You do not have permission for this quality record operation.",
   "Quality.DuplicateItem": "Checklist item keys must be unique.",

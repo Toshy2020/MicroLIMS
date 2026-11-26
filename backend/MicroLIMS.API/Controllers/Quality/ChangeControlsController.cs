@@ -35,13 +35,13 @@ public sealed class ChangeControlsController(ChangeControlService service) : Con
         Ok(ApiResponse<ChangeControlDto>.Ok(await service.AddAffectedAsync(id, input, Version(), Actor, ct)));
 
     [HttpPut("{id:int}/assessment")]
-    [Authorize(Policy = PermissionConstants.QualityInvestigate)]
+    [Authorize(Policy = PermissionConstants.QualityView)]
     public async Task<IActionResult> SaveAssessment(int id, SaveChangeControlAssessmentRequest request,
         CancellationToken ct = default) =>
         Ok(ApiResponse<ChangeControlDto>.Ok(await service.SaveAssessmentAsync(id, request, Version(), Actor, Ip, ct)));
 
     [HttpPost("{id:int}/sign-assessment")]
-    [Authorize(Policy = PermissionConstants.QualityInvestigate)]
+    [Authorize(Policy = PermissionConstants.QualityView)]
     public async Task<IActionResult> SignAssessment(int id, ChangeControlPasswordRequest request,
         CancellationToken ct = default) =>
         Ok(ApiResponse<ChangeControlDto>.Ok(await service.SignAssessmentAsync(id, request.Password, Version(), Actor, Ip, ct)));

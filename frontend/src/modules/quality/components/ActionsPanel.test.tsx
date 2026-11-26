@@ -180,6 +180,28 @@ describe("ActionsPanel", () => {
     expect(onRequestExtension).toHaveBeenCalledWith(action);
   });
 
+  it("lets the record owner ask for an extension of an action without offering Complete", async () => {
+    const user = userEvent.setup();
+    const action = actionDetail({ responsibleUserId: 7 });
+    const onRequestExtension = vi.fn();
+    render(
+      <PinnedLightTheme>
+        <ActionsPanel
+          record={{ id: 5, type: "Capa", version: 9, isCancelled: false, ownerUserId: 8, isOpen: true }}
+          actions={[action]}
+          links={[]}
+          currentUserId={8}
+          onChanged={vi.fn().mockResolvedValue(undefined)}
+          onRequestExtension={onRequestExtension}
+        />
+      </PinnedLightTheme>
+    );
+
+    expect(screen.queryByRole("button", { name: /Complete action/ })).toBeNull();
+    await user.click(screen.getByRole("button", { name: "Request an extension for action: Recalibrate the incubator probe" }));
+    expect(onRequestExtension).toHaveBeenCalledWith(action);
+  });
+
   it("shows an empty state, and an unavailable state when the links needed for evidence failed to load", async () => {
     renderPanel({ actions: [] });
     expect(screen.getByText("This record has no actions.")).toBeTruthy();

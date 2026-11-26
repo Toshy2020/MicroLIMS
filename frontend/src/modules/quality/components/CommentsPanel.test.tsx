@@ -107,4 +107,15 @@ describe("CommentsPanel", () => {
     renderPanel({ comments: null });
     expect(screen.getByText("Comments could not be loaded.")).toBeTruthy();
   });
+
+  it("marks comments added after closure as an addendum", () => {
+    renderPanel({
+      comments: [
+        comment({ id: 1, text: "During investigation.", isAddendum: false }),
+        comment({ id: 2, text: "Post-closure note.", isAddendum: true })
+      ]
+    });
+
+    expect(screen.getAllByText("Added after closure")).toHaveLength(1);
+  });
 });

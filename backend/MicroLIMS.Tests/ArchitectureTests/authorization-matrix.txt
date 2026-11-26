@@ -97,8 +97,8 @@ ChangeControlsController.Close(Int32, CloseChangeControlRequest, CancellationTok
 ChangeControlsController.CompleteTask(Int32, CompleteChangeControlTaskRequest, CancellationToken): SectionHead,Reviewer,Analyst,QcManager,Qa
 ChangeControlsController.Propose(ProposeChangeControlRequest, CancellationToken): SectionHead,Reviewer,Analyst,QcManager,Qa
 ChangeControlsController.Reject(Int32, ChangeControlRejectRequest, CancellationToken): Qa
-ChangeControlsController.SaveAssessment(Int32, SaveChangeControlAssessmentRequest, CancellationToken): SectionHead
-ChangeControlsController.SignAssessment(Int32, ChangeControlPasswordRequest, CancellationToken): SectionHead
+ChangeControlsController.SaveAssessment(Int32, SaveChangeControlAssessmentRequest, CancellationToken): SectionHead,Reviewer,Analyst,QcManager,Qa
+ChangeControlsController.SignAssessment(Int32, ChangeControlPasswordRequest, CancellationToken): SectionHead,Reviewer,Analyst,QcManager,Qa
 ClientSettingsController.Get(CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 ComplaintsController.Cancel(Int32, ComplaintReasonRequest, CancellationToken): Qa
 ComplaintsController.Close(Int32, ComplaintPasswordRequest, CancellationToken): Qa

@@ -223,4 +223,15 @@ describe("AttachmentsPanel", () => {
 
     expect(screen.getByText("No attachments yet.")).toBeTruthy();
   });
+
+  it("marks attachments uploaded after closure as an addendum", () => {
+    renderPanel({
+      attachments: [
+        attachment({ id: 1, fileName: "before.pdf", isAddendum: false }),
+        attachment({ id: 2, fileName: "after.pdf", isAddendum: true })
+      ]
+    });
+
+    expect(screen.getAllByText("Added after closure")).toHaveLength(1);
+  });
 });

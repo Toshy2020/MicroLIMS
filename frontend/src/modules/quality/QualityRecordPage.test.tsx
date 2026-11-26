@@ -23,7 +23,6 @@ import { actionDetail, attachment, comment, extension, link, recordDetail, refus
 import type {
   QualityCommentDto,
   QualityExtensionDto,
-  QualityLinkDto,
   QualityRecordDetailDto
 } from "../../services/qualityService";
 

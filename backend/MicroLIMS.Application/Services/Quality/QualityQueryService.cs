@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.DTOs;
@@ -39,15 +40,7 @@ public sealed class QualityQueryService(
         {
             query = overdue
                 ? query.Where(QualityConfigService.IsOpenExpression).Where(r => r.DueDate != null && r.DueDate < today)
-                : query.Where(r => !(!r.IsCancelled
-                        && (r.DeviationDetail == null || (r.DeviationDetail.Status != QualityDeviationStatus.Rejected
-                            && r.DeviationDetail.Status != QualityDeviationStatus.Closed && r.DeviationDetail.Status != QualityDeviationStatus.Cancelled))
-                        && (r.CapaDetail == null || (r.CapaDetail.Status != CapaStatus.Closed && r.CapaDetail.Status != CapaStatus.Cancelled))
-                        && (r.ChangeControlDetail == null || (r.ChangeControlDetail.Status != ChangeControlStatus.Closed
-                            && r.ChangeControlDetail.Status != ChangeControlStatus.Rejected && r.ChangeControlDetail.Status != ChangeControlStatus.Cancelled))
-                        && (r.ComplaintDetail == null || (r.ComplaintDetail.Status != ComplaintStatus.Closed
-                            && r.ComplaintDetail.Status != ComplaintStatus.Cancelled)))
-                    || r.DueDate == null || r.DueDate >= today);
+                : query.Where(CombineOr(QualityConfigService.IsNotOpenExpression, r => r.DueDate == null || r.DueDate >= today));
         }
 
         if (filter.From is DateTime from)
@@ -57,8 +50,16 @@ public sealed class QualityQueryService(
         }
         if (filter.To is DateTime to)
         {
-            var toUtc = ToUtc(to);
-            query = query.Where(r => r.RaisedAtUtc <= toUtc);
+            if (to.TimeOfDay == TimeSpan.Zero)
+            {
+                var toExclusive = ToUtc(to).AddDays(1);
+                query = query.Where(r => r.RaisedAtUtc < toExclusive);
+            }
+            else
+            {
+                var toUtc = ToUtc(to);
+                query = query.Where(r => r.RaisedAtUtc <= toUtc);
+            }
         }
 
         var (page, pageSize) = Paging.Normalize(filter.Page, filter.PageSize, defaultPageSize: 25);
@@ -70,7 +71,7 @@ public sealed class QualityQueryService(
             .Skip((page - 1) * pageSize)
             .Take(pageSize);
 
-        var items = await ProjectListItems(paged, today).ToListAsync(ct);
+        var items = await MaterializeListItemsAsync(paged, today, ct);
 
         return new PagedResult<QualityRecordListItemDto>
         {
@@ -221,7 +222,7 @@ public sealed class QualityQueryService(
 
         var status = ResolveStatusString(row.IsCancelled, row.Deviation?.Status, row.Capa?.Status,
             row.ChangeControl?.Status, row.Complaint?.Status);
-        var isOpen = IsOpenStatus(row.IsCancelled, row.Deviation?.Status, row.Capa?.Status,
+        var isOpen = QualityConfigService.IsOpenStatus(row.IsCancelled, row.Deviation?.Status, row.Capa?.Status,
             row.ChangeControl?.Status, row.Complaint?.Status);
 
         var pathSteps = BuildPathSteps(row.Type, status, row.RaisedAtUtc, row.RaisedByName, timeline);
@@ -271,6 +272,8 @@ public sealed class QualityQueryService(
             row.LinksCount);
     }
 
+    private const int DashboardListCap = 50;
+
     public async Task<QualityTrendReportDto> GetTrendsAsync(string groupBy, DateTime? from, DateTime? to,
         int repeatWindowDays, int userId, CancellationToken ct = default)
     {
@@ -280,45 +283,285 @@ public sealed class QualityQueryService(
                 "Choose a valid trend grouping: type, classification, cause, section, item, or source.");
 
         var windowDays = Math.Clamp(repeatWindowDays, 1, 3650);
-        DateTime? fromUtc = from is DateTime f ? ToUtc(f) : null;
-        DateTime? toUtc = to is DateTime t ? ToUtc(t) : null;
+        var labToday = clock.LabToday;
+        var toIsDateOnly = to is DateTime tv && tv.TimeOfDay == TimeSpan.Zero;
+        DateTime toExclusiveUtc;
+        DateTime toDtoUtc;
+        if (to is DateTime t)
+        {
+            if (toIsDateOnly)
+            {
+                toExclusiveUtc = ToUtc(t).AddDays(1);
+                toDtoUtc = toExclusiveUtc.AddSeconds(-1);
+            }
+            else
+            {
+                toDtoUtc = ToUtc(t);
+                toExclusiveUtc = toDtoUtc.AddTicks(1);
+            }
+        }
+        else
+        {
+            toExclusiveUtc = TimeZoneInfo.ConvertTimeToUtc(labToday.AddDays(1).ToDateTime(TimeOnly.MinValue), clock.LabTimeZone);
+            toDtoUtc = toExclusiveUtc.AddSeconds(-1);
+        }
 
-        var query = await core.ReadableRecordsAsync(userId, ct);
-        if (fromUtc.HasValue) query = query.Where(r => r.RaisedAtUtc >= fromUtc.Value);
-        if (toUtc.HasValue) query = query.Where(r => r.RaisedAtUtc <= toUtc.Value);
+        DateTime fromUtc = from is DateTime f
+            ? ToUtc(f)
+            : (to is DateTime
+                ? toDtoUtc.Date.AddDays(-365)
+                : TimeZoneInfo.ConvertTimeToUtc(labToday.AddDays(-365).ToDateTime(TimeOnly.MinValue), clock.LabTimeZone));
 
-        var records = await query.Select(r => new TrendRecordRow(
+        if (toDtoUtc < fromUtc || (toDtoUtc - fromUtc) > TimeSpan.FromDays(365 * 5 + 2))
+            throw new BusinessRuleException(MessageCodes.QualityTrendWindowTooLarge,
+                "The trend date range cannot exceed 5 years.");
+
+        var access = await core.GetReadAccessAsync(userId, ct);
+        var query = core.ReadableRecords(userId, access)
+            .Where(r => r.RaisedAtUtc >= fromUtc && r.RaisedAtUtc < toExclusiveUtc);
+
+        var groups = normalized is "type" or "classification" or "section" or "cause"
+            ? await GroupTrendsInSqlAsync(query, normalized, ct)
+            : await GroupTrendsWithLinksAsync(query, normalized, ct);
+
+        var repeatCauses = await ComputeRepeatCausesAsync(query, access, windowDays, ct);
+
+        return new QualityTrendReportDto(
+            normalized,
+            fromUtc,
+            toDtoUtc,
+            windowDays,
+            groups,
+            repeatCauses);
+    }
+
+    private async Task<List<QualityTrendGroupDto>> GroupTrendsInSqlAsync(
+        IQueryable<QualityRecord> query,
+        string groupBy,
+        CancellationToken ct)
+    {
+        var rawCounts = groupBy switch
+        {
+            "type" => await query
+                .GroupBy(r => r.Type.ToString())
+                .Select(g => new SqlTrendCounts(
+                    g.Key,
+                    g.Count(),
+                    g.AsQueryable().Count(QualityConfigService.IsOpenExpression),
+                    g.Count(r => !r.IsCancelled && (
+                        (r.DeviationDetail != null && r.DeviationDetail.Status == QualityDeviationStatus.Closed)
+                        || (r.CapaDetail != null && r.CapaDetail.Status == CapaStatus.Closed)
+                        || (r.ChangeControlDetail != null && r.ChangeControlDetail.Status == ChangeControlStatus.Closed)
+                        || (r.ComplaintDetail != null && r.ComplaintDetail.Status == ComplaintStatus.Closed))),
+                    g.Count(r => r.IsCancelled),
+                    g.Count(r => !r.IsCancelled && (
+                        (r.DeviationDetail != null && r.DeviationDetail.Status == QualityDeviationStatus.Rejected)
+                        || (r.ChangeControlDetail != null && r.ChangeControlDetail.Status == ChangeControlStatus.Rejected))),
+                    g.Count(r => !r.IsCancelled && r.Type == QualityRecordType.Capa && r.CapaDetail != null
+                        && r.CapaDetail.Status == CapaStatus.Closed && r.CapaDetail.EffectivenessResult != null),
+                    g.Count(r => !r.IsCancelled && r.Type == QualityRecordType.Capa && r.CapaDetail != null
+                        && r.CapaDetail.Status == CapaStatus.Closed && r.CapaDetail.EffectivenessResult == CapaEffectiveness.Effective)))
+                .ToListAsync(ct),
+            "classification" => await query
+                .GroupBy(r => r.ClassificationId == null ? "unclassified" : r.ClassificationId.Value.ToString())
+                .Select(g => new SqlTrendCounts(
+                    g.Key,
+                    g.Count(),
+                    g.AsQueryable().Count(QualityConfigService.IsOpenExpression),
+                    g.Count(r => !r.IsCancelled && (
+                        (r.DeviationDetail != null && r.DeviationDetail.Status == QualityDeviationStatus.Closed)
+                        || (r.CapaDetail != null && r.CapaDetail.Status == CapaStatus.Closed)
+                        || (r.ChangeControlDetail != null && r.ChangeControlDetail.Status == ChangeControlStatus.Closed)
+                        || (r.ComplaintDetail != null && r.ComplaintDetail.Status == ComplaintStatus.Closed))),
+                    g.Count(r => r.IsCancelled),
+                    g.Count(r => !r.IsCancelled && (
+                        (r.DeviationDetail != null && r.DeviationDetail.Status == QualityDeviationStatus.Rejected)
+                        || (r.ChangeControlDetail != null && r.ChangeControlDetail.Status == ChangeControlStatus.Rejected))),
+                    g.Count(r => !r.IsCancelled && r.Type == QualityRecordType.Capa && r.CapaDetail != null
+                        && r.CapaDetail.Status == CapaStatus.Closed && r.CapaDetail.EffectivenessResult != null),
+                    g.Count(r => !r.IsCancelled && r.Type == QualityRecordType.Capa && r.CapaDetail != null
+                        && r.CapaDetail.Status == CapaStatus.Closed && r.CapaDetail.EffectivenessResult == CapaEffectiveness.Effective)))
+                .ToListAsync(ct),
+            "section" => await query
+                .GroupBy(r => r.SectionId == null ? "site-wide" : r.SectionId.Value.ToString())
+                .Select(g => new SqlTrendCounts(
+                    g.Key,
+                    g.Count(),
+                    g.AsQueryable().Count(QualityConfigService.IsOpenExpression),
+                    g.Count(r => !r.IsCancelled && (
+                        (r.DeviationDetail != null && r.DeviationDetail.Status == QualityDeviationStatus.Closed)
+                        || (r.CapaDetail != null && r.CapaDetail.Status == CapaStatus.Closed)
+                        || (r.ChangeControlDetail != null && r.ChangeControlDetail.Status == ChangeControlStatus.Closed)
+                        || (r.ComplaintDetail != null && r.ComplaintDetail.Status == ComplaintStatus.Closed))),
+                    g.Count(r => r.IsCancelled),
+                    g.Count(r => !r.IsCancelled && (
+                        (r.DeviationDetail != null && r.DeviationDetail.Status == QualityDeviationStatus.Rejected)
+                        || (r.ChangeControlDetail != null && r.ChangeControlDetail.Status == ChangeControlStatus.Rejected))),
+                    g.Count(r => !r.IsCancelled && r.Type == QualityRecordType.Capa && r.CapaDetail != null
+                        && r.CapaDetail.Status == CapaStatus.Closed && r.CapaDetail.EffectivenessResult != null),
+                    g.Count(r => !r.IsCancelled && r.Type == QualityRecordType.Capa && r.CapaDetail != null
+                        && r.CapaDetail.Status == CapaStatus.Closed && r.CapaDetail.EffectivenessResult == CapaEffectiveness.Effective)))
+                .ToListAsync(ct),
+            _ => await query
+                .GroupBy(r => r.DeviationDetail != null && r.DeviationDetail.RootCauseCategoryId != null
+                    ? r.DeviationDetail.RootCauseCategoryId.Value.ToString()
+                    : "unassigned")
+                .Select(g => new SqlTrendCounts(
+                    g.Key,
+                    g.Count(),
+                    g.AsQueryable().Count(QualityConfigService.IsOpenExpression),
+                    g.Count(r => !r.IsCancelled && (
+                        (r.DeviationDetail != null && r.DeviationDetail.Status == QualityDeviationStatus.Closed)
+                        || (r.CapaDetail != null && r.CapaDetail.Status == CapaStatus.Closed)
+                        || (r.ChangeControlDetail != null && r.ChangeControlDetail.Status == ChangeControlStatus.Closed)
+                        || (r.ComplaintDetail != null && r.ComplaintDetail.Status == ComplaintStatus.Closed))),
+                    g.Count(r => r.IsCancelled),
+                    g.Count(r => !r.IsCancelled && (
+                        (r.DeviationDetail != null && r.DeviationDetail.Status == QualityDeviationStatus.Rejected)
+                        || (r.ChangeControlDetail != null && r.ChangeControlDetail.Status == ChangeControlStatus.Rejected))),
+                    g.Count(r => !r.IsCancelled && r.Type == QualityRecordType.Capa && r.CapaDetail != null
+                        && r.CapaDetail.Status == CapaStatus.Closed && r.CapaDetail.EffectivenessResult != null),
+                    g.Count(r => !r.IsCancelled && r.Type == QualityRecordType.Capa && r.CapaDetail != null
+                        && r.CapaDetail.Status == CapaStatus.Closed && r.CapaDetail.EffectivenessResult == CapaEffectiveness.Effective)))
+                .ToListAsync(ct)
+        };
+
+        var closedRows = await query
+            .Where(r => !r.IsCancelled && (
+                (r.DeviationDetail != null && r.DeviationDetail.Status == QualityDeviationStatus.Closed)
+                || (r.CapaDetail != null && r.CapaDetail.Status == CapaStatus.Closed)
+                || (r.ChangeControlDetail != null && r.ChangeControlDetail.Status == ChangeControlStatus.Closed)
+                || (r.ComplaintDetail != null && r.ComplaintDetail.Status == ComplaintStatus.Closed)))
+            .Select(r => new
+            {
+                Key = groupBy == "type" ? r.Type.ToString()
+                    : groupBy == "classification" ? (r.ClassificationId == null ? "unclassified" : r.ClassificationId.Value.ToString())
+                    : groupBy == "section" ? (r.SectionId == null ? "site-wide" : r.SectionId.Value.ToString())
+                    : (r.DeviationDetail != null && r.DeviationDetail.RootCauseCategoryId != null
+                        ? r.DeviationDetail.RootCauseCategoryId.Value.ToString()
+                        : "unassigned"),
+                r.RaisedAtUtc,
+                r.DueDate,
+                ClosedAtUtc = r.Steps
+                    .Where(s => s.Kind == QualityStepKind.DeviationClosed
+                        || s.Kind == QualityStepKind.CapaEffectivenessChecked
+                        || s.Kind == QualityStepKind.ChangeClosed
+                        || s.Kind == QualityStepKind.ComplaintClosed)
+                    .OrderByDescending(s => s.Id)
+                    .Select(s => (DateTime?)s.SignedAtUtc)
+                    .FirstOrDefault()
+            })
+            .ToListAsync(ct);
+
+        var closedByKey = closedRows
+            .Where(c => c.ClosedAtUtc.HasValue)
+            .GroupBy(c => c.Key, StringComparer.Ordinal)
+            .ToDictionary(g => g.Key, g => g.ToList(), StringComparer.Ordinal);
+
+        var labels = await ResolveSqlGroupLabelsAsync(groupBy, rawCounts.Select(c => c.Key).ToList(), ct);
+
+        return rawCounts.Select(c =>
+        {
+            double? avgClose = null;
+            double? onTime = null;
+            if (closedByKey.TryGetValue(c.Key, out var closedList) && closedList.Count > 0)
+            {
+                avgClose = Math.Round(closedList.Average(r => (r.ClosedAtUtc!.Value - r.RaisedAtUtc).TotalDays), 2);
+                var withDue = closedList.Where(r => r.DueDate.HasValue).ToList();
+                if (withDue.Count > 0)
+                    onTime = Math.Round((double)withDue.Count(r => DateOnly.FromDateTime(clock.ToLabLocal(r.ClosedAtUtc!.Value)) <= r.DueDate!.Value) / withDue.Count, 4);
+            }
+            double? effRate = c.CapaEffTotal == 0 ? null : Math.Round((double)c.CapaEffPass / c.CapaEffTotal, 4);
+            return new QualityTrendGroupDto(
+                c.Key,
+                labels.GetValueOrDefault(c.Key, c.Key),
+                c.TotalCount,
+                c.OpenCount,
+                c.ClosedCount,
+                avgClose,
+                onTime,
+                effRate,
+                c.CancelledCount,
+                c.RejectedCount);
+        })
+        .OrderByDescending(g => g.TotalCount)
+        .ThenBy(g => g.Label, StringComparer.OrdinalIgnoreCase)
+        .ToList();
+    }
+
+    private async Task<Dictionary<string, string>> ResolveSqlGroupLabelsAsync(string groupBy, List<string> keys, CancellationToken ct)
+    {
+        var result = new Dictionary<string, string>(StringComparer.Ordinal);
+        if (groupBy == "type")
+        {
+            foreach (var k in keys) result[k] = ReportVocabulary.Humanize(k);
+            return result;
+        }
+        var ids = keys.Select(k => int.TryParse(k, NumberStyles.Integer, CultureInfo.InvariantCulture, out var id) ? (int?)id : null)
+            .Where(id => id.HasValue).Select(id => id!.Value).Distinct().ToArray();
+
+        if (groupBy == "classification")
+        {
+            result["unclassified"] = "Unclassified";
+            if (ids.Length > 0)
+            {
+                var rows = await db.QualityClassifications.AsNoTracking().Where(c => ids.Contains(c.Id))
+                    .Select(c => new { c.Id, c.Name }).ToListAsync(ct);
+                foreach (var r in rows) result[r.Id.ToString(CultureInfo.InvariantCulture)] = r.Name;
+            }
+        }
+        else if (groupBy == "section")
+        {
+            result["site-wide"] = "Site-wide";
+            if (ids.Length > 0)
+            {
+                var rows = await db.DocumentSections.AsNoTracking().Where(s => ids.Contains(s.Id))
+                    .Select(s => new { s.Id, s.Name }).ToListAsync(ct);
+                foreach (var r in rows) result[r.Id.ToString(CultureInfo.InvariantCulture)] = r.Name;
+            }
+        }
+        else if (groupBy == "cause")
+        {
+            result["unassigned"] = "Unassigned";
+            if (ids.Length > 0)
+            {
+                var rows = await db.OosCauseCategories.AsNoTracking().Where(c => ids.Contains(c.Id))
+                    .Select(c => new { c.Id, c.Name }).ToListAsync(ct);
+                foreach (var r in rows) result[r.Id.ToString(CultureInfo.InvariantCulture)] = r.Name;
+            }
+        }
+        return result;
+    }
+
+    private async Task<List<QualityTrendGroupDto>> GroupTrendsWithLinksAsync(
+        IQueryable<QualityRecord> query,
+        string groupBy,
+        CancellationToken ct)
+    {
+        var records = await query.Select(r => new TrendLinkRecordRow(
             r.Id,
-            r.Number,
             r.Type,
-            r.SectionId,
-            r.SectionId == null ? null : db.DocumentSections.Where(s => s.Id == r.SectionId).Select(s => s.Name).FirstOrDefault(),
-            r.ClassificationId,
-            r.ClassificationId == null ? null : db.QualityClassifications.Where(c => c.Id == r.ClassificationId).Select(c => c.Name).FirstOrDefault(),
             r.RaisedAtUtc,
             r.DueDate,
             r.IsCancelled,
-            r.DeviationDetail != null ? r.DeviationDetail.RootCauseCategoryId : null,
-            r.DeviationDetail != null && r.DeviationDetail.RootCauseCategoryId != null
-                ? db.OosCauseCategories.Where(c => c.Id == r.DeviationDetail.RootCauseCategoryId).Select(c => c.Name).FirstOrDefault()
-                : null,
+            (r.DeviationDetail != null && r.DeviationDetail.Status == QualityDeviationStatus.Rejected)
+                || (r.ChangeControlDetail != null && r.ChangeControlDetail.Status == ChangeControlStatus.Rejected),
+            !r.IsCancelled && (
+                (r.DeviationDetail != null && r.DeviationDetail.Status == QualityDeviationStatus.Closed)
+                || (r.CapaDetail != null && r.CapaDetail.Status == CapaStatus.Closed)
+                || (r.ChangeControlDetail != null && r.ChangeControlDetail.Status == ChangeControlStatus.Closed)
+                || (r.ComplaintDetail != null && r.ComplaintDetail.Status == ComplaintStatus.Closed)),
+            QualityConfigService.IsOpenStatus(
+                r.IsCancelled,
+                r.DeviationDetail != null ? r.DeviationDetail.Status : null,
+                r.CapaDetail != null ? r.CapaDetail.Status : null,
+                r.ChangeControlDetail != null ? r.ChangeControlDetail.Status : null,
+                r.ComplaintDetail != null ? r.ComplaintDetail.Status : null),
             r.CapaDetail != null ? r.CapaDetail.EffectivenessResult : null,
             r.ComplaintDetail != null ? r.ComplaintDetail.ItemId : null,
             r.ComplaintDetail != null && r.ComplaintDetail.ItemId != null
                 ? db.Items.Where(i => i.Id == r.ComplaintDetail.ItemId).Select(i => i.Name).FirstOrDefault()
                 : null,
-            r.DeviationDetail != null && r.DeviationDetail.Status == QualityDeviationStatus.Closed
-                || r.CapaDetail != null && r.CapaDetail.Status == CapaStatus.Closed
-                || r.ChangeControlDetail != null && r.ChangeControlDetail.Status == ChangeControlStatus.Closed
-                || r.ComplaintDetail != null && r.ComplaintDetail.Status == ComplaintStatus.Closed,
-            !r.IsCancelled
-                && (r.DeviationDetail == null || (r.DeviationDetail.Status != QualityDeviationStatus.Rejected
-                    && r.DeviationDetail.Status != QualityDeviationStatus.Closed && r.DeviationDetail.Status != QualityDeviationStatus.Cancelled))
-                && (r.CapaDetail == null || (r.CapaDetail.Status != CapaStatus.Closed && r.CapaDetail.Status != CapaStatus.Cancelled))
-                && (r.ChangeControlDetail == null || (r.ChangeControlDetail.Status != ChangeControlStatus.Closed
-                    && r.ChangeControlDetail.Status != ChangeControlStatus.Rejected && r.ChangeControlDetail.Status != ChangeControlStatus.Cancelled))
-                && (r.ComplaintDetail == null || (r.ComplaintDetail.Status != ComplaintStatus.Closed
-                    && r.ComplaintDetail.Status != ComplaintStatus.Cancelled)),
             r.Steps
                 .Where(s => s.Kind == QualityStepKind.DeviationClosed
                     || s.Kind == QualityStepKind.CapaEffectivenessChecked
@@ -330,31 +573,55 @@ public sealed class QualityQueryService(
         )).ToListAsync(ct);
 
         var recordIds = records.Select(r => r.Id).ToArray();
-        var links = recordIds.Length == 0
-            ? new List<TrendLinkRow>()
-            : await db.QualityRecordLinks.AsNoTracking()
-                .Where(l => recordIds.Contains(l.RecordId) && l.TargetId != null &&
-                    (l.TargetType == QualityLinkTargetType.Item
-                     || l.TargetType == QualityLinkTargetType.Equipment
-                     || l.TargetType == QualityLinkTargetType.OosInvestigation
-                     || l.TargetType == QualityLinkTargetType.MonitoringDeviation))
-                .Select(l => new TrendLinkRow(
-                    l.RecordId,
-                    l.TargetType,
-                    l.TargetId!.Value,
-                    l.TargetType == QualityLinkTargetType.Item
-                        ? db.Items.Where(i => i.Id == l.TargetId).Select(i => i.Name).FirstOrDefault()
-                        : null,
-                    l.TargetType == QualityLinkTargetType.Equipment
-                        ? db.Equipment.Where(e => e.Id == l.TargetId).Select(e => e.Name).FirstOrDefault()
-                        : null))
-                .ToListAsync(ct);
+        var itemMap = groupBy == "item"
+            ? await LoadRecordItemsAsync(recordIds, ct)
+            : new Dictionary<int, List<(int ItemId, string ItemName)>>();
 
-        var linksByRecord = links.GroupBy(l => l.RecordId).ToDictionary(g => g.Key, g => g.ToList());
+        var sourceLinks = groupBy == "source" && recordIds.Length > 0
+            ? (await db.QualityRecordLinks.AsNoTracking()
+                .Where(l => recordIds.Contains(l.RecordId) && l.TargetId != null
+                    && (l.TargetType == QualityLinkTargetType.OosInvestigation || l.TargetType == QualityLinkTargetType.MonitoringDeviation))
+                .Select(l => new { l.RecordId, l.TargetType })
+                .ToListAsync(ct))
+                .GroupBy(l => l.RecordId)
+                .ToDictionary(g => g.Key, g => g.Select(x => x.TargetType).ToList())
+            : new Dictionary<int, List<QualityLinkTargetType>>();
 
-        var grouped = records
-            .SelectMany(r => ResolveGroupKeys(normalized, r, linksByRecord.GetValueOrDefault(r.Id))
-                .Select(k => new { k.Key, k.Label, Record = r }))
+        IEnumerable<(string Key, string Label)> KeysFor(TrendLinkRecordRow r)
+        {
+            if (groupBy == "item")
+            {
+                var yielded = new HashSet<int>();
+                if (itemMap.TryGetValue(r.Id, out var linkedItems))
+                {
+                    foreach (var (itemId, itemName) in linkedItems)
+                    {
+                        if (yielded.Add(itemId))
+                            yield return (itemId.ToString(CultureInfo.InvariantCulture), itemName);
+                    }
+                }
+                if (r.ComplaintItemId is int cmpItem && yielded.Add(cmpItem))
+                    yield return (cmpItem.ToString(CultureInfo.InvariantCulture), r.ComplaintItemName ?? $"Item {cmpItem}");
+                if (yielded.Count == 0)
+                    yield return ("none", "None");
+                yield break;
+            }
+
+            if (r.Type == QualityRecordType.Complaint)
+            {
+                yield return ("complaint", "Complaint");
+                yield break;
+            }
+            if (sourceLinks.TryGetValue(r.Id, out var types))
+            {
+                if (types.Contains(QualityLinkTargetType.OosInvestigation)) { yield return ("oos", "OOS"); yield break; }
+                if (types.Contains(QualityLinkTargetType.MonitoringDeviation)) { yield return ("excursion", "Excursion"); yield break; }
+            }
+            yield return ("other", "Other");
+        }
+
+        return records
+            .SelectMany(r => KeysFor(r).Select(k => new { k.Key, k.Label, Record = r }))
             .GroupBy(x => (x.Key, x.Label))
             .Select(g =>
             {
@@ -367,7 +634,7 @@ public sealed class QualityQueryService(
                 double? onTime = withDue.Count == 0
                     ? null
                     : Math.Round((double)withDue.Count(r => DateOnly.FromDateTime(clock.ToLabLocal(r.ClosedAtUtc!.Value)) <= r.DueDate!.Value) / withDue.Count, 4);
-                var capas = distinct.Where(r => r.Type == QualityRecordType.Capa && r.CapaEffectiveness.HasValue).ToList();
+                var capas = distinct.Where(r => !r.IsCancelled && !r.IsRejected && r.IsClosed && r.Type == QualityRecordType.Capa && r.CapaEffectiveness.HasValue).ToList();
                 double? effRate = capas.Count == 0
                     ? null
                     : Math.Round((double)capas.Count(r => r.CapaEffectiveness == CapaEffectiveness.Effective) / capas.Count, 4);
@@ -377,70 +644,172 @@ public sealed class QualityQueryService(
                     g.Key.Label,
                     distinct.Count,
                     distinct.Count(r => r.IsOpen),
-                    closed.Count,
+                    distinct.Count(r => r.IsClosed),
                     avgClose,
                     onTime,
-                    effRate);
+                    effRate,
+                    distinct.Count(r => r.IsCancelled),
+                    distinct.Count(r => !r.IsCancelled && r.IsRejected));
             })
             .OrderByDescending(g => g.TotalCount)
             .ThenBy(g => g.Label, StringComparer.OrdinalIgnoreCase)
             .ToList();
+    }
 
-        var repeatCauses = new List<QualityRepeatCauseDto>();
-        var window = TimeSpan.FromDays(windowDays);
-        var causeTargetPairs = records
-            .Where(r => r.CauseCategoryId.HasValue)
-            .SelectMany(r => linksByRecord.GetValueOrDefault(r.Id, [])
-                .Where(l => l.TargetType is QualityLinkTargetType.Item or QualityLinkTargetType.Equipment)
-                .Select(l => new
-                {
-                    CauseId = r.CauseCategoryId!.Value,
-                    CauseName = r.CauseCategoryName ?? $"Cause {r.CauseCategoryId}",
-                    l.TargetType,
-                    l.TargetId,
-                    TargetLabel = l.TargetType == QualityLinkTargetType.Item
-                        ? (l.ItemName ?? $"Item {l.TargetId}")
-                        : (l.EquipmentName ?? $"Equipment {l.TargetId}"),
-                    Record = r
-                }))
-            .GroupBy(x => (x.CauseId, x.CauseName, x.TargetType, x.TargetId, x.TargetLabel));
+    private async Task<Dictionary<int, List<(int ItemId, string ItemName)>>> LoadRecordItemsAsync(int[] recordIds, CancellationToken ct)
+    {
+        var result = new Dictionary<int, List<(int ItemId, string ItemName)>>();
+        if (recordIds.Length == 0) return result;
 
-        foreach (var pair in causeTargetPairs)
+        void Add(int recordId, int itemId, string itemName)
         {
-            var ordered = pair.Select(x => x.Record).DistinctBy(r => r.Id).OrderBy(r => r.RaisedAtUtc).ToList();
-            if (ordered.Count < 2) continue;
-
-            var hasRepeat = false;
-            for (var i = 1; i < ordered.Count; i++)
+            if (!result.TryGetValue(recordId, out var list))
             {
-                if (ordered[i].RaisedAtUtc - ordered[i - 1].RaisedAtUtc <= window)
+                list = [];
+                result[recordId] = list;
+            }
+            if (!list.Any(x => x.ItemId == itemId))
+                list.Add((itemId, itemName));
+        }
+
+        var directItems = await (
+            from l in db.QualityRecordLinks.AsNoTracking()
+            join i in db.Items.AsNoTracking() on l.TargetId equals i.Id
+            where recordIds.Contains(l.RecordId) && l.TargetType == QualityLinkTargetType.Item && l.TargetId != null
+            select new { l.RecordId, ItemId = i.Id, ItemName = i.Name }).ToListAsync(ct);
+        foreach (var x in directItems) Add(x.RecordId, x.ItemId, x.ItemName);
+
+        var sampleItems = await (
+            from l in db.QualityRecordLinks.AsNoTracking()
+            join s in db.Samples.AsNoTracking() on l.TargetId equals s.Id
+            join i in db.Items.AsNoTracking() on s.ItemId equals i.Id
+            where recordIds.Contains(l.RecordId) && l.TargetType == QualityLinkTargetType.Sample && l.TargetId != null && s.ItemId != null
+            select new { l.RecordId, ItemId = i.Id, ItemName = i.Name }).ToListAsync(ct);
+        foreach (var x in sampleItems) Add(x.RecordId, x.ItemId, x.ItemName);
+
+        var orderItems = await (
+            from l in db.QualityRecordLinks.AsNoTracking()
+            join o in db.TestOrders.AsNoTracking() on l.TargetId equals o.Id
+            join s in db.Samples.AsNoTracking() on o.SampleId equals s.Id
+            join i in db.Items.AsNoTracking() on s.ItemId equals i.Id
+            where recordIds.Contains(l.RecordId) && l.TargetType == QualityLinkTargetType.TestOrder && l.TargetId != null && s.ItemId != null
+            select new { l.RecordId, ItemId = i.Id, ItemName = i.Name }).ToListAsync(ct);
+        foreach (var x in orderItems) Add(x.RecordId, x.ItemId, x.ItemName);
+
+        var oosItems = await (
+            from l in db.QualityRecordLinks.AsNoTracking()
+            join inv in db.OosInvestigations.AsNoTracking() on l.TargetId equals inv.Id
+            join s in db.Samples.AsNoTracking() on inv.SampleId equals s.Id
+            join i in db.Items.AsNoTracking() on s.ItemId equals i.Id
+            where recordIds.Contains(l.RecordId) && l.TargetType == QualityLinkTargetType.OosInvestigation && l.TargetId != null && s.ItemId != null
+            select new { l.RecordId, ItemId = i.Id, ItemName = i.Name }).ToListAsync(ct);
+        foreach (var x in oosItems) Add(x.RecordId, x.ItemId, x.ItemName);
+
+        return result;
+    }
+
+    private async Task<List<QualityRepeatCauseDto>> ComputeRepeatCausesAsync(
+        IQueryable<QualityRecord> query,
+        QualityRecordCore.ReadAccess access,
+        int windowDays,
+        CancellationToken ct)
+    {
+        var candidates = await query
+            .Where(r => !r.IsCancelled
+                && (r.DeviationDetail == null || (r.DeviationDetail.Status != QualityDeviationStatus.Rejected && r.DeviationDetail.Status != QualityDeviationStatus.Cancelled))
+                && (r.ChangeControlDetail == null || (r.ChangeControlDetail.Status != ChangeControlStatus.Rejected && r.ChangeControlDetail.Status != ChangeControlStatus.Cancelled))
+                && r.DeviationDetail != null && r.DeviationDetail.RootCauseCategoryId != null)
+            .Select(r => new RepeatCauseRecordRow(
+                r.Id,
+                r.Number,
+                r.RaisedAtUtc,
+                r.DeviationDetail!.RootCauseCategoryId!.Value,
+                db.OosCauseCategories.Where(c => c.Id == r.DeviationDetail.RootCauseCategoryId).Select(c => c.Name).FirstOrDefault(),
+                r.ComplaintDetail != null ? r.ComplaintDetail.ItemId : null,
+                r.ComplaintDetail != null && r.ComplaintDetail.ItemId != null
+                    ? db.Items.Where(i => i.Id == r.ComplaintDetail.ItemId).Select(i => i.Name).FirstOrDefault()
+                    : null))
+            .ToListAsync(ct);
+
+        if (candidates.Count < 2) return [];
+
+        var recordIds = candidates.Select(r => r.Id).ToArray();
+        var itemMap = await LoadRecordItemsAsync(recordIds, ct);
+
+        var equipLinks = await (
+            from l in db.QualityRecordLinks.AsNoTracking()
+            join e in db.Equipment.AsNoTracking() on l.TargetId equals e.Id
+            where recordIds.Contains(l.RecordId) && l.TargetType == QualityLinkTargetType.Equipment && l.TargetId != null
+            select new { l.RecordId, e.Id, e.Code, e.Name, e.SectionId })
+            .ToListAsync(ct);
+        var equipByRecord = equipLinks.GroupBy(e => e.RecordId).ToDictionary(g => g.Key, g => g.ToList());
+
+        var pairs = new List<(int CauseId, string CauseName, QualityLinkTargetType TargetType, int TargetId, string TargetLabel, RepeatCauseRecordRow Record)>();
+        foreach (var r in candidates)
+        {
+            var causeName = r.CauseCategoryName ?? $"Cause {r.CauseCategoryId}";
+            var seenItems = new HashSet<int>();
+            if (itemMap.TryGetValue(r.Id, out var items))
+            {
+                foreach (var (itemId, itemName) in items)
                 {
-                    hasRepeat = true;
-                    break;
+                    if (seenItems.Add(itemId))
+                        pairs.Add((r.CauseCategoryId, causeName, QualityLinkTargetType.Item, itemId, itemName, r));
                 }
             }
-            if (hasRepeat)
+            if (r.ComplaintItemId is int cmpItem && seenItems.Add(cmpItem))
+                pairs.Add((r.CauseCategoryId, causeName, QualityLinkTargetType.Item, cmpItem, r.ComplaintItemName ?? $"Item {cmpItem}", r));
+
+            if (equipByRecord.TryGetValue(r.Id, out var equips))
             {
-                repeatCauses.Add(new QualityRepeatCauseDto(
-                    pair.Key.CauseId,
-                    pair.Key.CauseName,
-                    pair.Key.TargetType,
-                    pair.Key.TargetId,
-                    pair.Key.TargetLabel,
-                    ordered.Count,
-                    ordered[0].RaisedAtUtc,
-                    ordered[^1].RaisedAtUtc,
-                    ordered.Select(r => r.Number).ToList()));
+                foreach (var eq in equips.DistinctBy(e => e.Id))
+                {
+                    var label = access.ReadsSection(eq.SectionId) ? eq.Name : $"{eq.Code} (Restricted)";
+                    pairs.Add((r.CauseCategoryId, causeName, QualityLinkTargetType.Equipment, eq.Id, label, r));
+                }
             }
         }
 
-        return new QualityTrendReportDto(
-            normalized,
-            fromUtc,
-            toUtc,
-            windowDays,
-            grouped,
-            repeatCauses.OrderByDescending(r => r.OccurrenceCount).ToList());
+        var window = TimeSpan.FromDays(windowDays);
+        var repeatCauses = new List<QualityRepeatCauseDto>();
+
+        foreach (var group in pairs.GroupBy(x => (x.CauseId, x.CauseName, x.TargetType, x.TargetId, x.TargetLabel)))
+        {
+            var ordered = group.Select(x => x.Record).DistinctBy(r => r.Id).OrderBy(r => r.RaisedAtUtc).ToList();
+            if (ordered.Count < 2) continue;
+
+            // Find the largest (tie-break: latest) contiguous cluster within windowDays
+            int bestStart = -1, bestCount = 0;
+            var start = 0;
+            for (var end = 0; end < ordered.Count; end++)
+            {
+                while (ordered[end].RaisedAtUtc - ordered[start].RaisedAtUtc > window)
+                    start++;
+                var count = end - start + 1;
+                if (count >= 2 && count >= bestCount)
+                {
+                    bestCount = count;
+                    bestStart = start;
+                }
+            }
+
+            if (bestCount >= 2)
+            {
+                var cluster = ordered.Skip(bestStart).Take(bestCount).ToList();
+                repeatCauses.Add(new QualityRepeatCauseDto(
+                    group.Key.CauseId,
+                    group.Key.CauseName,
+                    group.Key.TargetType,
+                    group.Key.TargetId,
+                    group.Key.TargetLabel,
+                    cluster.Count,
+                    cluster[0].RaisedAtUtc,
+                    cluster[^1].RaisedAtUtc,
+                    cluster.Select(r => r.Number).ToList()));
+            }
+        }
+
+        return repeatCauses.OrderByDescending(r => r.OccurrenceCount).ToList();
     }
 
     public async Task<QualityDashboardDto> GetDashboardAsync(int userId, CancellationToken ct = default)
@@ -452,137 +821,238 @@ public sealed class QualityQueryService(
         var today = clock.LabToday;
         var openQuery = core.ReadableRecords(userId, access).Where(QualityConfigService.IsOpenExpression);
 
-        var openRows = await openQuery
-            .OrderBy(r => r.DueDate ?? DateOnly.MaxValue)
-            .ThenByDescending(r => r.RaisedAtUtc)
-            .Select(r => new
-            {
-                Dto = new QualityRecordListItemDto(
-                    r.Id,
-                    r.Number,
-                    r.Type,
-                    r.Title,
-                    r.IsCancelled ? "Cancelled"
-                        : r.DeviationDetail != null ? r.DeviationDetail.Status.ToString()
-                        : r.CapaDetail != null ? r.CapaDetail.Status.ToString()
-                        : r.ChangeControlDetail != null ? r.ChangeControlDetail.Status.ToString()
-                        : r.ComplaintDetail != null ? r.ComplaintDetail.Status.ToString()
-                        : "Unknown",
-                    r.SectionId,
-                    r.SectionId == null ? null : db.DocumentSections.Where(s => s.Id == r.SectionId).Select(s => s.Name).FirstOrDefault(),
-                    r.ClassificationId,
-                    r.ClassificationId == null ? null : db.QualityClassifications.Where(c => c.Id == r.ClassificationId).Select(c => c.Name).FirstOrDefault(),
-                    r.RaisedByUserId,
-                    r.RaisedByUserId == null ? "System" : db.Users.Where(u => u.Id == r.RaisedByUserId).Select(u => u.FullName).FirstOrDefault(),
-                    r.RaisedAtUtc,
-                    r.OwnerUserId,
-                    r.OwnerUserId == null ? null : db.Users.Where(u => u.Id == r.OwnerUserId).Select(u => u.FullName).FirstOrDefault(),
-                    r.DueDate,
-                    r.DueDate != null && r.DueDate < today,
-                    r.IsCancelled,
-                    r.Version),
-                DevStatus = r.DeviationDetail != null ? (QualityDeviationStatus?)r.DeviationDetail.Status : null,
-                HasDevInvestigation = r.DeviationDetail != null && r.DeviationDetail.RootCauseCategoryId != null,
-                CapaStatus = r.CapaDetail != null ? (CapaStatus?)r.CapaDetail.Status : null,
-                CapaEffectivenessDue = r.CapaDetail != null ? r.CapaDetail.EffectivenessPlannedDate : null,
-                CcStatus = r.ChangeControlDetail != null ? (ChangeControlStatus?)r.ChangeControlDetail.Status : null,
-                HasCcAssessment = r.ChangeControlDetail != null && r.ChangeControlDetail.ImpactSummary != null,
-                CmpStatus = r.ComplaintDetail != null ? (ComplaintStatus?)r.ComplaintDetail.Status : null,
-                HasCmpFindings = r.ComplaintDetail != null && r.ComplaintDetail.Findings != null,
-                HasUnfinishedActions = r.Actions.Any(a => a.DoneAtUtc == null)
-            })
-            .ToListAsync(ct);
-
         var isQa = access.Holds(PermissionConstants.QualityApprove);
         var isLabConclude = access.Holds(PermissionConstants.QualityLabConclude);
         var isInvestigate = access.Holds(PermissionConstants.QualityInvestigate);
 
-        var waiting = new List<QualityRecordListItemDto>();
-        foreach (var item in openRows)
+        IQueryable<QualityRecord>? waitingQuery = null;
+        if (isQa)
         {
-            var r = item.Dto;
-            var notRaiserOrOwner = r.RaisedByUserId != userId && r.OwnerUserId != userId;
-            if (isQa)
-            {
-                var qaReady =
-                    item.DevStatus == QualityDeviationStatus.Raised
-                    || (item.DevStatus is QualityDeviationStatus.LabConcluded or QualityDeviationStatus.Approved && notRaiserOrOwner && !item.HasUnfinishedActions)
-                    || (item.CapaStatus == CapaStatus.Plan && notRaiserOrOwner)
-                    || (item.CapaStatus == CapaStatus.PlanApproved && notRaiserOrOwner && !item.HasUnfinishedActions)
-                    || (item.CapaStatus == CapaStatus.CompletionVerified && notRaiserOrOwner && item.CapaEffectivenessDue <= today)
-                    || (item.CcStatus == ChangeControlStatus.Assessed && notRaiserOrOwner)
-                    || (item.CcStatus == ChangeControlStatus.ApprovedForImplementation && notRaiserOrOwner && !item.HasUnfinishedActions)
-                    || item.CmpStatus == ComplaintStatus.Received
-                    || (item.CmpStatus is ComplaintStatus.LabReported or ComplaintStatus.Concluded && notRaiserOrOwner && !item.HasUnfinishedActions);
-                if (qaReady) waiting.Add(r);
-            }
-            else if (isLabConclude || isInvestigate)
-            {
-                var labReady =
-                    (isLabConclude && item.DevStatus == QualityDeviationStatus.Investigation && item.HasDevInvestigation && r.OwnerUserId != userId)
-                    || (isLabConclude && item.CmpStatus == ComplaintStatus.Investigation && item.HasCmpFindings && r.OwnerUserId != userId)
-                    || (isInvestigate && item.CcStatus == ChangeControlStatus.Proposed && item.HasCcAssessment);
-                if (labReady) waiting.Add(r);
-            }
+            waitingQuery = openQuery.Where(r =>
+                (r.DeviationDetail != null && (
+                    r.DeviationDetail.Status == QualityDeviationStatus.Raised
+                    || ((r.DeviationDetail.Status == QualityDeviationStatus.LabConcluded
+                            || (r.DeviationDetail.Status == QualityDeviationStatus.Approved
+                                && (r.DeviationDetail.CapaRequired == false
+                                    || openQuery.Where(DeviationService.IsApprovedCapaExpression).Any(c =>
+                                        c.CapaDetail!.SourceRecordId == r.Id
+                                        || c.Links.Any(l => l.TargetType == QualityLinkTargetType.QualityRecord && l.TargetId == r.Id)
+                                        || r.Links.Any(l => l.TargetType == QualityLinkTargetType.QualityRecord && l.TargetId == c.Id)))))
+                        && r.RaisedByUserId != userId && r.OwnerUserId != userId
+                        && !r.Actions.Any(a => a.DoneAtUtc == null))))
+                || (r.CapaDetail != null && r.RaisedByUserId != userId && r.OwnerUserId != userId && (
+                    (r.CapaDetail.Status == CapaStatus.Plan
+                        && r.Actions.Any()
+                        && r.CapaDetail.EffectivenessCriteria != null && r.CapaDetail.EffectivenessCriteria != ""
+                        && r.CapaDetail.EffectivenessMethod != null && r.CapaDetail.EffectivenessMethod != ""
+                        && r.CapaDetail.EffectivenessPlannedDate != null
+                        && !db.AuditLogs.Any(a =>
+                            a.EntityName == nameof(QualityRecord)
+                            && a.EntityId == r.Id.ToString()
+                            && a.Action == "Update"
+                            && a.Reason != null
+                            && a.Id > (db.AuditLogs
+                                .Where(s => (s.EntityName == nameof(CapaDetail) && s.EntityId == r.Id.ToString())
+                                    || (s.EntityName == nameof(QualityAction) && r.Actions.Any(act => act.Id.ToString() == s.EntityId)))
+                                .Select(s => (int?)s.Id)
+                                .Max() ?? 0)))
+                    || (r.CapaDetail.Status == CapaStatus.PlanApproved && !r.Actions.Any(a => a.DoneAtUtc == null))
+                    || (r.CapaDetail.Status == CapaStatus.CompletionVerified && r.CapaDetail.EffectivenessPlannedDate != null && r.CapaDetail.EffectivenessPlannedDate <= today)))
+                || (r.ChangeControlDetail != null && r.RaisedByUserId != userId && r.OwnerUserId != userId && (
+                    r.ChangeControlDetail.Status == ChangeControlStatus.Assessed
+                    || (r.ChangeControlDetail.Status == ChangeControlStatus.ApprovedForImplementation && !r.Actions.Any(a => a.DoneAtUtc == null))))
+                || (r.ComplaintDetail != null && (
+                    r.ComplaintDetail.Status == ComplaintStatus.Received
+                    || ((r.ComplaintDetail.Status == ComplaintStatus.LabReported || r.ComplaintDetail.Status == ComplaintStatus.Concluded)
+                        && r.RaisedByUserId != userId && r.OwnerUserId != userId
+                        && !r.Actions.Any(a => a.DoneAtUtc == null)))));
+        }
+        else if (isLabConclude || isInvestigate)
+        {
+            waitingQuery = openQuery.Where(r =>
+                (isLabConclude && r.DeviationDetail != null && r.DeviationDetail.Status == QualityDeviationStatus.Investigation
+                    && r.DeviationDetail.RootCauseCategoryId != null && r.OwnerUserId != userId)
+                || (isLabConclude && r.ComplaintDetail != null && r.ComplaintDetail.Status == ComplaintStatus.Investigation
+                    && r.ComplaintDetail.Findings != null && r.OwnerUserId != userId)
+                || (isInvestigate && r.ChangeControlDetail != null && r.ChangeControlDetail.Status == ChangeControlStatus.Proposed
+                    && r.ChangeControlDetail.ImpactSummary != null));
         }
 
-        var openActions = await openQuery
-            .SelectMany(r => r.Actions.Where(a => a.DoneAtUtc == null),
-                (r, a) => new
-                {
-                    a.ResponsibleUserId,
-                    a.DueDate,
-                    a.Id,
-                    Dto = new QualityDashboardActionDto(
-                        r.Id, r.Number, r.Type, r.Title, a.Id, a.Kind, a.Description, a.DueDate, a.DueDate < today)
-                })
-            .OrderBy(x => x.DueDate)
-            .ThenBy(x => x.Id)
-            .ToListAsync(ct);
+        var (waiting, waitingTotal) = waitingQuery is null
+            ? ((IReadOnlyList<QualityRecordListItemDto>)[], 0)
+            : await TakeDashboardRecordsAsync(waitingQuery, today, ct);
+
+        var (myOpenRecords, myOpenRecordsTotal) = await TakeDashboardRecordsAsync(
+            openQuery.Where(r => r.OwnerUserId == userId || r.RaisedByUserId == userId), today, ct);
+
+        var (overdueRecords, overdueRecordsTotal) = await TakeDashboardRecordsAsync(
+            openQuery.Where(r => r.DueDate != null && r.DueDate < today), today, ct);
+
+        var (effectivenessDue, effectivenessDueTotal) = await TakeDashboardRecordsAsync(
+            openQuery.Where(r => r.CapaDetail != null
+                && r.CapaDetail.Status == CapaStatus.CompletionVerified
+                && r.CapaDetail.EffectivenessPlannedDate != null
+                && r.CapaDetail.EffectivenessPlannedDate <= today), today, ct);
+
+        var (myOpenActions, myOpenActionsTotal) = await TakeDashboardActionsAsync(
+            openQuery, a => a.DoneAtUtc == null && a.ResponsibleUserId == userId, today, ct);
+
+        var (overdueActions, overdueActionsTotal) = await TakeDashboardActionsAsync(
+            openQuery.Where(QualityConfigService.IsActionExecutionActiveExpression),
+            a => a.DoneAtUtc == null && a.DueDate < today, today, ct);
+
+        IReadOnlyList<QualityRecordListItemDto> labOpenRecords = [];
+        var labOpenRecordsTotal = 0;
+        IReadOnlyList<QualityDashboardActionDto> labOpenActions = [];
+        var labOpenActionsTotal = 0;
+
+        if (access.Role == RoleType.SectionHead && access.Sections is { Count: > 0 } sections)
+        {
+            var labOpenQuery = openQuery.Where(r => r.SectionId != null && sections.Contains(r.SectionId.Value));
+            (labOpenRecords, labOpenRecordsTotal) = await TakeDashboardRecordsAsync(labOpenQuery, today, ct);
+            (labOpenActions, labOpenActionsTotal) = await TakeDashboardActionsAsync(
+                labOpenQuery, a => a.DoneAtUtc == null, today, ct);
+        }
 
         return new QualityDashboardDto(
             waiting,
-            openRows.Where(x => x.Dto.OwnerUserId == userId || x.Dto.RaisedByUserId == userId).Select(x => x.Dto).ToList(),
-            openActions.Where(x => x.ResponsibleUserId == userId).Select(x => x.Dto).ToList(),
-            openRows.Where(x => x.Dto.IsOverdue).Select(x => x.Dto).ToList(),
-            openActions.Where(x => x.Dto.IsOverdue).Select(x => x.Dto).ToList(),
-            openRows.Where(x => x.CapaStatus == CapaStatus.CompletionVerified && x.CapaEffectivenessDue <= today)
-                .Select(x => x.Dto).ToList());
+            myOpenRecords,
+            myOpenActions,
+            overdueRecords,
+            overdueActions,
+            effectivenessDue,
+            waitingTotal,
+            myOpenRecordsTotal,
+            myOpenActionsTotal,
+            overdueRecordsTotal,
+            overdueActionsTotal,
+            effectivenessDueTotal,
+            labOpenRecords,
+            labOpenRecordsTotal,
+            labOpenActions,
+            labOpenActionsTotal);
     }
 
-    private IQueryable<QualityRecordListItemDto> ProjectListItems(IQueryable<QualityRecord> query, DateOnly today) =>
-        query.Select(r => new QualityRecordListItemDto(
+    private async Task<(IReadOnlyList<QualityRecordListItemDto> Items, int TotalCount)> TakeDashboardRecordsAsync(
+        IQueryable<QualityRecord> query,
+        DateOnly today,
+        CancellationToken ct)
+    {
+        var total = await query.CountAsync(ct);
+        if (total == 0) return ([], 0);
+        var paged = query
+            .OrderBy(r => r.DueDate ?? DateOnly.MaxValue)
+            .ThenByDescending(r => r.RaisedAtUtc)
+            .Take(DashboardListCap);
+        var items = await MaterializeListItemsAsync(paged, today, ct);
+        return (items, total);
+    }
+
+    private async Task<(IReadOnlyList<QualityDashboardActionDto> Items, int TotalCount)> TakeDashboardActionsAsync(
+        IQueryable<QualityRecord> recordQuery,
+        Expression<Func<QualityAction, bool>> actionFilter,
+        DateOnly today,
+        CancellationToken ct)
+    {
+        var actionsQuery = recordQuery.SelectMany(
+            r => r.Actions.AsQueryable().Where(actionFilter),
+            (r, a) => new
+            {
+                r.Id,
+                r.Number,
+                r.Type,
+                r.Title,
+                ActionId = a.Id,
+                a.Kind,
+                a.Description,
+                a.DueDate,
+                IsExecutionActive = (r.CapaDetail == null || r.CapaDetail.Status != CapaStatus.Plan)
+                    && (r.ChangeControlDetail == null || (r.ChangeControlDetail.Status != ChangeControlStatus.Proposed
+                        && r.ChangeControlDetail.Status != ChangeControlStatus.Assessed))
+            });
+
+        var total = await actionsQuery.CountAsync(ct);
+        if (total == 0) return ([], 0);
+        var items = await actionsQuery
+            .OrderBy(x => x.DueDate)
+            .ThenBy(x => x.ActionId)
+            .Take(DashboardListCap)
+            .Select(x => new QualityDashboardActionDto(
+                x.Id,
+                x.Number,
+                x.Type,
+                x.Title,
+                x.ActionId,
+                x.Kind,
+                x.Description,
+                x.DueDate,
+                x.IsExecutionActive && x.DueDate < today))
+            .ToListAsync(ct);
+        return (items, total);
+    }
+
+    private async Task<List<QualityRecordListItemDto>> MaterializeListItemsAsync(IQueryable<QualityRecord> query, DateOnly today, CancellationToken ct)
+    {
+        var rows = await query.Select(r => new
+        {
             r.Id,
             r.Number,
             r.Type,
             r.Title,
-            r.IsCancelled ? "Cancelled"
-                : r.DeviationDetail != null ? r.DeviationDetail.Status.ToString()
-                : r.CapaDetail != null ? r.CapaDetail.Status.ToString()
-                : r.ChangeControlDetail != null ? r.ChangeControlDetail.Status.ToString()
-                : r.ComplaintDetail != null ? r.ComplaintDetail.Status.ToString()
-                : "Unknown",
             r.SectionId,
-            r.SectionId == null ? null : db.DocumentSections.Where(s => s.Id == r.SectionId).Select(s => s.Name).FirstOrDefault(),
+            SectionName = r.SectionId == null ? null : db.DocumentSections.Where(s => s.Id == r.SectionId).Select(s => s.Name).FirstOrDefault(),
             r.ClassificationId,
-            r.ClassificationId == null ? null : db.QualityClassifications.Where(c => c.Id == r.ClassificationId).Select(c => c.Name).FirstOrDefault(),
+            ClassificationName = r.ClassificationId == null ? null : db.QualityClassifications.Where(c => c.Id == r.ClassificationId).Select(c => c.Name).FirstOrDefault(),
             r.RaisedByUserId,
-            r.RaisedByUserId == null ? "System" : db.Users.Where(u => u.Id == r.RaisedByUserId).Select(u => u.FullName).FirstOrDefault(),
+            RaisedByName = r.RaisedByUserId == null ? "System" : db.Users.Where(u => u.Id == r.RaisedByUserId).Select(u => u.FullName).FirstOrDefault(),
             r.RaisedAtUtc,
             r.OwnerUserId,
-            r.OwnerUserId == null ? null : db.Users.Where(u => u.Id == r.OwnerUserId).Select(u => u.FullName).FirstOrDefault(),
+            OwnerName = r.OwnerUserId == null ? null : db.Users.Where(u => u.Id == r.OwnerUserId).Select(u => u.FullName).FirstOrDefault(),
             r.DueDate,
-            !r.IsCancelled
-                && (r.DeviationDetail == null || (r.DeviationDetail.Status != QualityDeviationStatus.Rejected
-                    && r.DeviationDetail.Status != QualityDeviationStatus.Closed && r.DeviationDetail.Status != QualityDeviationStatus.Cancelled))
-                && (r.CapaDetail == null || (r.CapaDetail.Status != CapaStatus.Closed && r.CapaDetail.Status != CapaStatus.Cancelled))
-                && (r.ChangeControlDetail == null || (r.ChangeControlDetail.Status != ChangeControlStatus.Closed
-                    && r.ChangeControlDetail.Status != ChangeControlStatus.Rejected && r.ChangeControlDetail.Status != ChangeControlStatus.Cancelled))
-                && (r.ComplaintDetail == null || (r.ComplaintDetail.Status != ComplaintStatus.Closed
-                    && r.ComplaintDetail.Status != ComplaintStatus.Cancelled))
+            r.IsCancelled,
+            r.Version,
+            DevStatus = r.DeviationDetail != null ? (QualityDeviationStatus?)r.DeviationDetail.Status : null,
+            CapaStatus = r.CapaDetail != null ? (CapaStatus?)r.CapaDetail.Status : null,
+            CcStatus = r.ChangeControlDetail != null ? (ChangeControlStatus?)r.ChangeControlDetail.Status : null,
+            CmpStatus = r.ComplaintDetail != null ? (ComplaintStatus?)r.ComplaintDetail.Status : null
+        }).ToListAsync(ct);
+
+        return rows.Select(r => new QualityRecordListItemDto(
+            r.Id,
+            r.Number,
+            r.Type,
+            r.Title,
+            ResolveStatusString(r.IsCancelled, r.DevStatus, r.CapaStatus, r.CcStatus, r.CmpStatus),
+            r.SectionId,
+            r.SectionName,
+            r.ClassificationId,
+            r.ClassificationName,
+            r.RaisedByUserId,
+            r.RaisedByName,
+            r.RaisedAtUtc,
+            r.OwnerUserId,
+            r.OwnerName,
+            r.DueDate,
+            QualityConfigService.IsOpenStatus(r.IsCancelled, r.DevStatus, r.CapaStatus, r.CcStatus, r.CmpStatus)
                 && r.DueDate != null && r.DueDate < today,
             r.IsCancelled,
-            r.Version));
+            r.Version)).ToList();
+    }
+
+    private static Expression<Func<QualityRecord, bool>> CombineOr(
+        Expression<Func<QualityRecord, bool>> left,
+        Expression<Func<QualityRecord, bool>> right)
+    {
+        var param = left.Parameters[0];
+        var replacedRight = new ParameterReplacer(right.Parameters[0], param).Visit(right.Body);
+        return Expression.Lambda<Func<QualityRecord, bool>>(Expression.OrElse(left.Body, replacedRight), param);
+    }
+
+    private sealed class ParameterReplacer(ParameterExpression source, ParameterExpression target) : ExpressionVisitor
+    {
+        protected override Expression VisitParameter(ParameterExpression node) =>
+            node == source ? target : base.VisitParameter(node);
+    }
 
     private static IQueryable<QualityRecord> ApplyStatusFilter(IQueryable<QualityRecord> query, string status)
     {
@@ -603,76 +1073,6 @@ public sealed class QualityQueryService(
             (hasCapa && r.CapaDetail != null && r.CapaDetail.Status == capaStatus) ||
             (hasCc && r.ChangeControlDetail != null && r.ChangeControlDetail.Status == ccStatus) ||
             (hasCmp && r.ComplaintDetail != null && r.ComplaintDetail.Status == cmpStatus)));
-    }
-
-    private static IEnumerable<(string Key, string Label)> ResolveGroupKeys(
-        string groupBy,
-        TrendRecordRow r,
-        List<TrendLinkRow>? links)
-    {
-        switch (groupBy)
-        {
-            case "type":
-                yield return (r.Type.ToString(), ReportVocabulary.Humanize(r.Type.ToString()));
-                yield break;
-            case "classification":
-                yield return r.ClassificationId is int cid
-                    ? (cid.ToString(CultureInfo.InvariantCulture), r.ClassificationName ?? $"Classification {cid}")
-                    : ("unclassified", "Unclassified");
-                yield break;
-            case "cause":
-                yield return r.CauseCategoryId is int causeId
-                    ? (causeId.ToString(CultureInfo.InvariantCulture), r.CauseCategoryName ?? $"Cause {causeId}")
-                    : ("unassigned", "Unassigned");
-                yield break;
-            case "section":
-                yield return r.SectionId is int secId
-                    ? (secId.ToString(CultureInfo.InvariantCulture), r.SectionName ?? $"Section {secId}")
-                    : ("site-wide", "Site-wide");
-                yield break;
-            case "item":
-                var yielded = false;
-                if (r.ComplaintItemId is int cmpItem)
-                {
-                    yielded = true;
-                    yield return (cmpItem.ToString(CultureInfo.InvariantCulture), r.ComplaintItemName ?? $"Item {cmpItem}");
-                }
-                if (links is not null)
-                {
-                    foreach (var l in links)
-                    {
-                        if (l.TargetType == QualityLinkTargetType.Item)
-                        {
-                            var itemId = l.TargetId;
-                            if (itemId == r.ComplaintItemId) continue;
-                            yielded = true;
-                            yield return (itemId.ToString(CultureInfo.InvariantCulture), l.ItemName ?? $"Item {itemId}");
-                        }
-                    }
-                }
-                if (!yielded) yield return ("none", "None");
-                yield break;
-            default:
-                if (r.Type == QualityRecordType.Complaint)
-                {
-                    yield return ("complaint", "Complaint");
-                    yield break;
-                }
-                if (links is not null)
-                {
-                    var hasOos = false;
-                    var hasExcursion = false;
-                    foreach (var l in links)
-                    {
-                        if (l.TargetType == QualityLinkTargetType.OosInvestigation) hasOos = true;
-                        else if (l.TargetType == QualityLinkTargetType.MonitoringDeviation) hasExcursion = true;
-                    }
-                    if (hasOos) { yield return ("oos", "OOS"); yield break; }
-                    if (hasExcursion) { yield return ("excursion", "Excursion"); yield break; }
-                }
-                yield return ("other", "Other");
-                yield break;
-        }
     }
 
     private static IReadOnlyList<QualityPathStepDto> BuildPathSteps(
@@ -744,17 +1144,6 @@ public sealed class QualityQueryService(
         return "Unknown";
     }
 
-    private static bool IsOpenStatus(bool isCancelled, QualityDeviationStatus? dev, CapaStatus? capa,
-        ChangeControlStatus? cc, ComplaintStatus? cmp)
-    {
-        if (isCancelled) return false;
-        if (dev is QualityDeviationStatus.Rejected or QualityDeviationStatus.Closed or QualityDeviationStatus.Cancelled) return false;
-        if (capa is CapaStatus.Closed or CapaStatus.Cancelled) return false;
-        if (cc is ChangeControlStatus.Closed or ChangeControlStatus.Rejected or ChangeControlStatus.Cancelled) return false;
-        if (cmp is ComplaintStatus.Closed or ComplaintStatus.Cancelled) return false;
-        return true;
-    }
-
     private static DateTime ToUtc(DateTime value) => value.Kind == DateTimeKind.Local
         ? value.ToUniversalTime()
         : DateTime.SpecifyKind(value, DateTimeKind.Utc);
@@ -762,30 +1151,36 @@ public sealed class QualityQueryService(
     internal static string FormatUtcWithZone(DateTime utc) =>
         DateTime.SpecifyKind(utc, DateTimeKind.Utc).ToString("yyyy-MM-dd HH:mm:ss 'UTC'", CultureInfo.InvariantCulture);
 
-    private sealed record TrendLinkRow(
-        int RecordId,
-        QualityLinkTargetType TargetType,
-        int TargetId,
-        string? ItemName,
-        string? EquipmentName);
+    private sealed record SqlTrendCounts(
+        string Key,
+        int TotalCount,
+        int OpenCount,
+        int ClosedCount,
+        int CancelledCount,
+        int RejectedCount,
+        int CapaEffTotal,
+        int CapaEffPass);
 
-    private sealed record TrendRecordRow(
+    private sealed record TrendLinkRecordRow(
         int Id,
-        string Number,
         QualityRecordType Type,
-        int? SectionId,
-        string? SectionName,
-        int? ClassificationId,
-        string? ClassificationName,
         DateTime RaisedAtUtc,
         DateOnly? DueDate,
         bool IsCancelled,
-        int? CauseCategoryId,
-        string? CauseCategoryName,
+        bool IsRejected,
+        bool IsClosed,
+        bool IsOpen,
         CapaEffectiveness? CapaEffectiveness,
         int? ComplaintItemId,
         string? ComplaintItemName,
-        bool IsClosed,
-        bool IsOpen,
         DateTime? ClosedAtUtc);
+
+    private sealed record RepeatCauseRecordRow(
+        int Id,
+        string Number,
+        DateTime RaisedAtUtc,
+        int CauseCategoryId,
+        string? CauseCategoryName,
+        int? ComplaintItemId,
+        string? ComplaintItemName);
 }

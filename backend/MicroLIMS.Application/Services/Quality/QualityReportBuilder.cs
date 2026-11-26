@@ -129,16 +129,20 @@ public sealed class QualityReportBuilder(
             });
         }
 
-        if (resolvedLinks.Count > 0)
+        if (resolvedLinks.Count > 0 || d.LinksCount > 0)
         {
+            var rows = resolvedLinks.Select(l => (
+                l.Number ?? "-",
+                l.IsRestricted ? "Restricted" : (l.Label ?? "-")
+            )).ToList();
+            if (d.LinksCount > resolvedLinks.Count)
+                rows.Add(("...", $"{d.LinksCount - resolvedLinks.Count} more linked records not shown"));
+
             doc.Blocks.Add(new HeadingBlock { Text = "linked records" });
             doc.Blocks.Add(new ListBlock
             {
                 Label = "linked records",
-                Rows = resolvedLinks.Select(l => (
-                    l.Number ?? "-",
-                    l.IsRestricted ? "Restricted" : (l.Label ?? "-")
-                )).ToList()
+                Rows = rows
             });
         }
 

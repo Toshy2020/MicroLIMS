@@ -96,7 +96,7 @@ public sealed class QualityTrendsAndDashboardPostgresTests(PostgresTestFixture f
     [PostgresFact]
     public async Task Trends_group_by_each_dimension_o1_o3_o4_scope_and_repeat_causes()
     {
-        var clock = new MutableClock(Utc(2090, 6, 1));
+        var clock = new MutableClock(Utc(2095, 6, 1));
         int secA, secB, qaId, headA, headB, ownerA, analystA, classId, causeId, itemId, equipBId;
         string equipBCode = $"EQ-B-{Guid.NewGuid():N}"[..10];
         string itemName = $"Prod-{Guid.NewGuid():N}"[..16];
@@ -132,7 +132,7 @@ public sealed class QualityTrendsAndDashboardPostgresTests(PostgresTestFixture f
                 ItemId = itemId,
                 CauseOfTestingId = causeOfTesting.Id,
                 ReceivedByUserId = headA,
-                ReceivedAt = Utc(2090, 6, 1),
+                ReceivedAt = Utc(2095, 6, 1),
                 Status = SampleStatus.Received
             };
             arrange.Samples.Add(sampleWithItem);
@@ -143,84 +143,84 @@ public sealed class QualityTrendsAndDashboardPostgresTests(PostgresTestFixture f
                 new LabClock(clock, TimeZoneInfo.Utc), new QualityDueDateService(arrange));
 
             // 1. Deviation linked ONLY to a Sample (O1) - closed in exactly 3.0 days, on-time
-            clock.CurrentUtc = Utc(2090, 6, 1, 10);
+            clock.CurrentUtc = Utc(2095, 6, 1, 10);
             var d1 = await devSvc.RaiseAsync(new RaiseDeviationRequest("Sample-Linked Dev", "Desc", clock.CurrentUtc, null, "Imm",
                 secA, [new QualityLinkRequest(QualityLinkTargetType.Sample, sampleWithItem.Id)]), null, headA);
-            d1 = await devSvc.AssessAsync(d1.Id, new AssessDeviationRequest(true, classId, ownerA, new DateOnly(2090, 6, 10), Password), d1.Version, qaId);
+            d1 = await devSvc.AssessAsync(d1.Id, new AssessDeviationRequest(true, classId, ownerA, new DateOnly(2095, 6, 10), Password), d1.Version, qaId);
             d1 = await devSvc.SaveInvestigationAsync(d1.Id, new SaveDeviationInvestigationRequest("Impact", causeId, "Root", "Prop"), d1.Version, ownerA);
             d1 = await devSvc.SignLabConclusionAsync(d1.Id, Password, d1.Version, headA);
             d1 = await devSvc.ApproveAsync(d1.Id, new ApproveDeviationRequest(false, null, Password), d1.Version, qaId);
-            clock.CurrentUtc = Utc(2090, 6, 4, 10);
+            clock.CurrentUtc = Utc(2095, 6, 4, 10);
             await devSvc.CloseAsync(d1.Id, Password, d1.Version, qaId);
 
             // 2. Cancelled deviation (O3: excluded from repeat-cause/time-to-close/on-time; counted in TotalCount + CancelledCount)
-            clock.CurrentUtc = Utc(2090, 6, 2, 10);
+            clock.CurrentUtc = Utc(2095, 6, 2, 10);
             var dCancel = await devSvc.RaiseAsync(new RaiseDeviationRequest("Cancelled Dev", "Desc", clock.CurrentUtc, null, "Imm",
                 secA, [new QualityLinkRequest(QualityLinkTargetType.Item, itemId)]), null, headA);
-            dCancel = await devSvc.AssessAsync(dCancel.Id, new AssessDeviationRequest(true, classId, ownerA, new DateOnly(2090, 6, 10), Password), dCancel.Version, qaId);
+            dCancel = await devSvc.AssessAsync(dCancel.Id, new AssessDeviationRequest(true, classId, ownerA, new DateOnly(2095, 6, 10), Password), dCancel.Version, qaId);
             dCancel = await devSvc.SaveInvestigationAsync(dCancel.Id, new SaveDeviationInvestigationRequest("Impact", causeId, "Root", "Prop"), dCancel.Version, ownerA);
             await devSvc.CancelAsync(dCancel.Id, "Duplicate", Password, dCancel.Version, qaId);
 
             // 3. Rejected deviation (O3: excluded from repeat-cause/time-to-close/on-time; counted in TotalCount + RejectedCount)
-            clock.CurrentUtc = Utc(2090, 6, 3, 10);
+            clock.CurrentUtc = Utc(2095, 6, 3, 10);
             var dReject = await devSvc.RaiseAsync(new RaiseDeviationRequest("Rejected Dev", "Desc", clock.CurrentUtc, null, "Imm", secA, null), null, headA);
             await devSvc.RejectAsync(dReject.Id, "Not a deviation", Password, dReject.Version, qaId);
 
             // 4. Site-wide deviations linked to Section B equipment with same cause:
             //    2 inside 10-day window (June 1 & June 5) + 1 outside (Oct 1) -> cluster count must be 2, span <= 10d
-            foreach (var day in new[] { Utc(2090, 6, 1, 12), Utc(2090, 6, 5, 12), Utc(2090, 10, 1, 12) })
+            foreach (var day in new[] { Utc(2095, 6, 1, 12), Utc(2095, 6, 5, 12), Utc(2095, 10, 1, 12) })
             {
                 clock.CurrentUtc = day;
                 var dw = await devSvc.RaiseAsync(new RaiseDeviationRequest("Site Equip Dev", "Desc", clock.CurrentUtc, null, "Imm",
                     null, [new QualityLinkRequest(QualityLinkTargetType.Equipment, equipBId)]), null, qaId);
-                dw = await devSvc.AssessAsync(dw.Id, new AssessDeviationRequest(true, classId, ownerA, new DateOnly(2090, 10, 20), Password), dw.Version, qaId);
+                dw = await devSvc.AssessAsync(dw.Id, new AssessDeviationRequest(true, classId, ownerA, new DateOnly(2095, 10, 20), Password), dw.Version, qaId);
                 await devSvc.SaveInvestigationAsync(dw.Id, new SaveDeviationInvestigationRequest("Impact", causeId, "Root", "Prop"), dw.Version, ownerA);
             }
 
             // 5. Section B deviation (hidden from headA)
-            clock.CurrentUtc = Utc(2090, 6, 6, 10);
+            clock.CurrentUtc = Utc(2095, 6, 6, 10);
             await devSvc.RaiseAsync(new RaiseDeviationRequest("SecB Dev", "Desc", clock.CurrentUtc, null, "Imm", secB, null), null, headB);
 
-            // 6. Old deviation (> 365 days before 2090-10-15) to test O4 default 365-day window
-            clock.CurrentUtc = Utc(2088, 1, 1, 10);
+            // 6. Old deviation (> 365 days before 2095-10-15) to test O4 default 365-day window
+            clock.CurrentUtc = Utc(2093, 1, 1, 10);
             await devSvc.RaiseAsync(new RaiseDeviationRequest("Ancient Dev", "Desc", clock.CurrentUtc, null, "Imm", secA, null), null, headA);
 
             // 7. Two closed CAPAs: one Effective, one NotEffective (CapaEffectivenessRate == 0.5)
             var capaSvc = new CapaService(arrange, Core(arrange, clock), new PermissionService(arrange),
                 new UserSectionScopeService(arrange), new LabClock(clock, TimeZoneInfo.Utc), new QualityDueDateService(arrange));
 
-            clock.CurrentUtc = Utc(2090, 6, 1, 10);
+            clock.CurrentUtc = Utc(2095, 6, 1, 10);
             var c1 = await capaSvc.CreateAsync(new CreateCapaRequest("Eff CAPA", "Desc", secA, null, null, ownerA), headA);
             c1 = await capaSvc.SavePlanAsync(c1.Id, new SaveCapaPlanRequest(
-                [new CapaActionInput(QualityActionKind.Corrective, "Act1", analystA, new DateOnly(2090, 6, 2))],
-                "Crit", "Meth", new DateOnly(2090, 6, 3)), c1.Version, ownerA);
+                [new CapaActionInput(QualityActionKind.Corrective, "Act1", analystA, new DateOnly(2095, 6, 2))],
+                "Crit", "Meth", new DateOnly(2095, 6, 3)), c1.Version, ownerA);
             c1 = await capaSvc.ApprovePlanAsync(c1.Id, Password, c1.Version, qaId);
             c1 = await capaSvc.CompleteActionAsync(c1.Actions[0].Id, new CompleteCapaActionRequest("Ev", null), c1.Version, analystA);
             c1 = await capaSvc.VerifyCompletionAsync(c1.Id, Password, c1.Version, qaId);
-            clock.CurrentUtc = Utc(2090, 6, 3, 10);
+            clock.CurrentUtc = Utc(2095, 6, 3, 10);
             await capaSvc.SignEffectivenessAsync(c1.Id, new SignCapaEffectivenessRequest(CapaEffectiveness.Effective, "Good", null, Password), c1.Version, qaId);
 
-            clock.CurrentUtc = Utc(2090, 6, 1, 10);
+            clock.CurrentUtc = Utc(2095, 6, 1, 10);
             var c2 = await capaSvc.CreateAsync(new CreateCapaRequest("NotEff CAPA", "Desc", secA, null, null, ownerA), headA);
             c2 = await capaSvc.SavePlanAsync(c2.Id, new SaveCapaPlanRequest(
-                [new CapaActionInput(QualityActionKind.Corrective, "Act2", analystA, new DateOnly(2090, 6, 2))],
-                "Crit", "Meth", new DateOnly(2090, 6, 3)), c2.Version, ownerA);
+                [new CapaActionInput(QualityActionKind.Corrective, "Act2", analystA, new DateOnly(2095, 6, 2))],
+                "Crit", "Meth", new DateOnly(2095, 6, 3)), c2.Version, ownerA);
             c2 = await capaSvc.ApprovePlanAsync(c2.Id, Password, c2.Version, qaId);
             c2 = await capaSvc.CompleteActionAsync(c2.Actions[0].Id, new CompleteCapaActionRequest("Ev", null), c2.Version, analystA);
             c2 = await capaSvc.VerifyCompletionAsync(c2.Id, Password, c2.Version, qaId);
             var successor = await capaSvc.CreateAsync(new CreateCapaRequest("Successor CAPA", "Desc", secA, c2.Id, null, ownerA), headA);
-            clock.CurrentUtc = Utc(2090, 6, 3, 10);
+            clock.CurrentUtc = Utc(2095, 6, 3, 10);
             await capaSvc.SignEffectivenessAsync(c2.Id, new SignCapaEffectivenessRequest(CapaEffectiveness.NotEffective, "Failed", successor.Id, Password), c2.Version, qaId);
         }
 
-        clock.CurrentUtc = Utc(2090, 10, 15, 10);
+        clock.CurrentUtc = Utc(2095, 10, 15, 10);
 
         await using (var actQa = Context(clock, qaId))
         {
             var svc = QueryService(actQa, clock);
 
-            // O4: date-only `to` (2090-10-01 00:00Z) includes the Oct 1 12:00Z record
-            var typeReport = await svc.GetTrendsAsync("type", Utc(2090, 6, 1, 0), Utc(2090, 10, 1, 0), 10, qaId);
+            // O4: date-only `to` (2095-10-01 00:00Z) includes the Oct 1 12:00Z record
+            var typeReport = await svc.GetTrendsAsync("type", Utc(2095, 6, 1, 0), Utc(2095, 10, 1, 0), 10, qaId);
             var devGroup = Assert.Single(typeReport.Groups, g => g.Key == nameof(QualityRecordType.Deviation));
             Assert.Equal(7, devGroup.TotalCount); // d1 + dCancel + dReject + 3 equipB devs + secB dev
             Assert.Equal(1, devGroup.ClosedCount);
@@ -237,7 +237,7 @@ public sealed class QualityTrendsAndDashboardPostgresTests(PostgresTestFixture f
             Assert.Equal(0.5, capaGroup.CapaEffectivenessRate);
 
             // O1: sample-linked deviation appears under itemId
-            var itemReport = await svc.GetTrendsAsync("item", Utc(2090, 6, 1, 0), Utc(2090, 10, 1, 0), 10, qaId);
+            var itemReport = await svc.GetTrendsAsync("item", Utc(2095, 6, 1, 0), Utc(2095, 10, 1, 0), 10, qaId);
             var itemGroup = Assert.Single(itemReport.Groups, g => g.Key == itemId.ToString());
             Assert.Equal(itemName, itemGroup.Label);
             Assert.Equal(2, itemGroup.TotalCount); // d1 (via sample) + dCancel (direct item link)
@@ -245,18 +245,18 @@ public sealed class QualityTrendsAndDashboardPostgresTests(PostgresTestFixture f
             Assert.Equal(1, itemGroup.ClosedCount);
 
             // Other groupBy dimensions return exact keys
-            var clsReport = await svc.GetTrendsAsync("classification", Utc(2090, 6, 1, 0), Utc(2090, 10, 1, 0), 10, qaId);
+            var clsReport = await svc.GetTrendsAsync("classification", Utc(2095, 6, 1, 0), Utc(2095, 10, 1, 0), 10, qaId);
             Assert.Contains(clsReport.Groups, g => g.Key == classId.ToString());
 
-            var causeReport = await svc.GetTrendsAsync("cause", Utc(2090, 6, 1, 0), Utc(2090, 10, 1, 0), 10, qaId);
+            var causeReport = await svc.GetTrendsAsync("cause", Utc(2095, 6, 1, 0), Utc(2095, 10, 1, 0), 10, qaId);
             Assert.Contains(causeReport.Groups, g => g.Key == causeId.ToString());
 
-            var secReport = await svc.GetTrendsAsync("section", Utc(2090, 6, 1, 0), Utc(2090, 10, 1, 0), 10, qaId);
+            var secReport = await svc.GetTrendsAsync("section", Utc(2095, 6, 1, 0), Utc(2095, 10, 1, 0), 10, qaId);
             Assert.Contains(secReport.Groups, g => g.Key == secA.ToString());
             Assert.Contains(secReport.Groups, g => g.Key == secB.ToString());
             Assert.Contains(secReport.Groups, g => g.Key == "site-wide");
 
-            var srcReport = await svc.GetTrendsAsync("source", Utc(2090, 6, 1, 0), Utc(2090, 10, 1, 0), 10, qaId);
+            var srcReport = await svc.GetTrendsAsync("source", Utc(2095, 6, 1, 0), Utc(2095, 10, 1, 0), 10, qaId);
             Assert.Contains(srcReport.Groups, g => g.Key == "other");
 
             // Repeat cause cluster windowing: June 1 & June 5 are within 10d, Oct 1 is outside -> OccurrenceCount == 2
@@ -265,13 +265,13 @@ public sealed class QualityTrendsAndDashboardPostgresTests(PostgresTestFixture f
             Assert.Equal(2, equipRepeat.OccurrenceCount);
             Assert.True(equipRepeat.LastRaisedAtUtc - equipRepeat.FirstRaisedAtUtc <= TimeSpan.FromDays(10));
 
-            // O4: default 365 lab days excludes Ancient Dev (2088-01-01)
+            // O4: default 365 lab days excludes Ancient Dev (2093-01-01)
             var defaultReport = await svc.GetTrendsAsync("type", null, null, 30, qaId);
             Assert.Equal(7, defaultReport.Groups.Single(g => g.Key == nameof(QualityRecordType.Deviation)).TotalCount);
 
             // O4: > 5 years refused with coded message
             var err = await Assert.ThrowsAsync<BusinessRuleException>(() =>
-                svc.GetTrendsAsync("type", Utc(2080, 1, 1), Utc(2090, 1, 1), 30, qaId));
+                svc.GetTrendsAsync("type", Utc(2080, 1, 1), Utc(2095, 1, 1), 30, qaId));
             Assert.Equal(MessageCodes.QualityTrendWindowTooLarge, err.Code);
         }
 
@@ -279,7 +279,7 @@ public sealed class QualityTrendsAndDashboardPostgresTests(PostgresTestFixture f
         await using (var actHeadA = Context(clock, headA))
         {
             var svc = QueryService(actHeadA, clock);
-            var report = await svc.GetTrendsAsync("section", Utc(2090, 6, 1, 0), Utc(2090, 10, 1, 0), 10, headA);
+            var report = await svc.GetTrendsAsync("section", Utc(2095, 6, 1, 0), Utc(2095, 10, 1, 0), 10, headA);
             Assert.DoesNotContain(report.Groups, g => g.Key == secB.ToString());
 
             var equipRepeat = Assert.Single(report.RepeatCauses,

@@ -60,7 +60,7 @@ public sealed class QualityQueriesPostgresTests(PostgresTestFixture fixture)
     }
 
     private static QualityQueryService QueryService(MicroLimsDbContext db, TimeProvider clock) =>
-        new(db, Core(db, clock), new PermissionService(db), new LabClock(clock, TimeZoneInfo.Utc));
+        new(db, Core(db, clock), new LabClock(clock, TimeZoneInfo.Utc));
 
     private static QualityReportBuilder ReportBuilder(MicroLimsDbContext db, TimeProvider clock)
     {
@@ -68,8 +68,8 @@ public sealed class QualityQueriesPostgresTests(PostgresTestFixture fixture)
         var scope = new UserSectionScopeService(db);
         var core = Core(db, clock);
         var links = new QualityLinkService(db, core, permissions, scope, clock);
-        var query = new QualityQueryService(db, core, permissions, new LabClock(clock, TimeZoneInfo.Utc));
-        return new QualityReportBuilder(query, links, new QuestPdfReportGenerator(), new DataExportAuditService(db), db);
+        var query = new QualityQueryService(db, core, new LabClock(clock, TimeZoneInfo.Utc));
+        return new QualityReportBuilder(query, links, new PdfGenerator(), new DataExportAuditService(db), db);
     }
 
     private async Task<int> CreateUserAsync(MicroLimsDbContext db, RoleType role, int sectionId,
@@ -122,7 +122,7 @@ public sealed class QualityQueriesPostgresTests(PostgresTestFixture fixture)
     public async Task List_filters_and_paging_clamp_work()
     {
         var clock = new MutableClock(Utc(2089, 3, 10));
-        int secA, secB, qaId, headA, ownerA, classId;
+        int secA, secB, qaId, headA, headB, ownerA, ownerB, classId;
         int devId, capaId;
 
         await using (var arrange = Context(clock))
@@ -130,7 +130,9 @@ public sealed class QualityQueriesPostgresTests(PostgresTestFixture fixture)
             (secA, secB) = await TwoSectionsAsync(arrange);
             qaId = await CreateUserAsync(arrange, RoleType.Qa, secA, "QA Filter");
             headA = await CreateUserAsync(arrange, RoleType.SectionHead, secA, "Head A");
+            headB = await CreateUserAsync(arrange, RoleType.SectionHead, secB, "Head B");
             ownerA = await CreateUserAsync(arrange, RoleType.SectionHead, secA, "Owner A");
+            ownerB = await CreateUserAsync(arrange, RoleType.SectionHead, secB, "Owner B");
 
             var cls = new QualityClassification { Name = $"Cls-{Guid.NewGuid():N}"[..16], Order = 1, IsActive = true };
             arrange.QualityClassifications.Add(cls);
@@ -140,14 +142,14 @@ public sealed class QualityQueriesPostgresTests(PostgresTestFixture fixture)
             var devSvc = new DeviationService(arrange, Core(arrange, clock), new PermissionService(arrange),
                 new UserSectionScopeService(arrange), new SegregationOfDutiesGuard(arrange),
                 new LabClock(clock, TimeZoneInfo.Utc), new QualityDueDateService(arrange));
-            var dev = await devSvc.RaiseAsync(new RaiseDeviationRequest("Filter Dev", "Desc", secA, Utc(2089, 3, 9), null, "Immediate", null), null, headA);
-            var assessed = await devSvc.AssessAsync(dev.Id, new AssessDeviationRequest(true, classId, ownerA, new DateOnly(2089, 3, 5), Password), dev.Version, qaId);
+            var dev = await devSvc.RaiseAsync(new RaiseDeviationRequest("Filter Dev", "Desc", Utc(2089, 3, 9), null, "Immediate", secA, null), null, headA);
+            var assessed = await devSvc.AssessAsync(dev.Id, new AssessDeviationRequest(true, classId, ownerA, new DateOnly(2089, 3, 12), Password), dev.Version, qaId);
             devId = assessed.Id;
 
             clock.CurrentUtc = Utc(2089, 3, 15);
             var capaSvc = new CapaService(arrange, Core(arrange, clock), new PermissionService(arrange),
                 new UserSectionScopeService(arrange), new LabClock(clock, TimeZoneInfo.Utc), new QualityDueDateService(arrange));
-            var capa = await capaSvc.CreateAsync(new CreateCapaRequest("Filter CAPA", "Desc", secB, ownerA, null, null), qaId);
+            var capa = await capaSvc.CreateAsync(new CreateCapaRequest("Filter CAPA", "Desc", secB, null, null, ownerB), headB);
             capaId = capa.Id;
         }
 
@@ -189,7 +191,7 @@ public sealed class QualityQueriesPostgresTests(PostgresTestFixture fixture)
 
             var clampedLow = await svc.ListAsync(new QualityRecordFilter(Page: -2, PageSize: 0), qaId);
             Assert.Equal(1, clampedLow.Page);
-            Assert.Equal(1, clampedLow.PageSize);
+            Assert.Equal(25, clampedLow.PageSize);
         }
     }
 
@@ -223,7 +225,7 @@ public sealed class QualityQueriesPostgresTests(PostgresTestFixture fixture)
             };
             arrange.Samples.Add(sampleB);
             await arrange.SaveChangesAsync();
-            arrange.TestOrders.Add(new TestOrder { SampleId = sampleB.Id, SectionId = secB, TestCode = "TAMC", Status = ApprovalStatus.Pending, CurrentStep = WorkflowStep.Pending });
+            arrange.TestOrders.Add(new TestOrder { SampleId = sampleB.Id, SectionId = secB, TestCode = "TAMC", Status = ApprovalStatus.Pending });
             await arrange.SaveChangesAsync();
             sampleBId = sampleB.Id;
 
@@ -232,13 +234,13 @@ public sealed class QualityQueriesPostgresTests(PostgresTestFixture fixture)
                 new LabClock(clock, TimeZoneInfo.Utc), new QualityDueDateService(arrange));
 
             // Raised by analystA1 in secA, plus a link to sampleB (which headA cannot read) added by qaId
-            var d1 = await devSvc.RaiseAsync(new RaiseDeviationRequest("Analyst1 Dev", "Desc", secA, Utc(2089, 4, 1), null, "Imm", null), null, analystA1);
+            var d1 = await devSvc.RaiseAsync(new RaiseDeviationRequest("Analyst1 Dev", "Desc", Utc(2089, 4, 1), null, "Imm", secA, null), null, analystA1);
             devA1Id = d1.Id;
             var linkSvc = new QualityLinkService(arrange, Core(arrange, clock), new PermissionService(arrange), new UserSectionScopeService(arrange), clock);
             await linkSvc.AddAsync(devA1Id, QualityLinkTargetType.Sample, sampleBId, qaId, d1.Version);
 
             // Raised by headA in secA (analystA1 is neither raiser, owner, nor action assignee)
-            var d2 = await devSvc.RaiseAsync(new RaiseDeviationRequest("HeadA Dev", "Desc", secA, Utc(2089, 4, 1), null, "Imm", null), null, headA);
+            var d2 = await devSvc.RaiseAsync(new RaiseDeviationRequest("HeadA Dev", "Desc", Utc(2089, 4, 1), null, "Imm", secA, null), null, headA);
             devA2Id = d2.Id;
         }
 
@@ -307,7 +309,7 @@ public sealed class QualityQueriesPostgresTests(PostgresTestFixture fixture)
                 new UserSectionScopeService(arrange), new SegregationOfDutiesGuard(arrange),
                 new LabClock(clock, TimeZoneInfo.Utc), new QualityDueDateService(arrange));
 
-            var raised = await devSvc.RaiseAsync(new RaiseDeviationRequest("PDF Dev", "Desc", secA, Utc(2089, 5, 10, 9), "Lab 1", "Quarantined", null), null, headId);
+            var raised = await devSvc.RaiseAsync(new RaiseDeviationRequest("PDF Dev", "Desc", Utc(2089, 5, 10, 9), "Lab 1", "Quarantined", secA, null), null, headId);
             var assessed = await devSvc.AssessAsync(raised.Id, new AssessDeviationRequest(true, classId, ownerId, new DateOnly(2089, 5, 20), Password), raised.Version, qaId);
             devId = assessed.Id;
         }
@@ -333,11 +335,11 @@ public sealed class QualityQueriesPostgresTests(PostgresTestFixture fixture)
 
         await using (var assertDb = Context(clock))
         {
-            var exportAudit = await assertDb.AuditLogs.AsNoTracking()
-                .Where(a => a.UserId == qaId && a.Action == "DataExport" && a.EntityName == "QualityRecordPdf")
-                .OrderByDescending(a => a.Id)
+            var exportLog = await assertDb.DataExportLogs.AsNoTracking()
+                .Where(e => e.UserId == qaId && e.ExportType == "QualityRecordPdf")
+                .OrderByDescending(e => e.Id)
                 .FirstOrDefaultAsync();
-            Assert.NotNull(exportAudit);
+            Assert.NotNull(exportLog);
         }
     }
 
@@ -371,8 +373,8 @@ public sealed class QualityQueriesPostgresTests(PostgresTestFixture fixture)
             for (var i = 0; i < 2; i++)
             {
                 clock.CurrentUtc = Utc(2089, 6, 1 + i * 5);
-                var d = await devSvc.RaiseAsync(new RaiseDeviationRequest($"Trend Dev {i}", "Desc", secA, clock.CurrentUtc, null, "Imm",
-                    [new QualityLinkRequest(QualityLinkTargetType.Item, itemId)]), null, headId);
+                var d = await devSvc.RaiseAsync(new RaiseDeviationRequest($"Trend Dev {i}", "Desc", clock.CurrentUtc, null, "Imm",
+                    secA, [new QualityLinkRequest(QualityLinkTargetType.Item, itemId)]), null, headId);
                 d = await devSvc.AssessAsync(d.Id, new AssessDeviationRequest(true, classId, ownerId, new DateOnly(2089, 6, 20), Password), d.Version, qaId);
                 d = await devSvc.SaveInvestigationAsync(d.Id, new SaveDeviationInvestigationRequest("Impact", causeId, "Root", "Prop"), d.Version, ownerId);
                 d = await devSvc.SignLabConclusionAsync(d.Id, Password, d.Version, headId);
@@ -427,13 +429,13 @@ public sealed class QualityQueriesPostgresTests(PostgresTestFixture fixture)
             var devSvc = new DeviationService(arrange, Core(arrange, clock), new PermissionService(arrange),
                 new UserSectionScopeService(arrange), new SegregationOfDutiesGuard(arrange),
                 new LabClock(clock, TimeZoneInfo.Utc), new QualityDueDateService(arrange));
-            var dev = await devSvc.RaiseAsync(new RaiseDeviationRequest("Dash Dev", "Desc", secA, Utc(2089, 7, 1), null, "Imm", null), null, analystId);
-            dev = await devSvc.AssessAsync(dev.Id, new AssessDeviationRequest(true, cls.Id, ownerId, new DateOnly(2089, 7, 5), Password), dev.Version, qaId);
+            var dev = await devSvc.RaiseAsync(new RaiseDeviationRequest("Dash Dev", "Desc", Utc(2089, 7, 1), null, "Imm", secA, null), null, analystId);
+            dev = await devSvc.AssessAsync(dev.Id, new AssessDeviationRequest(true, cls.Id, ownerId, new DateOnly(2089, 7, 11), Password), dev.Version, qaId);
             devId = dev.Id;
 
             var capaSvc = new CapaService(arrange, Core(arrange, clock), new PermissionService(arrange),
                 new UserSectionScopeService(arrange), new LabClock(clock, TimeZoneInfo.Utc), new QualityDueDateService(arrange));
-            var capa = await capaSvc.CreateAsync(new CreateCapaRequest("Dash CAPA", "Desc", secA, ownerId, null, null), headId);
+            var capa = await capaSvc.CreateAsync(new CreateCapaRequest("Dash CAPA", "Desc", secA, null, null, ownerId), headId);
             capa = await capaSvc.SavePlanAsync(capa.Id, new SaveCapaPlanRequest(
                 [new CapaActionInput(QualityActionKind.Corrective, "Do thing", analystId, new DateOnly(2089, 7, 12))],
                 "Crit", "Meth", new DateOnly(2089, 7, 15)), capa.Version, ownerId);
@@ -484,17 +486,17 @@ public sealed class QualityQueriesPostgresTests(PostgresTestFixture fixture)
                 new UserSectionScopeService(arrange), new SegregationOfDutiesGuard(arrange),
                 new LabClock(clock, TimeZoneInfo.Utc), new QualityDueDateService(arrange));
 
-            var d1 = await devSvc.RaiseAsync(new RaiseDeviationRequest("Overdue Dev", "Desc", secA, Utc(2089, 8, 1), null, "Imm", null), null, ownerId);
-            d1 = await devSvc.AssessAsync(d1.Id, new AssessDeviationRequest(true, cls.Id, ownerId, new DateOnly(2089, 8, 5), Password), d1.Version, qaId);
+            var d1 = await devSvc.RaiseAsync(new RaiseDeviationRequest("Overdue Dev", "Desc", Utc(2089, 8, 1), null, "Imm", secA, null), null, ownerId);
+            d1 = await devSvc.AssessAsync(d1.Id, new AssessDeviationRequest(true, cls.Id, ownerId, new DateOnly(2089, 8, 11), Password), d1.Version, qaId);
             overdueDevId = d1.Id;
 
-            var d2 = await devSvc.RaiseAsync(new RaiseDeviationRequest("Future Dev", "Desc", secA, Utc(2089, 8, 1), null, "Imm", null), null, ownerId);
+            var d2 = await devSvc.RaiseAsync(new RaiseDeviationRequest("Future Dev", "Desc", Utc(2089, 8, 1), null, "Imm", secA, null), null, ownerId);
             d2 = await devSvc.AssessAsync(d2.Id, new AssessDeviationRequest(true, cls.Id, ownerId, new DateOnly(2089, 8, 25), Password), d2.Version, qaId);
             notOverdueDevId = d2.Id;
 
             var capaSvc = new CapaService(arrange, Core(arrange, clock), new PermissionService(arrange),
                 new UserSectionScopeService(arrange), new LabClock(clock, TimeZoneInfo.Utc), new QualityDueDateService(arrange));
-            var capa = await capaSvc.CreateAsync(new CreateCapaRequest("Overdue Action CAPA", "Desc", secA, ownerId, null, null), qaId);
+            var capa = await capaSvc.CreateAsync(new CreateCapaRequest("Overdue Action CAPA", "Desc", secA, null, null, ownerId), ownerId);
             capa = await capaSvc.SavePlanAsync(capa.Id, new SaveCapaPlanRequest(
                 [new CapaActionInput(QualityActionKind.Corrective, "Overdue Task", analystId, new DateOnly(2089, 8, 11))],
                 "Crit", "Meth", new DateOnly(2089, 8, 20)), capa.Version, ownerId);
@@ -584,7 +586,7 @@ public sealed class QualityQueriesPostgresTests(PostgresTestFixture fixture)
                 new UserSectionScopeService(actThrow), new SegregationOfDutiesGuard(actThrow),
                 new LabClock(clock, TimeZoneInfo.Utc), new QualityDueDateService(actThrow),
                 new ThrowingQualityNotifier(), NullLogger<DeviationService>.Instance);
-            var created = await svc.RaiseAsync(new RaiseDeviationRequest("Survives Notifier Boom", "Desc", secA, Utc(2089, 9, 1), null, "Imm", null), null, headId);
+            var created = await svc.RaiseAsync(new RaiseDeviationRequest("Survives Notifier Boom", "Desc", Utc(2089, 9, 1), null, "Imm", secA, null), null, headId);
             devId = created.Id;
         }
 
@@ -609,7 +611,7 @@ public sealed class QualityQueriesPostgresTests(PostgresTestFixture fixture)
                 new UserSectionScopeService(actReal), new SegregationOfDutiesGuard(actReal),
                 new LabClock(clock, TimeZoneInfo.Utc), new QualityDueDateService(actReal),
                 notifier, NullLogger<DeviationService>.Instance);
-            var created = await svc.RaiseAsync(new RaiseDeviationRequest("Real Notif", "Desc", secA, Utc(2089, 9, 1), null, "Imm", null), null, headId);
+            var created = await svc.RaiseAsync(new RaiseDeviationRequest("Real Notif", "Desc", Utc(2089, 9, 1), null, "Imm", secA, null), null, headId);
             devId = created.Id;
         }
 

@@ -2291,5 +2291,6 @@
   "Oos.ExcursionTemplateEmpty": "No excursion checklist is configured for this laboratory.",
   "Oos.ExcursionOrderSuperseded": "A superseded test order cannot open an excursion review.",
   "Oos.ExcursionSampleClosed": "An excursion review cannot be opened for a sample that is already decided or cancelled.",
-  "Oos.ExcursionFailingOrderRequiresOos": "An out-of-specification or detected result must use an OOS investigation."
+  "Oos.ExcursionFailingOrderRequiresOos": "An out-of-specification or detected result must use an OOS investigation.",
+  "Quality.TrendGroupByInvalid": "Choose a valid trend grouping: type, classification, cause, section, item, or source."
 }

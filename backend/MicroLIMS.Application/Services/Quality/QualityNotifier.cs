@@ -19,7 +19,7 @@ public interface IQualityNotifier
     Task ClosedAsync(int recordId, CancellationToken ct = default);
 }
 
-public sealed class QualityNotifier(IServiceScopeFactory scopes, ILogger<QualityNotifier> logger) : IQualityNotifier
+public sealed class QualityNotifier(IServiceScopeFactory scopes, ILogger<QualityNotifier>? logger = null) : IQualityNotifier
 {
     public Task RaisedAsync(int recordId, CancellationToken ct = default) =>
         SafeSendAsync("Raised", recordId, async (db, recipients, publisher, token) =>
@@ -238,7 +238,7 @@ public sealed class QualityNotifier(IServiceScopeFactory scopes, ILogger<Quality
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "Failed to publish quality notification {EventName} for record {RecordId}.", eventName, recordId);
+            logger?.LogWarning(ex, "Failed to publish quality notification {EventName} for record {RecordId}.", eventName, recordId);
         }
     }
 

@@ -294,6 +294,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<MicroLIMS.Application.Services.Quality.QualityLinkService>();
         services.AddScoped<MicroLIMS.Application.Services.Quality.QualityAttachmentService>();
         services.AddScoped<MicroLIMS.Application.Services.Quality.QualityCommentService>();
+        services.AddScoped<MicroLIMS.Application.Services.Quality.QualityQueryService>();
+        services.AddScoped<MicroLIMS.Application.Services.Quality.QualityReportBuilder>();
         services.AddScoped<MicroLIMS.Application.Services.Quality.QualityNotifier>();
         services.AddScoped<MicroLIMS.Application.Services.Quality.IQualityNotifier>(sp =>
             sp.GetRequiredService<MicroLIMS.Application.Services.Quality.QualityNotifier>());

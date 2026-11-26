@@ -2291,5 +2291,6 @@
   "Oos.ExcursionTemplateEmpty": "لم يتم إعداد قائمة تحقق للتجاوز لهذا المختبر.",
   "Oos.ExcursionOrderSuperseded": "لا يمكن فتح مراجعة تجاوز لأمر اختبار مستبدل.",
   "Oos.ExcursionSampleClosed": "لا يمكن فتح مراجعة تجاوز لعينة تم البت فيها أو إلغاؤها بالفعل.",
-  "Oos.ExcursionFailingOrderRequiresOos": "يجب استخدام تحقيق خارج المواصفات لكل نتيجة خارج المواصفات أو مكتشفة."
+  "Oos.ExcursionFailingOrderRequiresOos": "يجب استخدام تحقيق خارج المواصفات لكل نتيجة خارج المواصفات أو مكتشفة.",
+  "Quality.TrendGroupByInvalid": "اختر تجميع اتجاهات صالحاً: النوع أو التصنيف أو السبب أو المختبر أو الصنف أو المصدر."
 }

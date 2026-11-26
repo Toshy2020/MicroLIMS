@@ -95,6 +95,7 @@ const QUALITY_COMPLIANCE_GROUP = "QUALITY & COMPLIANCE";
 const reportsItem: MenuItem = { label: "Reports", path: "/reports", description: "Laboratory KPIs, trends and exportable reports.", icon: DescriptionOutlinedIcon, group: QUALITY_COMPLIANCE_GROUP };
 const oosTrackingItem: MenuItem = { label: "OOS Tracking", path: "/oos-tracking", description: "Out-of-specification investigations and their status.", icon: ReportProblemOutlinedIcon, group: QUALITY_COMPLIANCE_GROUP, permission: PERMISSIONS.OOS_VIEW };
 const qualityEventsItem: MenuItem = { label: "Quality Events", path: "/quality", description: "Deviations, CAPAs, change controls and complaints with their approval path.", icon: AssignmentOutlinedIcon, group: QUALITY_COMPLIANCE_GROUP, permission: PERMISSIONS.QUALITY_VIEW };
+const qualityConfigItem: MenuItem = { label: "Quality Configuration", path: "/quality/config", description: "Checklist templates, classifications, due rules, and section change-control gates.", icon: TuneOutlinedIcon, group: QUALITY_COMPLIANCE_GROUP, permission: [PERMISSIONS.QUALITY_APPROVE, PERMISSIONS.QUALITY_INVESTIGATE] };
 const monitoringPlanItem: MenuItem = { label: "Monitoring Plan", path: "/monitoring-plan", description: "Annual plan of water, environmental and after-cleaning monitoring.", icon: CalendarMonthOutlinedIcon, group: QUALITY_COMPLIANCE_GROUP, permission: PERMISSIONS.MONITORING_PLAN_VIEW };
 const qualificationMatrixItem: MenuItem = { label: "Qualification Matrix", path: "/competency/matrix", description: "Analyst qualifications per test and laboratory competency gate.", icon: SchoolOutlinedIcon, group: QUALITY_COMPLIANCE_GROUP, permission: PERMISSIONS.COMPETENCY_VIEW };
 const myQualificationsItem: MenuItem = { label: "My Qualifications", path: "/competency/my", description: "Your test qualifications, expiry dates and SOPs to read.", icon: WorkspacePremiumOutlinedIcon, group: QUALITY_COMPLIANCE_GROUP, permission: PERMISSIONS.COMPETENCY_VIEW };
@@ -308,7 +309,7 @@ export function getGroupedMenu({ role, permissions, labCodes, physchemAreas }: M
   }
   items.push(
     itemsItem, masterTestingMaterialsItem, receivingConfigItem, masterDataWorkbookItem, waterItem, afterCleaningItem, workingHoursItem, escalationRulesItem, oosTemplatesItem,
-    documentControlItem(role, permissions), qualificationMatrixItem, myQualificationsItem, reportsItem, monitoringPlanItem, oosTrackingItem, qualityEventsItem,
+    documentControlItem(role, permissions), qualificationMatrixItem, myQualificationsItem, reportsItem, monitoringPlanItem, oosTrackingItem, qualityEventsItem, qualityConfigItem,
     ...adminItems
   );
   return groupItems(visibleItems(items, permissions));

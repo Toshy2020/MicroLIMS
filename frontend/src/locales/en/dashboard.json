@@ -263,5 +263,18 @@
   "donut": {
     "title": "Test Order Status",
     "empty": "No data yet."
+  },
+  "qualityTiles": {
+    "source": "Quality events",
+    "waitingForDecision": "Waiting for my decision",
+    "waitingForDecisionHint": "Quality records awaiting your assessment, approval or closure",
+    "myOpen": "My open records & actions",
+    "myOpenHint": "Quality records and actions assigned to you",
+    "overdue": "Overdue quality items",
+    "overdueHint": "Overdue quality records and actions",
+    "effectivenessDue": "Effectiveness checks due",
+    "effectivenessDueHint": "CAPAs ready for effectiveness verification",
+    "labOpen": "Lab open records & actions",
+    "labOpenHint": "Open quality records and actions in your laboratory"
   }
 }

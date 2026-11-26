@@ -69,7 +69,8 @@
     "discussions": "Discussions",
     "notifications": "Notifications",
     "receivingTestingWorkspace": "Receiving & Testing Workspace",
-    "qualityEvents": "Quality Events"
+    "qualityEvents": "Quality Events",
+    "qualityConfiguration": "Quality Configuration"
   },
   "group": {
     "overview": "OVERVIEW",

@@ -24,6 +24,8 @@ import { clickable } from "../../../utils/clickable";
 import { useOptionalAuth } from "../../../contexts/AuthContext";
 import { PERMISSIONS } from "../../../routes/routes";
 import { OverrideDialog } from "../../competency/OverrideDialog";
+import { RaiseDeviationButton } from "../../quality/components/RaiseDeviationButton";
+import { QualityRecordsPanel } from "../../quality/components/QualityRecordsPanel";
 
 interface AssignedTestCardProps {
   test: TestOrderSummary;
@@ -53,6 +55,7 @@ export function AssignedTestCard({
   const auth = useOptionalAuth();
   const canOverride = auth?.permissions.includes(PERMISSIONS.COMPETENCY_OVERRIDE) ?? false;
   const [overrideOpen, setOverrideOpen] = useState(false);
+  const [qualityRefreshKey, setQualityRefreshKey] = useState(0);
 
   const formatDuration = (seconds: number): string => {
     if (seconds <= 0) return t("assignedCard.readyToRead");
@@ -721,6 +724,28 @@ export function AssignedTestCard({
               </Button>
             </Box>
           )}
+
+          <Box
+            data-no-row-click="true"
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => e.stopPropagation()}
+            sx={{ mt: 1.5, display: "flex", flexDirection: "column", gap: 1 }}
+          >
+            <Box>
+              <RaiseDeviationButton
+                targetType="TestOrder"
+                targetId={test.testOrderId}
+                sectionId={sample.labSectionId ?? null}
+                onRaised={() => setQualityRefreshKey((k) => k + 1)}
+              />
+            </Box>
+            <QualityRecordsPanel
+              targetType="TestOrder"
+              targetId={test.testOrderId}
+              refreshKey={qualityRefreshKey}
+              compact
+            />
+          </Box>
         </Box>
       </Collapse>
       {canOfferOverride && overrideOpen && test.assignedAnalystId != null && (

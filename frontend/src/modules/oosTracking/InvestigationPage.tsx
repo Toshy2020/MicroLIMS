@@ -43,6 +43,7 @@ import { RetestPlanSection } from "./components/RetestPlanSection";
 import { PhaseTwoSection } from "./components/PhaseTwoSection";
 import { ConclusionSection } from "./components/ConclusionSection";
 import { DeviationRequestsPanel } from "./components/DeviationRequestsPanel";
+import { QualityRecordsPanel } from "../quality/components/QualityRecordsPanel";
 import { SignedTimeline } from "../../components/SignedTimeline";
 
 export function InvestigationPage() {
@@ -509,6 +510,12 @@ export function InvestigationPage() {
             )
           )
         }
+        onDeviationRaised={() => void reloadAll()}
+      />
+
+      <QualityRecordsPanel
+        targetType="OosInvestigation"
+        targetId={detail.id}
       />
 
       <SignedTimeline entries={detail.timeline} />

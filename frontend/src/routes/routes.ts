@@ -92,6 +92,7 @@ export const APP_ROUTES = {
   ERROR_MONITORING: "/admin/error-log",
   OOS_TRACKING: "/oos-tracking",
   QUALITY: "/quality",
+  QUALITY_CONFIG: "/quality/config",
   QUALITY_DETAIL: (id: number | string) => `/quality/${id}`,
 
   // Administration

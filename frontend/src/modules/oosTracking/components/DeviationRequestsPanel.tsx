@@ -6,6 +6,7 @@ import { StatusBadge } from "../../../components/StatusBadge";
 import type { OosDeviationRequestDetailDto } from "../../../services/oosInvestigationService";
 import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
 import { serverMessage } from "../../../utils/errorMessage";
+import { RaiseDeviationButton } from "../../quality/components/RaiseDeviationButton";
 
 interface DeviationRequestsPanelProps {
   requests: OosDeviationRequestDetailDto[];
@@ -14,6 +15,7 @@ interface DeviationRequestsPanelProps {
   canAddress: boolean;
   onRequest: (reason: string, investigationVersion: number) => Promise<string | null | void>;
   onAddress: (requestId: number, comment: string, requestVersion: number) => Promise<string | null | void>;
+  onDeviationRaised?: () => void;
 }
 
 export function DeviationRequestsPanel({
@@ -22,7 +24,8 @@ export function DeviationRequestsPanel({
   canRequest,
   canAddress,
   onRequest,
-  onAddress
+  onAddress,
+  onDeviationRaised
 }: DeviationRequestsPanelProps) {
   const { t } = useTranslation("oosTracking");
   const [reason, setReason] = useState("");
@@ -152,6 +155,19 @@ export function DeviationRequestsPanel({
                     <Alert severity="error">{addressErrors[req.id]}</Alert>
                   )}
                 </Stack>
+              )}
+
+              {req.status === "Open" && (
+                <Box sx={{ mt: 1 }}>
+                  <RaiseDeviationButton
+                    sourceKind="oosRequest"
+                    sourceId={req.id}
+                    sourceVersion={req.version}
+                    initialTitle={req.reason.slice(0, 120)}
+                    initialDescription={req.reason}
+                    onRaised={() => onDeviationRaised?.()}
+                  />
+                </Box>
               )}
             </Box>
           ))

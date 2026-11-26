@@ -129,7 +129,7 @@ describe("OosTrendsPage", () => {
         {
           groupBy: "cause",
           from: "2026-02-01",
-          to: "2026-02-28T23:59:59.999Z",
+          to: "2026-02-28",
           kind: "Excursion",
           sectionId: 4
         },

@@ -1313,4 +1313,51 @@ public sealed class OosReadAndReportPostgresTests(PostgresTestFixture fixture) :
     {
         public override DateTimeOffset GetUtcNow() => new(DateTime.SpecifyKind(utcNow, DateTimeKind.Utc));
     }
+
+    [PostgresFact]
+    public async Task GetTrends_with_date_only_to_includes_records_opened_late_on_to_day()
+    {
+        var lab = await _seed.SectionAsync();
+        var head = await _seed.UserAsync(RoleType.SectionHead, ViewCodes, lab);
+        var sample = await _seed.SampleAsync(lab, SampleStatus.InTesting, ApprovalStatus.Pending, WorkflowStep.Running);
+        var toDay = new DateTime(2037, 5, 10, 0, 0, 0, DateTimeKind.Utc);
+        var lateOnToDay = toDay.AddHours(23).AddMinutes(45);
+
+        await using (var arrange = fixture.CreateDbContext())
+        {
+            arrange.OosInvestigations.Add(new OosInvestigation
+            {
+                Number = $"OOS-DT-{Guid.NewGuid():N}"[..16],
+                Kind = OosInvestigationKind.Oos,
+                SectionId = lab.Id,
+                SampleId = sample.Sample.Id,
+                OpenedByUserId = head.Id,
+                OpenedAtUtc = lateOnToDay,
+                Status = OosInvestigationStatus.PhaseOne,
+                TemplateSnapshotJson = """{"items":[]}""",
+                Results =
+                {
+                    new OosInvestigationResult
+                    {
+                        TestOrderId = sample.Orders[0].Id,
+                        OutcomeAtOpening = OosOutcomeClass.Fails,
+                        ResultSummaryAtOpening = "OOS",
+                        AddedAtUtc = lateOnToDay
+                    }
+                }
+            });
+            await arrange.SaveChangesAsync();
+        }
+
+        await using var act = fixture.CreateDbContext();
+        act.CurrentUserId = head.Id;
+        var result = await Trends(act).GetTrendsAsync(
+            "conclusion",
+            from: DateTime.SpecifyKind(toDay, DateTimeKind.Unspecified),
+            to: DateTime.SpecifyKind(toDay, DateTimeKind.Unspecified),
+            sectionId: lab.Id);
+
+        var group = Assert.Single(result.Groups);
+        Assert.Equal(1, group.TotalCount);
+    }
 }

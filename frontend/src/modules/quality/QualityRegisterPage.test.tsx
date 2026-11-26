@@ -29,12 +29,19 @@ interface Backend {
   records?: (params: Record<string, unknown>) => Promise<unknown>;
   classifications?: () => Promise<unknown>;
   sections?: () => Promise<unknown>;
+  qaAvailability?: () => Promise<unknown>;
 }
 
 function serve(backend: Backend = {}) {
   http.get.mockImplementation((url: string, config?: { params?: Record<string, unknown> }) => {
     if (url === "/quality/records") {
       return (backend.records ?? (() => Promise.resolve(pageOf([listItem()]))))(config?.params ?? {});
+    }
+    if (url === "/quality/qa-availability") {
+      return (
+        backend.qaAvailability ??
+        (() => Promise.resolve({ data: { success: true, data: { hasActiveQa: true } } }))
+      )();
     }
     if (url === "/quality/config/classifications") {
       return (
@@ -468,6 +475,17 @@ describe("QualityRegisterPage", () => {
     expect(await screen.findByText("DEV-2026-0001")).toBeTruthy();
     expect(await screen.findByText("Some data could not be loaded: classifications.")).toBeTruthy();
     expect(screen.getByRole("tab", { name: "CAPAs" })).toBeTruthy();
+  });
+
+  it("shows a status banner when no active QA user is available and hides it when one exists", async () => {
+    serve({
+      qaAvailability: () => Promise.resolve({ data: { success: true, data: { hasActiveQa: false } } })
+    });
+    renderPage();
+
+    expect(await screen.findByText("DEV-2026-0001")).toBeTruthy();
+    const banner = await screen.findByRole("status");
+    expect(banner.textContent).toContain("No active QA user");
   });
 });
 

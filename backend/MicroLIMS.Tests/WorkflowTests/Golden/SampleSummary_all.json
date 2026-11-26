@@ -1114,6 +1114,7 @@
   ],
   "AllSectionsVisible": true,
   "OverallStatus": "Approved",
+  "SopCaptureStartDateUtc": null,
   "CombinedCoaAvailable": true,
   "Certificate": {
     "Sample": {

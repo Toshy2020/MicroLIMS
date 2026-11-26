@@ -19,7 +19,12 @@ public class CoaSectionScopeDto
     public CoaScopeDto Scope { get; set; } = new();
 }
 
-public sealed record CoaMethodDocumentDto(string DocumentCode, string Title, string RevisionNumber, DateTime? EffectiveDateUtc);
+public sealed record CoaMethodDocumentDto(
+    string DocumentCode,
+    string Title,
+    string RevisionNumber,
+    DateTime? EffectiveDateUtc,
+    DateTime? PreCaptureStartDateUtc = null);
 
 public class CoaScopeDto
 {

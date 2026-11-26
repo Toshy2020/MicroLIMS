@@ -43,6 +43,7 @@
     "Sections": [],
     "AllSectionsVisible": true,
     "OverallStatus": "Approved",
+    "SopCaptureStartDateUtc": null,
     "CombinedCoaAvailable": false,
     "Certificate": {
       "Sample": {
@@ -101,6 +102,7 @@
     "Sections": [],
     "AllSectionsVisible": true,
     "OverallStatus": "Approved",
+    "SopCaptureStartDateUtc": null,
     "CombinedCoaAvailable": true,
     "Certificate": {
       "Sample": {
@@ -233,6 +235,7 @@
     ],
     "AllSectionsVisible": true,
     "OverallStatus": "InProgress",
+    "SopCaptureStartDateUtc": null,
     "CombinedCoaAvailable": false,
     "Certificate": {
       "Sample": {
@@ -393,6 +396,7 @@
     "Sections": [],
     "AllSectionsVisible": true,
     "OverallStatus": "Approved",
+    "SopCaptureStartDateUtc": null,
     "CombinedCoaAvailable": false,
     "Certificate": {
       "Sample": {
@@ -799,6 +803,7 @@
     ],
     "AllSectionsVisible": true,
     "OverallStatus": "InProgress",
+    "SopCaptureStartDateUtc": null,
     "CombinedCoaAvailable": false,
     "Certificate": {
       "Sample": {

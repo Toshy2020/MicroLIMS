@@ -27,6 +27,14 @@ export function formatLabDate(date: string | Date, options: { english?: boolean 
   return mark(d.toLocaleDateString(tagFor(options.english), { day: "2-digit", month: "short", year: "numeric" }), options.english);
 }
 
+export function formatLabDateInTimeZone(date: string | Date, timeZone = "UTC", options: { english?: boolean } = {}): string {
+  const d = typeof date === "string" ? new Date(date) : date;
+  return mark(
+    d.toLocaleDateString(tagFor(options.english), { day: "2-digit", month: "short", year: "numeric", timeZone }),
+    options.english
+  );
+}
+
 export function formatLabDateTime(date: string | Date, options: { english?: boolean } = {}): string {
   const d = typeof date === "string" ? new Date(date) : date;
   const tag = tagFor(options.english);

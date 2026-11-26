@@ -17,4 +17,5 @@ export interface NewerSopRevision {
 export interface TestOrderSop {
   sopCapture?: SopCapture | null;
   newerSopRevision?: NewerSopRevision | null;
+  sopCaptureStartDateUtc?: string | null;
 }

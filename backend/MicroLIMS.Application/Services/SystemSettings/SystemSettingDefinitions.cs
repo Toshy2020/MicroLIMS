@@ -56,6 +56,10 @@ public static class SystemSettingKeys
     public const string NotificationsRetentionDays = "notifications.retentionDays";
     public const string NotificationsDigestHourLocal = "notifications.digestHourLocal";
     public const string NotificationsLookAheadDays = "notifications.lookAheadDays";
+
+    // Internal system fact (not listed in SystemSettingDefinitions.All and not user-editable):
+    // UTC instant when SOP revision capture was installed on this database.
+    public const string SopCaptureStartDateUtc = "sopCapture.startDateUtc";
 }
 
 // One setting as defined in code: type, default, bounds, GxP relevance.

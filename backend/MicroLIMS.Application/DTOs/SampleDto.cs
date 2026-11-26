@@ -41,6 +41,7 @@ public class TestOrderSummaryDto
 public class SampleDto
 {
     public string LabTimeZoneId { get; set; } = "UTC";
+    public DateTime? SopCaptureStartDateUtc { get; set; }
     public int SampleId { get; set; }
     // Alias for SampleId so creation/receipt responses expose `id` alongside
     // `referenceNumber` without renaming `sampleId` for existing callers.

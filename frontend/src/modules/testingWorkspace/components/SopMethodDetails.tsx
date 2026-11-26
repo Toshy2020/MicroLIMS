@@ -1,6 +1,6 @@
 import { Stack, Typography } from "@mui/material";
 import { useTranslation } from "../../../i18n";
-import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
+import { formatDateTimeWithTimeZone, formatLabDateInTimeZone } from "../../../utils/formatDate";
 import type { TestOrderSop } from "../types/sopCaptureTypes";
 
 interface MethodDocument {
@@ -8,10 +8,18 @@ interface MethodDocument {
   title: string;
   revisionNumber: string;
   effectiveDateUtc: string | null;
+  preCaptureStartDateUtc?: string | null;
 }
 
 export function SopMethodLine({ document, timeZone = "UTC" }: { document: MethodDocument; timeZone?: string }) {
   const { t } = useTranslation("testingWorkspace");
+  if (document.preCaptureStartDateUtc) {
+    return (
+      <Typography component="p" variant="body2">
+        {t("sopCapture.notRecordedBefore", { date: formatLabDateInTimeZone(document.preCaptureStartDateUtc, timeZone) })}
+      </Typography>
+    );
+  }
   const { documentCode, title, revisionNumber, effectiveDateUtc } = document;
   const method = t("sopCapture.method", { code: documentCode, revision: revisionNumber });
   return (
@@ -45,9 +53,17 @@ export function SopRevisionNotice({ newerSopRevision, timeZone = "UTC", testName
   );
 }
 
-export function SopMethodDetails({ sopCapture, newerSopRevision, timeZone }: TestOrderSop & { timeZone?: string }) {
+export function SopMethodDetails({ sopCapture, newerSopRevision, sopCaptureStartDateUtc, timeZone }: TestOrderSop & { timeZone?: string }) {
   const { t } = useTranslation("testingWorkspace");
-  if (!sopCapture) return <Typography variant="body2">{t("sopCapture.notRecorded")}</Typography>;
+  if (!sopCapture) {
+    return (
+      <Typography variant="body2">
+        {sopCaptureStartDateUtc
+          ? t("sopCapture.notRecordedBefore", { date: formatLabDateInTimeZone(sopCaptureStartDateUtc, timeZone ?? "UTC") })
+          : t("sopCapture.notRecorded")}
+      </Typography>
+    );
+  }
   if (sopCapture.status !== "Captured") {
     return <Typography variant="body2">{t("sopCapture.unresolved", { reason: t(`sopCapture.reasons.${sopCapture.status}`) })}</Typography>;
   }

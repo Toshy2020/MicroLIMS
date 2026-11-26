@@ -53,8 +53,8 @@ public sealed class QualificationService(
         var files = request.Attachments ?? Array.Empty<QualificationFile>();
         var attachmentProblem = DiscussionAttachmentPolicy.Validate(files.Select(f => (f.FileName, f.Data)).ToList());
         if (attachmentProblem is not null)
-            throw new BusinessRuleException(MessageCodes.CompetencyAttachmentInvalid, attachmentProblem,
-                new Dictionary<string, string> { ["detail"] = attachmentProblem });
+            throw new BusinessRuleException(MessageCodes.CompetencyAttachmentInvalid, attachmentProblem.Message,
+                new Dictionary<string, string> { ["detail"] = attachmentProblem.Message });
         if (files.Any(f => Path.GetFileName(f.FileName).Length > 255))
             throw new BusinessRuleException(MessageCodes.CompetencyAttachmentNameTooLong, "Attachment names may contain at most 255 characters.");
 

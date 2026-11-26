@@ -16,7 +16,7 @@ public class EquipmentPlanModelTests
         _fixture = fixture;
     }
 
-    [Fact]
+    [PostgresFact]
     public void SignatureMeaning_new_values_are_appended()
     {
         Assert.Equal((int)SignatureMeaning.MonitoringDeviationClosed + 1, (int)SignatureMeaning.EquipmentPlanApproved);

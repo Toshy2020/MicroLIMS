@@ -304,24 +304,65 @@ public class EnforceCaseInsensitiveDocumentCodesMigrationPostgresTests
 
     private static async Task InsertMasterAsync(NpgsqlConnection c, string microLimsId, string companyCode, int recordStatus)
     {
-        await using var cmd = new NpgsqlCommand("""
-            INSERT INTO "DocumentMasters"
-            ("MicroLimsDocumentId", "CompanyDocumentCode", "Title", "DocumentTypeId", "DepartmentId", "SectionId",
-             "DocumentOwnerUserId", "Confidentiality", "RecordOrigin", "RecordStatus", "CreatedAt", "CreatedByUserId")
-            VALUES
-            (@mlId, @code, @title,
-             (SELECT "Id" FROM "DocumentTypes" LIMIT 1),
-             (SELECT "Id" FROM "DocumentDepartments" LIMIT 1),
-             (SELECT "Id" FROM "DocumentSections" LIMIT 1),
-             (SELECT "Id" FROM "Users" LIMIT 1),
-             1, 1, @status, NOW(),
-             (SELECT "Id" FROM "Users" LIMIT 1));
-            """, c);
-        cmd.Parameters.AddWithValue("mlId", microLimsId);
-        cmd.Parameters.AddWithValue("code", companyCode);
-        cmd.Parameters.AddWithValue("title", companyCode);
-        cmd.Parameters.AddWithValue("status", recordStatus);
-        await cmd.ExecuteNonQueryAsync();
+        var typeId = await EnsureRowAsync(c, "DocumentTypes", ("Code", "SOP"), ("Name", "SOP"), ("DefaultReviewCycleMonths", 24), ("IsActive", true));
+        var deptId = await EnsureRowAsync(c, "DocumentDepartments", ("Code", "QC"), ("Name", "QC"), ("IsActive", true));
+        var secId = await EnsureRowAsync(c, "DocumentSections", ("DepartmentId", deptId), ("Code", "MIC"), ("Name", "Microbiology"), ("IsActive", true));
+        var roleId = await EnsureRowAsync(c, "Roles", ("Name", "MigAdmin"), ("Description", "Migration Test Role"));
+        var userId = await EnsureRowAsync(c, "Users", ("Username", "migtest"), ("Email", "mig@test.local"), ("RoleId", roleId), ("IsActive", true));
+
+        await InsertRowAsync(c, "DocumentMasters",
+            ("MicroLimsDocumentId", microLimsId),
+            ("CompanyDocumentCode", companyCode),
+            ("Title", companyCode),
+            ("DocumentTypeId", typeId),
+            ("DepartmentId", deptId),
+            ("SectionId", secId),
+            ("DocumentOwnerUserId", userId),
+            ("Confidentiality", 1),
+            ("RecordOrigin", 1),
+            ("RecordStatus", recordStatus),
+            ("CreatedAt", DateTime.UtcNow),
+            ("CreatedByUserId", userId));
+    }
+
+    private static async Task<int> EnsureRowAsync(NpgsqlConnection c, string table, params (string Col, object Val)[] over)
+    {
+        await using var q = new NpgsqlCommand($"SELECT \"Id\" FROM \"{table}\" LIMIT 1", c);
+        var existing = await q.ExecuteScalarAsync();
+        return existing is int id ? id : await InsertRowAsync(c, table, over);
+    }
+
+    private static async Task<int> InsertRowAsync(NpgsqlConnection c, string table, params (string Col, object Val)[] over)
+    {
+        var values = over.ToDictionary(o => o.Col, o => o.Val);
+        await using (var q = new NpgsqlCommand(
+            "SELECT column_name, data_type FROM information_schema.columns WHERE table_name = @t AND is_nullable = 'NO' " +
+            "AND column_default IS NULL AND is_identity = 'NO'", c))
+        {
+            q.Parameters.AddWithValue("t", table);
+            await using var r = await q.ExecuteReaderAsync();
+            while (await r.ReadAsync())
+            {
+                var col = r.GetString(0);
+                if (values.ContainsKey(col)) continue;
+                values[col] = r.GetString(1) switch
+                {
+                    "integer" or "bigint" or "smallint" => 1,
+                    "numeric" => 1m,
+                    "boolean" => false,
+                    "timestamp with time zone" or "timestamp without time zone" => DateTime.UtcNow,
+                    "date" => DateOnly.FromDateTime(DateTime.UtcNow),
+                    "jsonb" or "json" => "{}",
+                    _ => "x"
+                };
+            }
+        }
+        var cols = string.Join(",", values.Keys.Select(k => $"\"{k}\""));
+        var ps = string.Join(",", values.Keys.Select((_, i) => $"@p{i}"));
+        await using var cmd = new NpgsqlCommand($"INSERT INTO \"{table}\" ({cols}) VALUES ({ps}) RETURNING \"Id\"", c);
+        var n = 0;
+        foreach (var v in values.Values) cmd.Parameters.AddWithValue($"p{n++}", v);
+        return Convert.ToInt32(await cmd.ExecuteScalarAsync());
     }
 
     private static async Task Exec(string cs, string sql)

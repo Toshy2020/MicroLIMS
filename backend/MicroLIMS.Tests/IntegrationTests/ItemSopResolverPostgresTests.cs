@@ -15,8 +15,8 @@ public class ItemSopResolverPostgresTests(PostgresTestFixture fixture)
     [PostgresFact]
     public async Task ResolveMany_reports_each_status_and_revision_metadata()
     {
-        int blankId, missingId, draftId, effectiveId, ambiguousId, currentId, pdfId;
-        string missingCode, draftCode, effectiveCode, ambiguousCode;
+        int blankId, missingId, draftId, effectiveId, currentId, pdfId;
+        string missingCode, draftCode, effectiveCode;
         await using (var arrange = fixture.CreateDbContext())
         {
             blankId = (await AddItemAsync(arrange, "   ")).Id;
@@ -35,18 +35,13 @@ public class ItemSopResolverPostgresTests(PostgresTestFixture fixture)
             pdfId = (await AddPdfAsync(arrange, fixture, revision, 2, true)).Id;
             await AddPdfAsync(arrange, fixture, revision, 3, false);
             effectiveId = (await AddItemAsync(arrange, $"  {effectiveCode.ToLowerInvariant()}  ")).Id;
-
-            ambiguousCode = NewCode();
-            await AddMasterAsync(arrange, fixture, ambiguousCode);
-            await AddMasterAsync(arrange, fixture, ambiguousCode.ToLowerInvariant());
-            ambiguousId = (await AddItemAsync(arrange, ambiguousCode)).Id;
         }
 
         await using var act = fixture.CreateDbContext();
         var results = await new ItemSopResolver(act)
-            .ResolveManyAsync([blankId, missingId, draftId, effectiveId, ambiguousId, effectiveId]);
+            .ResolveManyAsync([blankId, missingId, draftId, effectiveId, effectiveId]);
 
-        Assert.Equal(5, results.Count);
+        Assert.Equal(4, results.Count);
         Assert.Equal(SopResolutionStatus.NoSopNumber, results[blankId].Status);
         Assert.Equal(SopResolutionStatus.NotFound, results[missingId].Status);
         Assert.Equal(missingCode, results[missingId].SopNumber);
@@ -61,28 +56,20 @@ public class ItemSopResolverPostgresTests(PostgresTestFixture fixture)
         Assert.Equal(currentId, resolved.RevisionId);
         Assert.Equal(2, resolved.RevisionSequence);
         Assert.Equal(pdfId, resolved.PdfFileId);
-        Assert.Equal(SopResolutionStatus.Ambiguous, results[ambiguousId].Status);
-        Assert.Equal(2, results[ambiguousId].MatchingMasterCount);
-        Assert.Equal(new[] { ambiguousCode, ambiguousCode.ToLowerInvariant() },
-            results[ambiguousId].MatchingCodes?.Order(StringComparer.Ordinal));
-        Assert.Null(results[ambiguousId].RevisionId);
         Assert.Empty(act.ChangeTracker.Entries());
     }
 
     [PostgresFact]
-    public async Task Item_STM_first_match_behaviour_unchanged_for_ambiguous_codes()
+    public async Task Item_STM_case_insensitive_match_returns_effective_revision()
     {
         int itemId;
         var code = NewCode();
         await using (var arrange = fixture.CreateDbContext())
         {
-            foreach (var variant in new[] { code, code.ToLowerInvariant() })
-            {
-                var master = await AddMasterAsync(arrange, fixture, variant);
-                var revision = await AddRevisionAsync(arrange, fixture, master, 1, DocumentRevisionStatus.Effective, current: true);
-                await AddPdfAsync(arrange, fixture, revision, 1, true);
-            }
-            itemId = (await AddItemAsync(arrange, code)).Id;
+            var master = await AddMasterAsync(arrange, fixture, code);
+            var revision = await AddRevisionAsync(arrange, fixture, master, 1, DocumentRevisionStatus.Effective, current: true);
+            await AddPdfAsync(arrange, fixture, revision, 1, true);
+            itemId = (await AddItemAsync(arrange, code.ToLowerInvariant())).Id;
         }
 
         await using var act = fixture.CreateDbContext();
@@ -110,7 +97,7 @@ public class ItemSopResolverPostgresTests(PostgresTestFixture fixture)
         Assert.NotNull(expected.Revision.Pdf);
         Assert.Equal(new ItemStmResponse(
             ItemStmStatus.Effective,
-            code, expected.Id, expected.CompanyDocumentCode, expected.Title, expected.TypeCode,
+            code.ToLowerInvariant(), expected.Id, expected.CompanyDocumentCode, expected.Title, expected.TypeCode,
             expected.Revision.RevisionNumber, expected.Revision.EffectiveDate,
             expected.Revision.Pdf.Id, expected.Revision.Pdf.FileName, true), actual);
     }

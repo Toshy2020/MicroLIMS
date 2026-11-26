@@ -108,6 +108,9 @@ public sealed class ItemSopResolver(IMicroLimsDbContext db)
                 continue;
             }
 
+            // CONF-212 enforces case-insensitive uniqueness on DocumentMasters.CompanyDocumentCode
+            // at the database level (and blocks installation if clashes exist), so Ambiguous can
+            // no longer occur for new data; the branch is retained for defensive completeness.
             if (matches.Length > 1)
             {
                 results.Add(id, new(SopResolutionStatus.Ambiguous, sop,

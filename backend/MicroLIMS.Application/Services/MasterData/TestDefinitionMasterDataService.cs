@@ -1357,6 +1357,8 @@ public class TestDefinitionMasterDataService
             .Select(i => new
             {
                 i.Id, i.Code, i.Name, i.SopNumber,
+                // CONF-212 enforces case-insensitive uniqueness on DocumentMasters.CompanyDocumentCode,
+                // so at most one active master can match; FirstOrDefault remains deterministic.
                 Master = _db.DocumentMasters
                     .Where(m => m.RecordStatus == DocumentRecordStatus.Active
                              && i.SopNumber.Trim() != ""

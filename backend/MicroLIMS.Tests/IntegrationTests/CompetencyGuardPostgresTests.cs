@@ -202,21 +202,7 @@ public class CompetencyGuardPostgresTests(PostgresTestFixture fixture)
         }
     }
 
-    [PostgresFact]
-    public async Task Ambiguous_sop_match_is_not_checked_with_text()
-    {
-        var setup = await ArrangeAsync(sop: "ambiguous");
-        var refused = await EvaluateAsync(setup);
-        AssertRefused(refused, "Competency.NotQualified");
-        await QualifyAsync(setup);
-        var allowed = await EvaluateAsync(setup);
-        Assert.True(allowed.Allowed);
-        Assert.Empty(allowed.Reasons);
-        Assert.NotNull(allowed.SopNotChecked);
-        Assert.Equal("Competency.SopNotCheckedAmbiguous", allowed.SopNotChecked.Code);
-        Assert.Equal($"SOP not checked: more than one active document matches {setup.SopCode}.", allowed.SopNotChecked.Text);
-        Assert.Equal(setup.SopCode, allowed.SopNotChecked.Params["sopNumber"]);
-    }
+    // CONF-212: case-variant DocumentMasters can no longer exist in PostgreSQL, so Ambiguous is not reachable there.
 
     [PostgresFact]
     public async Task Sample_without_item_checks_qualification_only()

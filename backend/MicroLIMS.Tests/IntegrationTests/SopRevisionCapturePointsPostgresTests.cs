@@ -1043,7 +1043,6 @@ public class SopRevisionCapturePointsPostgresTests(PostgresTestFixture fixture)
             ("blank", SopCaptureStatus.NoSopNumber),
             ("missing", SopCaptureStatus.NotFound),
             ("draft", SopCaptureStatus.NoEffectiveRevision),
-            ("ambiguous", SopCaptureStatus.Ambiguous),
         };
         await PostgresCases.RunAsync(cases, async scenario =>
         {
@@ -1057,11 +1056,6 @@ public class SopRevisionCapturePointsPostgresTests(PostgresTestFixture fixture)
                 await arrange.SaveChangesAsync();
                 if (scenario.Name == "draft")
                     await AddRevisionAsync(arrange, fixture, await AddMasterAsync(arrange, fixture, code), 1, DocumentRevisionStatus.Draft, current: true);
-                if (scenario.Name == "ambiguous")
-                {
-                    await AddMasterAsync(arrange, fixture, code);
-                    await AddMasterAsync(arrange, fixture, code.ToLowerInvariant());
-                }
             }
             var a = await AddOrderAsync(c, d => { d.WorkflowType = WorkflowType.Measurement; d.EquationType = EquationType.Measurement; });
 

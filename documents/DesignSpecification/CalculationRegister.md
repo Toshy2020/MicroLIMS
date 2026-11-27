@@ -109,4 +109,5 @@ These files call `Math.Round` or name a rounding mode, but the value is not a la
 | Services/Kpi/KpiScope.cs | Helper for workload KPIs: rounds days (2 decimals), rates (4 decimals) and a percentile of durations (2 decimals). |
 | Services/Kpi/BacklogAgingKpi.cs | Rounds the ratio of backlog age to a target number of days to 2 decimals for the KPI display. |
 | Services/DatabaseOverviewService.cs | Rounds the database's estimated row count (`reltuples`) to a whole number for the database overview. |
+| Services/Quality/QualityQueryService.cs | Rounds quality-event trend figures for the trends report and dashboard: average time to close in days (2 decimals), on-time rate and CAPA effectiveness rate (4 decimals). These are management statistics, not laboratory results, limit comparisons or status decisions. |
 | Services/InstrumentIngestService.cs | Rounds the clock offset between an instrument agent and the server to whole seconds. |

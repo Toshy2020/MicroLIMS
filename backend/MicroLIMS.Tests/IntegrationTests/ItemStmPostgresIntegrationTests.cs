@@ -193,23 +193,22 @@ public class ItemStmPostgresIntegrationTests
         Assert.Equal(ItemStmStatus.Effective, r.Status);
     }
 
-    // Review Focus 2
+    // Review Focus 2. CONF-212: a code is never reused (not even by a void master), so a void master
+    // cannot share its code with an active one; the void master itself must still be ignored.
     [PostgresFact]
-    public async Task VoidedDocumentWithSameCode_IsIgnored()
+    public async Task VoidedDocument_IsIgnored()
     {
         await using var db = _fixture.CreateDbContext();
         var code = NewCode();
         var (voided, _, _) = await AddEffectiveAsync(db, code);
         voided.RecordStatus = DocumentRecordStatus.Void;
         await db.SaveChangesAsync();
-        var active = await AddMasterAsync(db, code);
-        await AddRevisionAsync(db, active, "01", 1, DocumentRevisionStatus.Draft);
         var item = await AddItemAsync(db, code);
 
         var r = await Service(db).GetForItemAsync(item.Id, _fixture.SeededUserId);
 
-        Assert.Equal(ItemStmStatus.NoEffectiveRevision, r.Status);
-        Assert.Equal(active.Id, r.DocumentMasterId);
+        Assert.Equal(ItemStmStatus.NotFound, r.Status);
+        Assert.Null(r.DocumentMasterId);
     }
 
     // Review Focus 3
@@ -243,6 +242,32 @@ public class ItemStmPostgresIntegrationTests
         Assert.Equal(ItemStmStatus.Effective, r.Status);
         Assert.Equal("01", r.RevisionNumber);
         Assert.Equal(pdf.Id, r.ControlledPdfFileId);
+    }
+
+    [PostgresFact]
+    public async Task CurrentPointerToNonEffectiveRevision_IsNoEffectiveRevision()
+    {
+        int itemId;
+        int masterId;
+        await using (var arrange = _fixture.CreateDbContext())
+        {
+            var code = NewCode();
+            var master = await AddMasterAsync(arrange, code);
+            var draft = await AddRevisionAsync(arrange, master, "01", 1, DocumentRevisionStatus.Draft);
+            await AddPdfAsync(arrange, draft);
+            master.CurrentEffectiveRevisionId = draft.Id;
+            await arrange.SaveChangesAsync();
+            masterId = master.Id;
+            itemId = (await AddItemAsync(arrange, code)).Id;
+        }
+
+        await using var act = _fixture.CreateDbContext();
+        var response = await Service(act).GetForItemAsync(itemId, _fixture.SeededUserId);
+
+        Assert.Equal(ItemStmStatus.NoEffectiveRevision, response.Status);
+        Assert.Equal(masterId, response.DocumentMasterId);
+        Assert.Null(response.RevisionNumber);
+        Assert.Null(response.ControlledPdfFileId);
     }
 
     private async Task WithDownloadDisabledAsync(MicroLimsDbContext db, Func<Task> body)

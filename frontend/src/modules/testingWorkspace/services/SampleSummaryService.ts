@@ -24,6 +24,10 @@ export const SampleSummaryService = {
     const params = opts?.forCertificate ? { forCertificate: true } : undefined;
     return (await apiClient.get(`/samples/${sampleId}/summary`, { params, signal: opts?.signal })).data.data;
   },
+  async getSampleVersion(sampleId: number): Promise<number | null> {
+    const data = (await apiClient.get(`/testorders/${sampleId}`)).data?.data as { version?: number } | undefined;
+    return typeof data?.version === "number" ? data.version : null;
+  },
   exportPdf(sampleId: number, referenceNumber: string): Promise<void> {
     return downloadBlob(`/samples/${sampleId}/summary/pdf`, `SampleSummary_${referenceNumber}.pdf`);
   },

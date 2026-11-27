@@ -46,13 +46,15 @@ public sealed class TitrationRecorder : TestWorkflowSupport
     public TitrationRecorder(TestWorkflowDependencies deps) : base(deps) { }
 
     public Task<TestWorkflowResult> RecordTitrationResultAsync(
-        int testOrderId, TitrationPayload payload, int userId, string? ipAddress = null) =>
-        UnitOfWork.RunAsync(_db, () => RecordCoreAsync(testOrderId, payload, userId, ipAddress));
+        int testOrderId, TitrationPayload payload, int userId, string? ipAddress = null, CancellationToken cancellationToken = default) =>
+        UnitOfWork.RunAsync(_db, () => RecordCoreAsync(testOrderId, payload, userId, ipAddress, cancellationToken));
 
-    private async Task<TestWorkflowResult> RecordCoreAsync(int testOrderId, TitrationPayload p, int userId, string? ipAddress)
+    private async Task<TestWorkflowResult> RecordCoreAsync(int testOrderId, TitrationPayload p, int userId, string? ipAddress, CancellationToken cancellationToken)
     {
         var (order, t, specById, analysedAtUtc) = await ValidateTestAnalysisOrderAsync(
             testOrderId, p.AnalysedAt, p.EquipmentId, p.SpecificationIds, p.Password, WorkflowType.Titration, userId);
+        using var recording = await RequireCompetentAsync(userId, order.Id, cancellationToken);
+        await CaptureSopRevisionAsync(order, cancellationToken);
 
         var cfg = TitrationConfig.From(t);
         bool residual = cfg.Mode == TitrationMode.Residual;

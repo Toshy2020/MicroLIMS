@@ -1,3 +1,4 @@
+using MicroLIMS.Application.Services.Competency;
 using System.Globalization;
 using MicroLIMS.Application.Services.Monitoring;
 using MicroLIMS.Application.Helpers;
@@ -30,13 +31,12 @@ public interface IWaterWorkflowEngine : IStatefulWorkflowEngine
     // storageCondition/storageTimeHours describe how the collected water was
     // held before testing - captured here because this is where a water
     // sample is actually prepared.
-    Task<Sample> PrepareAsync(int sampleId, List<int> waterSamplingPointIds, int userId, string? storageCondition = null, int? storageTimeHours = null, IReadOnlyList<int>? monitoringOccurrenceIds = null);
+    Task<Sample> PrepareAsync(int sampleId, List<int> waterSamplingPointIds, int userId, string? storageCondition = null, int? storageTimeHours = null, IReadOnlyList<int>? monitoringOccurrenceIds = null, CancellationToken ct = default);
 
     // Calculation engine: averages the entered raw readings and compares
     // against Alert -> Action -> Specification limits, in that order of
     // severity (gap analysis #5). Legacy per-point samples only - see the
     // guard at the top of the method.
-    Task<WaterComparisonResult> CalculateAndCompareAsync(int testOrderId, List<decimal> readings);
 
     Task<List<WaterComparisonResult>> GetDailyAggregateAsync(DateTime date, IReadOnlyCollection<int>? sectionIds = null);
 }
@@ -47,13 +47,15 @@ public class WaterWorkflowEngine : IWaterWorkflowEngine
     private readonly Application.Services.ReferenceNumberGenerator _refNumbers;
     private readonly IUserSectionScopeService? _scope;
     private readonly MonitoringLinkService? _monitoring;
+    private readonly ICompetencyGuard? _competency;
 
-    public WaterWorkflowEngine(IMicroLimsDbContext db, Application.Services.ReferenceNumberGenerator refNumbers, IUserSectionScopeService? scope = null, MonitoringLinkService? monitoring = null)
+    public WaterWorkflowEngine(IMicroLimsDbContext db, Application.Services.ReferenceNumberGenerator refNumbers, IUserSectionScopeService? scope = null, MonitoringLinkService? monitoring = null, ICompetencyGuard? competency = null)
     {
         _db = db;
         _refNumbers = refNumbers;
         _scope = scope;
         _monitoring = monitoring;
+        _competency = competency;
     }
 
     // Generating the reference number and saving the sample run as one
@@ -148,14 +150,14 @@ public class WaterWorkflowEngine : IWaterWorkflowEngine
         return sample;
     }
 
-    public Task<Sample> PrepareAsync(int sampleId, List<int> waterSamplingPointIds, int userId, string? storageCondition = null, int? storageTimeHours = null, IReadOnlyList<int>? monitoringOccurrenceIds = null) =>
+    public Task<Sample> PrepareAsync(int sampleId, List<int> waterSamplingPointIds, int userId, string? storageCondition = null, int? storageTimeHours = null, IReadOnlyList<int>? monitoringOccurrenceIds = null, CancellationToken ct = default) =>
         monitoringOccurrenceIds is { Count: > 0 }
-            ? UnitOfWork.RunAsync(_db, () => PrepareCoreAsync(sampleId, waterSamplingPointIds, userId, storageCondition, storageTimeHours, monitoringOccurrenceIds))
-            : PrepareCoreAsync(sampleId, waterSamplingPointIds, userId, storageCondition, storageTimeHours, null);
+            ? UnitOfWork.RunAsync(_db, () => PrepareCoreAsync(sampleId, waterSamplingPointIds, userId, storageCondition, storageTimeHours, monitoringOccurrenceIds, ct), ct)
+            : PrepareCoreAsync(sampleId, waterSamplingPointIds, userId, storageCondition, storageTimeHours, null, ct);
 
-    private async Task<Sample> PrepareCoreAsync(int sampleId, List<int> waterSamplingPointIds, int userId, string? storageCondition, int? storageTimeHours, IReadOnlyList<int>? monitoringOccurrenceIds)
+    private async Task<Sample> PrepareCoreAsync(int sampleId, List<int> waterSamplingPointIds, int userId, string? storageCondition, int? storageTimeHours, IReadOnlyList<int>? monitoringOccurrenceIds, CancellationToken ct)
     {
-        var sample = await _db.Samples.Include(s => s.TestOrders).Include(s => s.Locations).FirstOrDefaultAsync(s => s.Id == sampleId)
+        var sample = await _db.Samples.Include(s => s.TestOrders).Include(s => s.Locations).FirstOrDefaultAsync(s => s.Id == sampleId, ct)
             ?? throw new NotFoundException(
                 MessageCodes.SampleNotFound,
                 $"Sample {sampleId} not found.",
@@ -184,7 +186,7 @@ public class WaterWorkflowEngine : IWaterWorkflowEngine
 
         var points = await _db.WaterSamplingPoints
             .Where(p => waterSamplingPointIds.Contains(p.Id))
-            .ToListAsync();
+            .ToListAsync(ct);
 
         var missing = waterSamplingPointIds.Except(points.Select(p => p.Id)).ToList();
         if (missing.Count > 0)
@@ -227,7 +229,7 @@ public class WaterWorkflowEngine : IWaterWorkflowEngine
         var allCodes = points.SelectMany(p => p.AssignedTestCodes).Distinct().ToList();
         var testDefs = await _db.TestDefinitions
             .Where(t => allCodes.Contains(t.Code))
-            .ToListAsync();
+            .ToListAsync(ct);
 
         var allowedDefs = testDefs.Where(t =>
             t.SectionId == labId &&
@@ -248,10 +250,13 @@ public class WaterWorkflowEngine : IWaterWorkflowEngine
 
         var configs = await _db.SamplingConfigurations
             .Where(c => waterSamplingPointIds.Contains(c.WaterSamplingPointId))
-            .ToListAsync();
+            .ToListAsync(ct);
 
         if (_scope is not null)
-            await _scope.EnsureSectionsAccessAsync(userId, new[] { labId });
+            await _scope.EnsureSectionsAccessAsync(userId, new[] { labId }, ct: ct);
+
+        if (_competency is not null)
+            await _competency.EnsureSubjectsAllowedAsync(userId, allowedCodes.Select(code => new CompetencySubject(code, labId, sample.ItemId)).ToArray(), ct);
 
         var testOrdersByCode = new Dictionary<string, TestOrder>();
         foreach (var point in points)
@@ -305,55 +310,8 @@ public class WaterWorkflowEngine : IWaterWorkflowEngine
         }
 
         sample.PreparationStatus = SamplePreparationStatus.Ready;
-        await _db.SaveChangesAsync();
+        await _db.SaveChangesAsync(ct);
         return sample;
-    }
-
-    public async Task<WaterComparisonResult> CalculateAndCompareAsync(int testOrderId, List<decimal> readings)
-    {
-        if (readings.Count == 0)
-            throw new BusinessRuleException(
-                MessageCodes.MonitoringReadingRequiredForAverage,
-                "At least one reading is required to calculate an average.");
-
-        var order = await WorkflowStateMachine.LoadOrThrowAsync(_db, testOrderId);
-
-        // A TestOrder that went through the batch PrepareAsync always has
-        // SampleLocation rows (one per selected sampling point). Per-
-        // location result entry for those ships separately - this legacy
-        // single-average path must never silently misattribute a batch
-        // order's result to "the" sampling point.
-        var isBatchPrepared = await _db.SampleLocations.AnyAsync(l => l.TestOrderId == testOrderId);
-        if (isBatchPrepared)
-            throw new BusinessRuleException(
-                MessageCodes.MonitoringWaterBatchPerLocationNotAvailable,
-                "This water test was prepared across multiple sampling points; per-location result entry is not available yet.");
-
-        var sample = await _db.Samples.Include(s => s.TestOrders).FirstOrDefaultAsync(s => s.Id == order.SampleId)
-            ?? throw new NotFoundException(
-                MessageCodes.MonitoringSampleNotFoundForTestOrder,
-                "Sample not found for this test order.");
-
-        var config = sample.WaterSamplingPointId is null
-            ? null
-            : await _db.SamplingConfigurations.FirstOrDefaultAsync(c => c.TestCode == order.TestCode && c.WaterSamplingPointId == sample.WaterSamplingPointId);
-
-        var average = readings.Average();
-
-        var (status, exceeded) = Compare(average, config?.AlertLimit, config?.ActionLimit, config?.SpecLimit);
-
-        _db.Results.Add(new Result
-        {
-            TestOrderId = testOrderId,
-            RawValue = string.Join(",", readings),
-            InterpretedValue = $"{average:0.##} ({status})",
-            Type = ResultType.Numeric
-        });
-
-        await WorkflowStateMachine.TransitionAsync(_db, order, WorkflowStep.Ready, order.AssignedAnalystId ?? 0,
-            $"Average {average:0.##}, {status}");
-
-        return new WaterComparisonResult(average, status.ToString(), exceeded);
     }
 
     // Alert -> Action -> Specification, in ascending order of severity -

@@ -1,3 +1,4 @@
+import { SopMethodDetails } from "./components/SopMethodDetails";
 import { useTranslation } from "../../i18n";
 import { CollapsibleTestCard, SecondaryToggle } from "./CollapsibleTestCard";
 import { CheckIcon, CrossIcon, DotIcon, dt, humanize, LOCATION_STATUS_COLOR } from "./SampleReportPage";
@@ -66,9 +67,31 @@ function isQuantitative(test: TestOrderSummaryDetail): boolean {
 // home: DetectionTestCard's bare-fallback branch covers it, since a bare
 // result is conceptually a qualitative call too ("the recorded value"),
 // never a computed CFU.
-export function TestResultCard({ test }: { test: TestOrderSummaryDetail }) {
-  if (test.analysis) return <AnalysisCard test={test} />;
-  return isQuantitative(test) ? <CountTestCard test={test} /> : <DetectionTestCard test={test} />;
+export function TestResultCard({ test, showSop, labTimeZoneId, sopCaptureStartDateUtc }: { test: TestOrderSummaryDetail; showSop?: boolean; labTimeZoneId?: string; sopCaptureStartDateUtc?: string | null }) {
+  const { t } = useTranslation("testingWorkspace");
+  const resultCard = test.analysis
+    ? <AnalysisCard test={test} />
+    : isQuantitative(test) ? <CountTestCard test={test} /> : <DetectionTestCard test={test} />;
+  return (
+    <>
+      {resultCard}
+      {(showSop || test.sopCapture) && <SopMethodDetails sopCapture={test.sopCapture} newerSopRevision={test.newerSopRevision} sopCaptureStartDateUtc={sopCaptureStartDateUtc} timeZone={labTimeZoneId} />}
+      {test.competencyOverrides?.map((override, index) => {
+        const meaning = override.meaning === "Competency override"
+          ? t("sampleSummary.testResults.competencyOverride")
+          : override.meaning;
+        return (
+          <div className="signature-card" key={index}>
+            <div className="sig-meaning">{meaning} · {t("sampleSummary.testResults.overrideAnalyst", { analyst: override.analystName })}</div>
+            <div className="sig-name">{override.grantedByFullName}</div>
+            <div className="sig-time">{dt(override.grantedAtUtc)}</div>
+            <div className="sig-comment">{override.reason}</div>
+            {override.endedAtUtc && <div className="sig-time">{t("sampleSummary.testResults.overrideEnded")}: {dt(override.endedAtUtc)}</div>}
+          </div>
+        );
+      })}
+    </>
+  );
 }
 
 // Generic TestAnalysis: headline parameter results, conditions, and per-parameter raw readings.

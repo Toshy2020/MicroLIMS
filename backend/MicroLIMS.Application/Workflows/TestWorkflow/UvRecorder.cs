@@ -28,10 +28,10 @@ public sealed class UvRecorder : TestWorkflowSupport
     public UvRecorder(TestWorkflowDependencies deps) : base(deps) { }
 
     public Task<TestWorkflowResult> RecordUvResultAsync(
-        int testOrderId, UvPayload payload, int userId, string? ipAddress = null) =>
-        UnitOfWork.RunAsync(_db, () => RecordCoreAsync(testOrderId, payload, userId, ipAddress));
+        int testOrderId, UvPayload payload, int userId, string? ipAddress = null, CancellationToken cancellationToken = default) =>
+        UnitOfWork.RunAsync(_db, () => RecordCoreAsync(testOrderId, payload, userId, ipAddress, cancellationToken));
 
-    private async Task<TestWorkflowResult> RecordCoreAsync(int testOrderId, UvPayload p, int userId, string? ipAddress)
+    private async Task<TestWorkflowResult> RecordCoreAsync(int testOrderId, UvPayload p, int userId, string? ipAddress, CancellationToken cancellationToken)
     {
         var parameters = p.Parameters ?? new List<UvParameterInput>();
         // checked before anything is loaded: a request that omits the id arrives as 0
@@ -40,6 +40,8 @@ public sealed class UvRecorder : TestWorkflowSupport
         var (order, t, specById, analysedAtUtc) = await ValidateTestAnalysisOrderAsync(
             testOrderId, p.AnalysedAt, p.EquipmentId, parameters.Select(x => x.SpecificationId).ToList(),
             p.Password, WorkflowType.UvSpectrophotometry, userId);
+        using var recording = await RequireCompetentAsync(userId, order.Id, cancellationToken);
+        await CaptureSopRevisionAsync(order, cancellationToken);
 
         // ---- test constants (old rows are read defensively; the Test Master refuses these on save) ----
         if (t.EquationType != EquationType.UvSpectrophotometry)

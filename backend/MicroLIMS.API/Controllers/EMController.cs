@@ -34,6 +34,6 @@ public class EMController : ControllerBase
     // monitoring session generates the batch TestOrders + SampleLocations.
     [HttpPost("prepare")]
     [Authorize(Policy = PermissionConstants.SamplesReceiveOwnLab)]
-    public async Task<IActionResult> Prepare(PrepareEMRequest request) =>
-        Ok(ApiResponse<object>.Ok(await _emService.PrepareAsync(request.SampleId, request.RoomTestConfigurationIds, CurrentUserId, request.MonitoringOccurrenceIds)));
+    public async Task<IActionResult> Prepare(PrepareEMRequest request, CancellationToken ct = default) =>
+        Ok(ApiResponse<object>.Ok(await _emService.PrepareAsync(request.SampleId, request.RoomTestConfigurationIds, CurrentUserId, request.MonitoringOccurrenceIds, ct)));
 }

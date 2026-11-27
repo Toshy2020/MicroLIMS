@@ -1,5 +1,6 @@
 using System.Globalization;
 using MicroLIMS.Application.Helpers;
+using MicroLIMS.Application.Services.Oos;
 using MicroLIMS.Shared.Exceptions;
 using MicroLIMS.Shared.Messages;
 using System.Security.Cryptography;
@@ -61,12 +62,14 @@ public class OosInvestigationDocumentService
     private readonly MaterialDocumentFileValidator _validator;
     private readonly ILogger<OosInvestigationDocumentService> _logger;
     private readonly TimeProvider _time;
+    private readonly OosInvestigationService _investigations;
 
     public OosInvestigationDocumentService(
         IMicroLimsDbContext db,
         IFileStorageService storage,
         MaterialDocumentFileValidator validator,
         ILogger<OosInvestigationDocumentService> logger,
+        OosInvestigationService investigations,
         TimeProvider? timeProvider = null)
     {
         _time = timeProvider ?? TimeProvider.System;
@@ -74,29 +77,24 @@ public class OosInvestigationDocumentService
         _storage = storage;
         _validator = validator;
         _logger = logger;
+        _investigations = investigations;
     }
 
-    public async Task<List<OosInvestigationDocumentDto>> GetDocumentsAsync(string oosGroupCode)
+    public async Task<List<OosInvestigationDocumentDto>> GetDocumentsAsync(string oosGroupCode, int requestingUserId, CancellationToken ct = default)
     {
-        var groupExists = await _db.Samples.AnyAsync(s => s.OosGroupCode == oosGroupCode);
-        if (!groupExists)
-            throw new NotFoundException(
-                MessageCodes.OosGroupNotFound,
-                $"OOS group \"{oosGroupCode}\" not found.",
-                new Dictionary<string, string> { ["oosGroupCode"] = oosGroupCode });
+        await _investigations.EnsureDocumentGroupReadableAsync(oosGroupCode, requestingUserId, ct);
 
-        var docs = await _db.OosInvestigationDocuments
+        return await _db.OosInvestigationDocuments.AsNoTracking()
             .Where(d => d.OosGroupCode == oosGroupCode)
             .OrderBy(d => d.Status == MaterialDocumentStatus.Current ? 0 : 1)
             .ThenByDescending(d => d.UploadedAt)
-            .ToListAsync();
-
-        var userIds = docs.Select(d => d.UploadedByUserId).Distinct().ToList();
-        var userMap = await _db.Users
-            .Where(u => userIds.Contains(u.Id))
-            .ToDictionaryAsync(u => u.Id, u => u.FullName);
-
-        return docs.Select(d => ToDto(d, userMap.GetValueOrDefault(d.UploadedByUserId, "Unknown"))).ToList();
+            .Select(d => new OosInvestigationDocumentDto(
+                d.Id, d.OosGroupCode, d.OriginalFileName, d.FileExtension, d.ContentType, d.FileSizeBytes,
+                d.ContentSha256, d.UploadedByUserId,
+                _db.Users.Where(u => u.Id == d.UploadedByUserId).Select(u => u.FullName).FirstOrDefault() ?? "Unknown",
+                d.UploadedAt, d.Status, d.SupersededByDocumentId, d.SupersededAt, d.SupersededByUserId,
+                d.SupersessionReason, d.VoidedAt, d.VoidedByUserId, d.VoidReason))
+            .ToListAsync(ct);
     }
 
     public Task<OosInvestigationDocumentDto> UploadAsync(string oosGroupCode, UploadOosInvestigationDocumentRequest request, int uploadingUserId) =>
@@ -104,7 +102,8 @@ public class OosInvestigationDocumentService
 
     private async Task<OosInvestigationDocumentDto> UploadCoreAsync(string oosGroupCode, UploadOosInvestigationDocumentRequest request, int uploadingUserId)
     {
-        var groupExists = await _db.Samples.AnyAsync(s => s.OosGroupCode == oosGroupCode);
+        var groupExists = await _db.OosInvestigations.AnyAsync(i => i.Number == oosGroupCode)
+            || await _db.Samples.AnyAsync(s => s.OosGroupCode == oosGroupCode);
         if (!groupExists)
             throw new NotFoundException(
                 MessageCodes.OosGroupNotFound,
@@ -159,10 +158,12 @@ public class OosInvestigationDocumentService
         return await LoadDtoAsync(document.Id);
     }
 
-    public async Task<(OosInvestigationDocumentDto Metadata, byte[] Content)> GetContentAsync(int documentId, string oosGroupCode, int requestingUserId)
+    public async Task<(OosInvestigationDocumentDto Metadata, byte[] Content)> GetContentAsync(
+        int documentId, string oosGroupCode, int requestingUserId, CancellationToken ct = default)
     {
-        var document = await _db.OosInvestigationDocuments
-            .FirstOrDefaultAsync(d => d.Id == documentId && d.OosGroupCode == oosGroupCode)
+        await _investigations.EnsureDocumentGroupReadableAsync(oosGroupCode, requestingUserId, ct);
+        var document = await _db.OosInvestigationDocuments.AsNoTracking()
+            .FirstOrDefaultAsync(d => d.Id == documentId && d.OosGroupCode == oosGroupCode, ct)
             ?? throw new NotFoundException(
                 MessageCodes.OosDocumentNotFoundForGroup,
                 $"Document {documentId} not found for OOS group {oosGroupCode}.",
@@ -192,10 +193,10 @@ public class OosInvestigationDocumentService
                 "Document integrity check failed. The file may have been altered. Please contact your System Administrator.");
         }
 
-        var userName = await _db.Users
+        var userName = await _db.Users.AsNoTracking()
             .Where(u => u.Id == document.UploadedByUserId)
             .Select(u => u.FullName)
-            .FirstOrDefaultAsync() ?? "Unknown";
+            .FirstOrDefaultAsync(ct) ?? "Unknown";
 
         return (ToDto(document, userName), content);
     }

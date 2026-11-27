@@ -1,4 +1,5 @@
 using MicroLIMS.Domain.Entities;
+using MicroLIMS.Domain.Entities.Quality;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Infrastructure;
@@ -31,6 +32,7 @@ public interface IMicroLimsDbContext
     // reason). The automatic audit capture copies it into AuditLog.Reason
     // for every row the save produces. Set per operation, never from JSON.
     string? CurrentReason { get; set; }
+    void SetNextAuditReason(object entity, string reason);
 
     // Where the change came from, when the request says so (today: the start
     // time a bench tablet reports for its local draft). The automatic audit
@@ -203,6 +205,36 @@ public interface IMicroLimsDbContext
     DbSet<ItemDocument> ItemDocuments { get; }
     DbSet<ItemDocumentAccessLog> ItemDocumentAccessLogs { get; }
     DbSet<OosInvestigationDocument> OosInvestigationDocuments { get; }
+    DbSet<OosInvestigation> OosInvestigations { get; }
+    DbSet<OosInvestigationResult> OosInvestigationResults { get; }
+    DbSet<OosInvestigationEntry> OosInvestigationEntrys { get; }
+    DbSet<OosRetestPlan> OosRetestPlans { get; }
+    DbSet<OosRetestPlanSample> OosRetestPlanSamples { get; }
+    DbSet<OosDeviationRequest> OosDeviationRequests { get; }
+    DbSet<OosInvestigationReopening> OosInvestigationReopenings { get; }
+    DbSet<OosInvestigationTemplate> OosInvestigationTemplates { get; }
+    DbSet<OosChecklistItem> OosChecklistItems { get; }
+    DbSet<OosCauseCategory> OosCauseCategories { get; }
+    DbSet<QualityRecord> QualityRecords { get; }
+    DbSet<DeviationDetail> DeviationDetails { get; }
+    DbSet<CapaDetail> CapaDetails { get; }
+    DbSet<ChangeControlDetail> ChangeControlDetails { get; }
+    DbSet<ComplaintDetail> ComplaintDetails { get; }
+    DbSet<QualityRecordStep> QualityRecordSteps { get; }
+    DbSet<QualityAction> QualityActions { get; }
+    DbSet<QualityRecordLink> QualityRecordLinks { get; }
+    DbSet<QualityAttachment> QualityAttachments { get; }
+    DbSet<QualityComment> QualityComments { get; }
+    DbSet<QualityExtensionRequest> QualityExtensionRequests { get; }
+    DbSet<QualityChecklistAnswer> QualityChecklistAnswers { get; }
+    DbSet<QualityChecklistTemplate> QualityChecklistTemplates { get; }
+    DbSet<QualityChecklistItem> QualityChecklistItems { get; }
+    DbSet<QualityClassification> QualityClassifications { get; }
+    DbSet<QualityDueRule> QualityDueRules { get; }
+    DbSet<QualitySectionSetting> QualitySectionSettings { get; }
+    DbSet<CompetencyOverride> CompetencyOverrides { get; }
+    DbSet<AnalystQualification> AnalystQualifications { get; }
+    DbSet<QualificationAttachment> QualificationAttachments { get; }
     DbSet<TestDefinition> TestDefinitions { get; }
     DbSet<TestWorkflowStep> TestWorkflowSteps { get; }
     DbSet<TestWorkflowStepMedia> TestWorkflowStepMedias { get; }
@@ -229,6 +261,7 @@ public interface IMicroLimsDbContext
     DbSet<DocumentDepartment> DocumentDepartments { get; }
     DbSet<DocumentSection> DocumentSections { get; }
     DbSet<SectionSelfAssignmentSetting> SectionSelfAssignmentSettings { get; }
+    DbSet<CompetencySectionSetting> CompetencySectionSettings { get; }
     DbSet<UserOrgMembership> UserOrgMemberships { get; }
     DbSet<DocumentNumberingConfiguration> DocumentNumberingConfigurations { get; }
     DbSet<ConfigurationSetting> ConfigurationSettings { get; }

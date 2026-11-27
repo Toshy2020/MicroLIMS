@@ -4,8 +4,8 @@
 |---|---|
 | Document number | FS-MDM |
 | Title | Master data functional specification |
-| Version | 0.5 |
-| Status | Draft |
+| Version | 0.6 |
+| Status | Draft — pending approval |
 | Author | Claude (AI agent), draft from code |
 | Reviewer | To be assigned by QA |
 | Approver | To be assigned by QA |
@@ -20,6 +20,7 @@
 | 0.3 | 2026-11-14 | AI coding agent, draft from code | Added all-or-nothing master data batch paste across six configuration screens and Solution Master exclusion (FS-MDM-036, FS-MDM-037). |
 | 0.4 | 2026-11-16 | AI coding agent, draft from code | Added where-used summary, change reason rule, specification retirement, validate-only and combined test endpoints, copy and new-from-existing, wizard frame, specification and Test Master wizards, and equipment wizard (FS-MDM-038 to FS-MDM-045). |
 | 0.5 | 2026-11-17 | AI coding agent, draft from code | Added items-using-a-test and open-SOP specifications (FS-MDM-046, FS-MDM-047). |
+| 0.6 | 2026-11-25 | AI coding agent, draft from code | Added test-order SOP revision capture and workflow/review display (FS-MDM-048; Draft — pending approval). |
 
 ## Scope and reading notes
 
@@ -338,3 +339,12 @@
 **Code:** `frontend/src/modules/testingWorkspace/components/OpenSopAction.tsx`; `frontend/src/modules/testingWorkspace/TestWorkflowDialog.tsx`; `frontend/src/modules/laboratoryConfiguration/masterDataSimple/TestItemsPanel.tsx`; `backend/MicroLIMS.Application/Services/ItemStmService.cs`
 **Verified by:** reading (not run); no test file for `OpenSopAction` was found; `TestItemsPanel.test.tsx` covers the Test Master link
 **Not verified:** the five SOP states at run time; the check that the workflow dialog's result payload is unchanged (existing test, not read).
+
+### FS-MDM-048
+*(Draft — pending approval)*
+**Satisfies:** URS-MDM-034
+**Tags:** sop-revision, test-order, immutability, workflow, review
+**Function:** Test-order SOP revision capture and workflow/review display. `SopRevisionCapture.CaptureIfNeededAsync` is called in the caller's transaction at every first-step recording point (paired 1:1 with the competency guard and enforced by `RecordingPointCoverageTests`, including `PathogenSessionService`). It returns immediately if `TestOrder.SopCaptureStatus` is already set or if the sample has no `ItemId`. On Npgsql inside a transaction it locks the `TestOrders` row (`FOR UPDATE`) and, on relational providers, calls `AdoptStoredCaptureAsync` so a concurrent second writer adopts the first writer's already-stored capture columns without marking them dirty and refreshes `xmin` when no other property changed. Otherwise it calls `ItemSopResolver.ResolveAsync` (`ResolveManyAsync` returns `Effective`, `NoSopNumber`, `NotFound`, `NoEffectiveRevision`, or `Ambiguous` when multiple `DocumentMaster` rows match `CompanyDocumentCode` case-insensitively; since CONF-212 this cannot happen for data written after migration `20261126160621_EnforceCaseInsensitiveDocumentCodes`, so the branch is defensive), sets `SopCaptureStatus` and `SopCapturedAtUtc` (from `TimeProvider`), and when `Effective` populates `SopDocumentMasterId`, `SopDocumentCode`, `SopDocumentTitle`, `SopRevisionId`, `SopRevisionNumber`, and `SopEffectiveDateUtc`. The PostgreSQL trigger `test_orders_sop_capture_immutable` prevents modifying those eight columns once `SopCaptureStatus` is non-null. `TestOrderSopDisplay.Capture` maps the stored columns to `SopCaptureDto`, and `TestOrderSopDisplay.ReadNoticesAsync` emits `NewerSopRevisionDto` per CONF-222 when `ItemSopResolver.ResolveManyAsync` returns an `Effective` revision on the same `DocumentMasterId` with `RevisionSequence` greater than the captured sequence, `EffectiveDate` between `SopCapturedAtUtc` (exclusive) and `nowUtc` (inclusive), and either the order is open (`!IsSuperseded && Status is Pending or InProgress`) or `EffectiveDate` precedes the order's `Ready` transition timestamp. Migration `20261126211459_RecordSopCaptureStartDate` inserts a non-editable `sopCapture.startDateUtc` row in `SystemSettings` (excluded from `SystemSettingDefinitions.All` and `SystemSettingsService`), read per request by `SopCaptureStartDateReader` and exposed on `SampleDto`, `SampleSummaryDto`, and `CurrentStepViewService`. In the browser, `SopMethodDetails` renders the captured method, unresolved reason, or `"Not recorded (before {date})"` in the laboratory time zone (for pre-capture orders, per CONF-243) and `SopRevisionNotice` in `TestWorkflowDialog` (for item-based samples) and `TestResultsSection` (review).
+**Code:** `backend/MicroLIMS.Application/Services/SopRevisionCapture.cs` — `CaptureIfNeededAsync`, `AdoptStoredCaptureAsync`; `backend/MicroLIMS.Application/Services/SopCaptureStartDateReader.cs` — `GetStartDateUtcAsync`; `backend/MicroLIMS.Application/Services/ItemSopResolver.cs` — `ResolveAsync`, `ResolveManyAsync`; `backend/MicroLIMS.Application/Services/TestOrderSopDisplay.cs` — `Capture`, `ReadNoticesAsync`; `frontend/src/modules/testingWorkspace/components/SopMethodDetails.tsx`; `frontend/src/modules/testingWorkspace/TestWorkflowDialog.tsx`; `frontend/src/modules/testingWorkspace/sampleSummary/TestResultsSection.tsx`
+**Verified by:** reading (not run); tests present: `SopRevisionCapturePostgresTests`, `SopRevisionCapturePointsPostgresTests`, `SopCaptureStartDatePostgresTests`, `RecordingPointCoverageTests`, `TestWorkflowDialog.openSop.test.tsx`, `TestResultsSection.sop.test.tsx`, `SopMethodDetails.test.tsx`
+**Conflicts:** CONF-212, CONF-222, CONF-243

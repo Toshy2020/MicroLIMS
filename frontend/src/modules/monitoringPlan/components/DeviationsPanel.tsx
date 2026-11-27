@@ -15,6 +15,8 @@ import { MonitoringDeviationApi } from "../services/MonitoringPlanService";
 import { CATEGORY_KEY, formatShortDate } from "../statusDisplay";
 import type { Deviation, DeviationClosure, DeviationList } from "../types";
 import { StatusPill } from "./StatusPill";
+import { RaiseDeviationButton } from "../../quality/components/RaiseDeviationButton";
+import { QualityRecordsPanel } from "../../quality/components/QualityRecordsPanel";
 
 const occurrenceDate = (d: Deviation) => d.targetDate ?? d.windowEnd;
 
@@ -207,6 +209,16 @@ export function DeviationsPanel({ onPick }: { onPick: (occurrenceId: number) => 
                 <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", mt: 0.5, alignItems: "center" }}>
                   <Button size="small" onClick={() => onPick(d.occurrenceId)}>{t("deviations.openOccurrence")}</Button>
                   {d.followUpOccurrenceId && <Button size="small" onClick={() => onPick(d.followUpOccurrenceId!)}>{t("deviations.openFollowUp")}</Button>}
+                  {d.status === "Open" && (
+                    <RaiseDeviationButton
+                      sourceKind="monitoringDeviation"
+                      sourceId={d.id}
+                      sourceVersion={d.version}
+                      initialTitle={d.number}
+                      initialDescription={d.description}
+                      onRaised={() => void load()}
+                    />
+                  )}
                   <Typography sx={{ fontSize: 12, color: d.pastDue ? "error.main" : "text.secondary" }}>
                     {d.status === "Open" ? renderDueText([d]) : (
                       <Trans
@@ -217,6 +229,9 @@ export function DeviationsPanel({ onPick }: { onPick: (occurrenceId: number) => 
                       />
                     )}
                   </Typography>
+                </Box>
+                <Box sx={{ mt: 1 }}>
+                  <QualityRecordsPanel targetType="MonitoringDeviation" targetId={d.id} compact />
                 </Box>
               </Box>
               <StatusPill tone={d.status === "Open" ? "detected" : "notDetected"} symbol={d.status === "Open" ? "▲" : "✓"}>

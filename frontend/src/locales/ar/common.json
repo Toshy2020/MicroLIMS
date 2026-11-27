@@ -647,6 +647,11 @@
     "fieldHint": {
       "aboutAria": "حول {{label}}",
       "readMore": "اقرأ المزيد"
+    },
+    "signedTimeline": {
+      "title": "الجدول الزمني الموقَّع",
+      "empty": "لا توجد تواقيع إلكترونية مسجَّلة بعد.",
+      "entryMeta": "{{name}} ({{role}}) · {{date}}"
     }
   },
   "statuses": {
@@ -754,10 +759,34 @@
     "Removed": "مُزال",
     "RequiresReview": "يتطلب مراجعة",
     "Withdrawn": "مسحوب",
+    "ExpiringSoon": "تنتهي صلاحيته قريبًا",
+    "NotQualified": "غير مؤهل",
     "Signed": "موقَّع",
     "NoFindings": "بلا ملاحظات",
     "FindingsRecorded": "ملاحظات مسجَّلة",
-    "Closed": "مغلق"
+    "Closed": "مغلق",
+    "PhaseOne": "المرحلة الأولى",
+    "AwaitingRetest": "بانتظار إعادة الاختبار",
+    "PhaseTwo": "المرحلة الثانية",
+    "Concluded": "مُختتم",
+    "Confirmed": "خارج المواصفات مؤكد",
+    "Invalidated": "خارج المواصفات مُبطل",
+    "ExcursionClosed": "تجاوز مغلق",
+    "Oos": "خارج المواصفات",
+    "Excursion": "تجاوز",
+    "Addressed": "تمت المعالجة",
+    "LaboratoryErrorConfirmed": "تأكد خطأ المختبر",
+    "NoLaboratoryErrorFound": "لم يُعثر على خطأ مختبري",
+    "Raised": "تم رفعه",
+    "Investigation": "تحقيق",
+    "LabConcluded": "استنتاج المختبر",
+    "Plan": "خطة",
+    "PlanApproved": "الخطة معتمدة",
+    "CompletionVerified": "تم التحقق من الإنجاز",
+    "Proposed": "مقترح",
+    "Assessed": "تم التقييم",
+    "ApprovedForImplementation": "معتمد للتنفيذ",
+    "LabReported": "تقرير المختبر"
   },
   "workflowEvents": {
     "SubmittedForReview": "قُدِّم للمراجعة",

@@ -9,9 +9,8 @@ namespace MicroLIMS.Tests.ArchitectureTests;
 // InvalidOperationException that signals a bug (EF Core's "Sequence contains
 // no elements", a tracking conflict).
 //
-// The one allowed form wraps an infrastructure failure with its inner
-// exception - new InvalidOperationException("Document storage failed...", ex) -
-// which is not a rule violation. Comments are ignored.
+// Infrastructure failures may wrap their inner exception. Documented
+// caller preconditions also signal programming errors. Comments are ignored.
 public class BusinessRuleThrowTests
 {
     private static readonly Regex PlainThrow = new(@"new\s+InvalidOperationException\s*\(", RegexOptions.Compiled);
@@ -25,6 +24,13 @@ public class BusinessRuleThrowTests
     [
         Path.Combine("MicroLIMS.Application", "Services", "ReferenceNumberGenerator.cs"),
     ];
+
+    // This internal finalisation entry point requires an already closed sample.
+    // An open sample here means a caller skipped the close-out guard.
+    private static readonly string SampleApprovalPath =
+        Path.Combine("MicroLIMS.Application", "Services", "SampleApprovalService.cs");
+    private const string SampleClosingPrecondition =
+        "throw new InvalidOperationException(\"Only a closed sample can be finalised.\");";
 
     private static string BackendDirectory([System.Runtime.CompilerServices.CallerFilePath] string thisFile = "") =>
         Path.GetFullPath(Path.Combine(Path.GetDirectoryName(thisFile)!, "..", ".."));
@@ -41,6 +47,8 @@ public class BusinessRuleThrowTests
             .Where(f => !ProgrammingErrorGuards.Any(g => f.EndsWith(g, StringComparison.Ordinal)))
             .SelectMany(f => File.ReadLines(f).Select((line, i) => (File: f, Line: i + 1, Text: StripComment(line))))
             .Where(l => PlainThrow.IsMatch(l.Text) && !WrapsInnerException.IsMatch(l.Text))
+            .Where(l => !l.File.EndsWith(SampleApprovalPath, StringComparison.Ordinal) ||
+                l.Text.Trim() != SampleClosingPrecondition)
             .Select(l => $"{Path.GetRelativePath(backend, l.File)}:{l.Line}")
             .ToList();
 

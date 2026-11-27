@@ -18,12 +18,16 @@ public class TestingWorkspaceService : ITestWorkspaceService
     private readonly IMicroLimsDbContext _db;
     private readonly IUserSectionScopeService _scope;
     private readonly TimeProvider _time;
+    private readonly string _labTimeZoneId;
+    private readonly ISopCaptureStartDateReader? _sopCaptureStartDateReader;
 
-    public TestingWorkspaceService(IMicroLimsDbContext db, IUserSectionScopeService scope, TimeProvider? timeProvider = null)
+    public TestingWorkspaceService(IMicroLimsDbContext db, IUserSectionScopeService scope, TimeProvider? timeProvider = null, ILabClock? labClock = null, ISopCaptureStartDateReader? sopCaptureStartDateReader = null)
     {
         _time = timeProvider ?? TimeProvider.System;
         _db = db;
         _scope = scope;
+        _labTimeZoneId = TestOrderSopDisplay.LabTimeZoneId(labClock?.LabTimeZone);
+        _sopCaptureStartDateReader = sopCaptureStartDateReader;
     }
 
     private static readonly Expression<Func<Sample, string>> SampleDisplayNameExpression = s =>
@@ -316,7 +320,7 @@ public class TestingWorkspaceService : ITestWorkspaceService
             .Include(s => s.SectionSignoffs)
             .ToListAsync(cancellationToken);
 
-        var dtos = await MapSamplesToDtosAsync(pagedSamples, scope);
+        var dtos = await MapSamplesToDtosAsync(pagedSamples, scope, cancellationToken);
 
         return new PagedResult<SampleDto>
         {
@@ -434,7 +438,7 @@ public class TestingWorkspaceService : ITestWorkspaceService
         };
     }
 
-    private async Task<List<SampleDto>> MapSamplesToDtosAsync(List<Sample> samples, IReadOnlyCollection<int>? scope = null)
+    private async Task<List<SampleDto>> MapSamplesToDtosAsync(List<Sample> samples, IReadOnlyCollection<int>? scope = null, CancellationToken ct = default)
     {
         if (scope != null)
         {
@@ -507,12 +511,25 @@ public class TestingWorkspaceService : ITestWorkspaceService
             .Select(s => s.Id)
             .ToListAsync()).ToHashSet();
 
-        return samples
-            .Select(s => ToDto(s, testDefs, incubations, locationCounts, analystNames, incubationsBySampleId, mediaLookup, noPreparationSectionIds, _time.GetUtcNow().UtcDateTime))
+        var now = _time.GetUtcNow().UtcDateTime;
+        var sopNotices = await TestOrderSopDisplay.ReadNoticesAsync(_db, samples.SelectMany(s => s.TestOrders), now, ct);
+        var result = samples
+            .Select(s => ToDto(s, testDefs, incubations, locationCounts, analystNames, incubationsBySampleId, mediaLookup, noPreparationSectionIds, now))
             .ToList();
+        var sopCaptureStartDateUtc = _sopCaptureStartDateReader is null
+            ? null
+            : await _sopCaptureStartDateReader.GetStartDateUtcAsync(ct);
+        foreach (var dto in result)
+        {
+            dto.LabTimeZoneId = _labTimeZoneId;
+            dto.SopCaptureStartDateUtc = sopCaptureStartDateUtc;
+        }
+        foreach (var test in result.SelectMany(s => s.AssignedTests))
+            test.NewerSopRevision = sopNotices.GetValueOrDefault(test.TestOrderId);
+        return result;
     }
 
-    public async Task<SampleDto?> GetSampleAsync(int sampleId, int? currentUserId = null, int? labSectionId = null, string? area = null)
+    public async Task<SampleDto?> GetSampleAsync(int sampleId, int? currentUserId = null, int? labSectionId = null, string? area = null, CancellationToken cancellationToken = default)
     {
         var scope = currentUserId.HasValue
             ? await _scope.GetReadableSectionIdsAsync(currentUserId.Value)
@@ -550,7 +567,7 @@ public class TestingWorkspaceService : ITestWorkspaceService
                 return null;
         }
 
-        var dtos = await MapSamplesToDtosAsync(new List<Sample> { sample }, scope);
+        var dtos = await MapSamplesToDtosAsync(new List<Sample> { sample }, scope, cancellationToken);
         return dtos.FirstOrDefault();
     }
 
@@ -628,6 +645,7 @@ public class TestingWorkspaceService : ITestWorkspaceService
             return new TestOrderSummaryDto
             {
                 TestOrderId = t.Id,
+                SopCapture = TestOrderSopDisplay.Capture(t),
                 SectionId = t.SectionId,
                 TestCode = t.TestCode,
                 Status = t.Status.ToString(),

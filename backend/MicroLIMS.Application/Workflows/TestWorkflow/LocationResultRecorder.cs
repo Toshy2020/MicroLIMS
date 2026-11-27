@@ -13,14 +13,16 @@ public sealed class LocationResultRecorder : TestWorkflowSupport
 {
     public LocationResultRecorder(TestWorkflowDependencies deps) : base(deps) { }
 
-    public Task<TestWorkflowResult> RecordLocationResultsAsync(int testOrderId, List<LocationResultInput> inputs, int userId) =>
-        UnitOfWork.RunAsync(_db, () => RecordLocationResultsCoreAsync(testOrderId, inputs, userId));
+    public Task<TestWorkflowResult> RecordLocationResultsAsync(int testOrderId, List<LocationResultInput> inputs, int userId, CancellationToken cancellationToken = default) =>
+        UnitOfWork.RunAsync(_db, () => RecordLocationResultsCoreAsync(testOrderId, inputs, userId, cancellationToken));
 
-    private async Task<TestWorkflowResult> RecordLocationResultsCoreAsync(int testOrderId, List<LocationResultInput> inputs, int userId)
+    private async Task<TestWorkflowResult> RecordLocationResultsCoreAsync(int testOrderId, List<LocationResultInput> inputs, int userId, CancellationToken cancellationToken)
     {
         await _sectionScope.EnsureTestOrderAccessAsync(userId, testOrderId);
 
         var order = await WorkflowStateMachine.LoadOrThrowAsync(_db, testOrderId);
+        using var recording = await RequireCompetentAsync(userId, order.Id, cancellationToken);
+        await CaptureSopRevisionAsync(order, cancellationToken);
         RequireOrderNotFinalized(order);
         if (order.Status is ApprovalStatus.Voided or ApprovalStatus.Cancelled or ApprovalStatus.Rejected or ApprovalStatus.Approved or ApprovalStatus.Reviewed or ApprovalStatus.ResultEntered)
             throw new BusinessRuleException(

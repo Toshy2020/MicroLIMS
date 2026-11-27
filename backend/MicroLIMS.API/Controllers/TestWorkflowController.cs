@@ -105,10 +105,10 @@ public class TestWorkflowController : ControllerBase
     }
 
     [HttpGet("{testOrderId}/current-step")]
-    public async Task<IActionResult> GetCurrentStep(int testOrderId)
+    public async Task<IActionResult> GetCurrentStep(int testOrderId, CancellationToken ct = default)
     {
-        await _scopeService.EnsureTestOrderAccessAsync(CurrentUserId, testOrderId, access: SectionAccess.Read);
-        return await RunAsync(() => _currentStepView.GetAsync(testOrderId));
+        await _scopeService.EnsureTestOrderAccessAsync(CurrentUserId, testOrderId, ct, access: SectionAccess.Read);
+        return await RunAsync(() => _currentStepView.GetAsync(testOrderId, ct));
     }
 
     [HttpGet("{testOrderId}/sibling-pathogen-orders")]
@@ -134,12 +134,12 @@ public class TestWorkflowController : ControllerBase
     }
 
     [HttpPost("{testOrderId}/select-media")]
-    public async Task<IActionResult> SelectMedia(int testOrderId, SelectMediaRequest request)
+    public async Task<IActionResult> SelectMedia(int testOrderId, SelectMediaRequest request, CancellationToken cancellationToken = default)
     {
         await _scopeService.EnsureTestOrderAccessAsync(CurrentUserId, testOrderId);
         return await RunAsync(async () =>
         {
-            var incubation = await _engine.SelectMediaAsync(testOrderId, request.StepName, request.MediaLotId, request.IncubatorId, CurrentUserId);
+            var incubation = await _engine.SelectMediaAsync(testOrderId, request.StepName, request.MediaLotId, request.IncubatorId, CurrentUserId, cancellationToken);
             return new
             {
                 incubation.Id, incubation.StepName, incubation.Temperature, incubation.Duration,
@@ -152,12 +152,12 @@ public class TestWorkflowController : ControllerBase
     // stage 1 and opens a new Incubation row in one step. See
     // TestWorkflowEngine.StartStage2IncubationAsync.
     [HttpPost("{testOrderId}/start-stage-2-incubation")]
-    public async Task<IActionResult> StartStage2Incubation(int testOrderId, StartStage2IncubationRequest request)
+    public async Task<IActionResult> StartStage2Incubation(int testOrderId, StartStage2IncubationRequest request, CancellationToken cancellationToken = default)
     {
         await _scopeService.EnsureTestOrderAccessAsync(CurrentUserId, testOrderId);
         return await RunAsync(async () =>
         {
-            var incubation = await _engine.StartStage2IncubationAsync(testOrderId, request.StepName, request.IncubatorId, CurrentUserId);
+            var incubation = await _engine.StartStage2IncubationAsync(testOrderId, request.StepName, request.IncubatorId, CurrentUserId, cancellationToken);
             return new
             {
                 incubation.Id, incubation.StepName, incubation.StageNumber, incubation.ParentIncubationId,
@@ -177,13 +177,13 @@ public class TestWorkflowController : ControllerBase
     }
 
     [HttpPost("{testOrderId}/record-result")]
-    public async Task<IActionResult> RecordResult(int testOrderId, RecordTestResultRequest request)
+    public async Task<IActionResult> RecordResult(int testOrderId, RecordTestResultRequest request, CancellationToken cancellationToken = default)
     {
         await _scopeService.EnsureTestOrderAccessAsync(CurrentUserId, testOrderId);
         return await RunAsync(() =>
         {
             var payload = BuildCountPayload(request);
-            return _engine.RecordResultAsync(testOrderId, request.StepName, payload, CurrentUserId);
+            return _engine.RecordResultAsync(testOrderId, request.StepName, payload, CurrentUserId, cancellationToken);
         });
     }
 
@@ -206,7 +206,7 @@ public class TestWorkflowController : ControllerBase
 
     [HttpPost("{testOrderId}/record-measurement-result")]
     [Authorize(Policy = PermissionConstants.TestWorkflowExecute)]
-    public async Task<IActionResult> RecordMeasurementResult(int testOrderId, RecordMeasurementResultRequest request)
+    public async Task<IActionResult> RecordMeasurementResult(int testOrderId, RecordMeasurementResultRequest request, CancellationToken cancellationToken = default)
     {
         await _scopeService.EnsureTestOrderAccessAsync(CurrentUserId, testOrderId);
         return await RunAsync(() =>
@@ -219,13 +219,13 @@ public class TestWorkflowController : ControllerBase
                     p.Readings)).ToList(),
                 request.Password,
                 request.Comment);
-            return _engine.RecordMeasurementResultAsync(testOrderId, payload, CurrentUserId, ClientIpAddress);
+            return _engine.RecordMeasurementResultAsync(testOrderId, payload, CurrentUserId, ClientIpAddress, cancellationToken);
         });
     }
 
     [HttpPost("{testOrderId}/record-gravimetric-result")]
     [Authorize(Policy = PermissionConstants.TestWorkflowExecute)]
-    public async Task<IActionResult> RecordGravimetricResult(int testOrderId, RecordGravimetricResultRequest request)
+    public async Task<IActionResult> RecordGravimetricResult(int testOrderId, RecordGravimetricResultRequest request, CancellationToken cancellationToken = default)
     {
         await _scopeService.EnsureTestOrderAccessAsync(CurrentUserId, testOrderId);
         return await RunAsync(() =>
@@ -239,7 +239,7 @@ public class TestWorkflowController : ControllerBase
                     p.Replicates.Select(r => new GravimetricReplicateInput(r.Container, r.Initial, r.Final)).ToList())).ToList(),
                 request.Password,
                 request.Comment);
-            return _engine.RecordGravimetricResultAsync(testOrderId, payload, CurrentUserId, ClientIpAddress);
+            return _engine.RecordGravimetricResultAsync(testOrderId, payload, CurrentUserId, ClientIpAddress, cancellationToken);
         });
     }
 
@@ -257,7 +257,7 @@ public class TestWorkflowController : ControllerBase
 
     [HttpPost("{testOrderId}/record-titration-result")]
     [Authorize(Policy = PermissionConstants.TestWorkflowExecute)]
-    public async Task<IActionResult> RecordTitrationResult(int testOrderId, RecordTitrationResultRequest request)
+    public async Task<IActionResult> RecordTitrationResult(int testOrderId, RecordTitrationResultRequest request, CancellationToken cancellationToken = default)
     {
         await _scopeService.EnsureTestOrderAccessAsync(CurrentUserId, testOrderId);
         return await RunAsync(() =>
@@ -269,13 +269,13 @@ public class TestWorkflowController : ControllerBase
                 request.SpecificationIds ?? new List<int>(),
                 request.Replicates?.Select(r => new TitrationReplicateInput(r.SampleWeightMg, r.TitrantVolumeMl)).ToList() ?? new List<TitrationReplicateInput>(),
                 request.Password, request.Comment, request.DueTitrantAcknowledged, request.DueTitrantJustification);
-            return _engine.RecordTitrationResultAsync(testOrderId, payload, CurrentUserId, ClientIpAddress);
+            return _engine.RecordTitrationResultAsync(testOrderId, payload, CurrentUserId, ClientIpAddress, cancellationToken);
         });
     }
 
     [HttpPost("{testOrderId}/record-uv-result")]
     [Authorize(Policy = PermissionConstants.TestWorkflowExecute)]
-    public async Task<IActionResult> RecordUvResult(int testOrderId, RecordUvResultRequest request)
+    public async Task<IActionResult> RecordUvResult(int testOrderId, RecordUvResultRequest request, CancellationToken cancellationToken = default)
     {
         await _scopeService.EnsureTestOrderAccessAsync(CurrentUserId, testOrderId);
         return await RunAsync(() =>
@@ -287,7 +287,7 @@ public class TestWorkflowController : ControllerBase
                     p.Replicates?.Select(r => new UvReplicateInput(r.WeightG, r.Absorbance)).ToList() ?? new List<UvReplicateInput>())).ToList()
                     ?? new List<UvParameterInput>(),
                 request.Password, request.Comment);
-            return _engine.RecordUvResultAsync(testOrderId, payload, CurrentUserId, ClientIpAddress);
+            return _engine.RecordUvResultAsync(testOrderId, payload, CurrentUserId, ClientIpAddress, cancellationToken);
         });
     }
 
@@ -305,7 +305,7 @@ public class TestWorkflowController : ControllerBase
 
     [HttpPost("{testOrderId}/record-outsourced-result")]
     [Authorize(Policy = PermissionConstants.TestWorkflowExecute)]
-    public async Task<IActionResult> RecordOutsourcedResult(int testOrderId, RecordOutsourcedResultRequest request)
+    public async Task<IActionResult> RecordOutsourcedResult(int testOrderId, RecordOutsourcedResultRequest request, CancellationToken cancellationToken = default)
     {
         return await RunAsync(() =>
         {
@@ -316,13 +316,13 @@ public class TestWorkflowController : ControllerBase
                 request.Parameters?.Select(p => new OutsourcedParameterInput(p.SpecificationId, p.Value, p.Conforms, p.Observation)).ToList() ?? new List<OutsourcedParameterInput>(),
                 request.Password,
                 request.Comment);
-            return _engine.RecordOutsourcedResultAsync(testOrderId, payload, CurrentUserId, ClientIpAddress);
+            return _engine.RecordOutsourcedResultAsync(testOrderId, payload, CurrentUserId, ClientIpAddress, cancellationToken);
         });
     }
 
     [HttpPost("{testOrderId}/record-qualitative-result")]
     [Authorize(Policy = PermissionConstants.TestWorkflowExecute)]
-    public async Task<IActionResult> RecordQualitativeResult(int testOrderId, RecordQualitativeResultRequest request)
+    public async Task<IActionResult> RecordQualitativeResult(int testOrderId, RecordQualitativeResultRequest request, CancellationToken cancellationToken = default)
     {
         await _scopeService.EnsureTestOrderAccessAsync(CurrentUserId, testOrderId);
         return await RunAsync(() =>
@@ -338,13 +338,13 @@ public class TestWorkflowController : ControllerBase
                 request.Password,
                 request.Comment,
                 request.ContainerCount);
-            return _engine.RecordQualitativeResultAsync(testOrderId, payload, CurrentUserId, ClientIpAddress);
+            return _engine.RecordQualitativeResultAsync(testOrderId, payload, CurrentUserId, ClientIpAddress, cancellationToken);
         });
     }
 
     [HttpPost("{testOrderId}/record-dissolution-result")]
     [Authorize(Policy = PermissionConstants.TestWorkflowExecute)]
-    public async Task<IActionResult> RecordDissolutionResult(int testOrderId, RecordDissolutionResultRequest request)
+    public async Task<IActionResult> RecordDissolutionResult(int testOrderId, RecordDissolutionResultRequest request, CancellationToken cancellationToken = default)
     {
         await _scopeService.EnsureTestOrderAccessAsync(CurrentUserId, testOrderId);
         return await RunAsync(() =>
@@ -358,13 +358,13 @@ public class TestWorkflowController : ControllerBase
                 request.VesselAreas,
                 request.Password,
                 request.Comment);
-            return _engine.RecordDissolutionResultAsync(testOrderId, payload, CurrentUserId, ClientIpAddress);
+            return _engine.RecordDissolutionResultAsync(testOrderId, payload, CurrentUserId, ClientIpAddress, cancellationToken);
         });
     }
 
     [HttpPost("{testOrderId}/record-dissolution-stage")]
     [Authorize(Policy = PermissionConstants.TestWorkflowExecute)]
-    public async Task<IActionResult> RecordDissolutionStage(int testOrderId, RecordDissolutionStageRequest request)
+    public async Task<IActionResult> RecordDissolutionStage(int testOrderId, RecordDissolutionStageRequest request, CancellationToken cancellationToken = default)
     {
         await _scopeService.EnsureTestOrderAccessAsync(CurrentUserId, testOrderId);
         return await RunAsync(() =>
@@ -373,13 +373,13 @@ public class TestWorkflowController : ControllerBase
                 request.VesselAreas,
                 request.Password,
                 request.Comment);
-            return _engine.RecordDissolutionStageAsync(testOrderId, payload, CurrentUserId, ClientIpAddress);
+            return _engine.RecordDissolutionStageAsync(testOrderId, payload, CurrentUserId, ClientIpAddress, cancellationToken);
         });
     }
 
     [HttpPost("{testOrderId}/record-disintegration-result")]
     [Authorize(Policy = PermissionConstants.TestWorkflowExecute)]
-    public async Task<IActionResult> RecordDisintegrationResult(int testOrderId, RecordDisintegrationResultRequest request)
+    public async Task<IActionResult> RecordDisintegrationResult(int testOrderId, RecordDisintegrationResultRequest request, CancellationToken cancellationToken = default)
     {
         await _scopeService.EnsureTestOrderAccessAsync(CurrentUserId, testOrderId);
         return await RunAsync(() =>
@@ -391,13 +391,13 @@ public class TestWorkflowController : ControllerBase
                 request.UnitMinutes,
                 request.Password,
                 request.Comment);
-            return _engine.RecordDisintegrationResultAsync(testOrderId, payload, CurrentUserId, ClientIpAddress);
+            return _engine.RecordDisintegrationResultAsync(testOrderId, payload, CurrentUserId, ClientIpAddress, cancellationToken);
         });
     }
 
     [HttpPost("{testOrderId}/record-disintegration-stage")]
     [Authorize(Policy = PermissionConstants.TestWorkflowExecute)]
-    public async Task<IActionResult> RecordDisintegrationStage(int testOrderId, RecordDisintegrationStageRequest request)
+    public async Task<IActionResult> RecordDisintegrationStage(int testOrderId, RecordDisintegrationStageRequest request, CancellationToken cancellationToken = default)
     {
         await _scopeService.EnsureTestOrderAccessAsync(CurrentUserId, testOrderId);
         return await RunAsync(() =>
@@ -406,13 +406,13 @@ public class TestWorkflowController : ControllerBase
                 request.UnitMinutes,
                 request.Password,
                 request.Comment);
-            return _engine.RecordDisintegrationStageAsync(testOrderId, payload, CurrentUserId, ClientIpAddress);
+            return _engine.RecordDisintegrationStageAsync(testOrderId, payload, CurrentUserId, ClientIpAddress, cancellationToken);
         });
     }
 
     [HttpPost("{testOrderId}/record-weight-variation-result")]
     [Authorize(Policy = PermissionConstants.TestWorkflowExecute)]
-    public async Task<IActionResult> RecordWeightVariationResult(int testOrderId, RecordWeightVariationResultRequest request)
+    public async Task<IActionResult> RecordWeightVariationResult(int testOrderId, RecordWeightVariationResultRequest request, CancellationToken cancellationToken = default)
     {
         await _scopeService.EnsureTestOrderAccessAsync(CurrentUserId, testOrderId);
         return await RunAsync(() =>
@@ -427,13 +427,13 @@ public class TestWorkflowController : ControllerBase
                 units!,
                 request.Password,
                 request.Comment);
-            return _engine.RecordWeightVariationResultAsync(testOrderId, payload, CurrentUserId, ClientIpAddress);
+            return _engine.RecordWeightVariationResultAsync(testOrderId, payload, CurrentUserId, ClientIpAddress, cancellationToken);
         });
     }
 
     [HttpPost("{testOrderId}/record-weight-variation-stage")]
     [Authorize(Policy = PermissionConstants.TestWorkflowExecute)]
-    public async Task<IActionResult> RecordWeightVariationStage(int testOrderId, RecordWeightVariationStageRequest request)
+    public async Task<IActionResult> RecordWeightVariationStage(int testOrderId, RecordWeightVariationStageRequest request, CancellationToken cancellationToken = default)
     {
         await _scopeService.EnsureTestOrderAccessAsync(CurrentUserId, testOrderId);
         return await RunAsync(() =>
@@ -445,7 +445,7 @@ public class TestWorkflowController : ControllerBase
                 units!,
                 request.Password,
                 request.Comment);
-            return _engine.RecordWeightVariationStageAsync(testOrderId, payload, CurrentUserId, ClientIpAddress);
+            return _engine.RecordWeightVariationStageAsync(testOrderId, payload, CurrentUserId, ClientIpAddress, cancellationToken);
         });
     }
 
@@ -459,34 +459,34 @@ public class TestWorkflowController : ControllerBase
     }
 
     [HttpPost("{testOrderId}/batch-results")]
-    public async Task<IActionResult> RecordBatchResults(int testOrderId, BatchResultsRequest request)
+    public async Task<IActionResult> RecordBatchResults(int testOrderId, BatchResultsRequest request, CancellationToken cancellationToken = default)
     {
         await _scopeService.EnsureTestOrderAccessAsync(CurrentUserId, testOrderId);
         return await RunAsync(() =>
         {
             var locations = request.Locations.Select(l => new BatchLocationReadings(l.SampleLocationId, l.Readings)).ToList();
-            return _engine.RecordBatchResultsAsync(testOrderId, locations, CurrentUserId);
+            return _engine.RecordBatchResultsAsync(testOrderId, locations, CurrentUserId, cancellationToken);
         });
     }
 
     [HttpPost("{testOrderId}/location-results")]
-    public async Task<IActionResult> RecordLocationResults(int testOrderId, LocationResultsRequest request)
+    public async Task<IActionResult> RecordLocationResults(int testOrderId, LocationResultsRequest request, CancellationToken cancellationToken = default)
     {
         await _scopeService.EnsureTestOrderAccessAsync(CurrentUserId, testOrderId);
-        return await RunAsync(() => _engine.RecordLocationResultsAsync(testOrderId, request.ToDomainInputs(), CurrentUserId));
+        return await RunAsync(() => _engine.RecordLocationResultsAsync(testOrderId, request.ToDomainInputs(), CurrentUserId, cancellationToken));
     }
 
     // Water batch count entry - one set of plate readings per sampling
     // point, averaged with no shared dilution factor (see
     // TestWorkflowEngine.RecordWaterBatchReadingsAsync).
     [HttpPost("{testOrderId}/water-batch-readings")]
-    public async Task<IActionResult> RecordWaterBatchReadings(int testOrderId, WaterBatchReadingsRequest request)
+    public async Task<IActionResult> RecordWaterBatchReadings(int testOrderId, WaterBatchReadingsRequest request, CancellationToken cancellationToken = default)
     {
         await _scopeService.EnsureTestOrderAccessAsync(CurrentUserId, testOrderId);
         return await RunAsync(() =>
         {
             var locations = request.Locations.Select(l => new WaterBatchLocationReadings(l.SampleLocationId, l.Readings)).ToList();
-            return _engine.RecordWaterBatchReadingsAsync(testOrderId, locations, CurrentUserId);
+            return _engine.RecordWaterBatchReadingsAsync(testOrderId, locations, CurrentUserId, cancellationToken);
         });
     }
 
@@ -495,18 +495,18 @@ public class TestWorkflowController : ControllerBase
     // The analyst then calls select-media again for the next step, same
     // as opening the first window.
     [HttpPost("{testOrderId}/close-incubation-window")]
-    public async Task<IActionResult> CloseIncubationWindow(int testOrderId)
+    public async Task<IActionResult> CloseIncubationWindow(int testOrderId, CancellationToken cancellationToken = default)
     {
         await _scopeService.EnsureTestOrderAccessAsync(CurrentUserId, testOrderId);
         return await RunAsync(async () =>
         {
-            var incubation = await _engine.CloseCurrentIncubationWindowAsync(testOrderId, CurrentUserId);
+            var incubation = await _engine.CloseCurrentIncubationWindowAsync(testOrderId, CurrentUserId, cancellationToken);
             return new { incubation.Id, incubation.StepName, incubation.CompletedAt };
         });
     }
 
     [HttpPost("{testOrderId}/batch-pathogen-results")]
-    public async Task<IActionResult> RecordBatchPathogenResults(int testOrderId, BatchPathogenResultsRequest request)
+    public async Task<IActionResult> RecordBatchPathogenResults(int testOrderId, BatchPathogenResultsRequest request, CancellationToken cancellationToken = default)
     {
         await _scopeService.EnsureTestOrderAccessAsync(CurrentUserId, testOrderId);
         return await RunAsync(() =>
@@ -514,25 +514,25 @@ public class TestWorkflowController : ControllerBase
             var observations = request.Locations.Select(l => new BatchLocationObservation(
                 l.SampleLocationId,
                 l.GrowthObserved ?? throw new InvalidOperationException("A growth observation is required for every location."))).ToList();
-            return _engine.RecordBatchPathogenResultsAsync(testOrderId, observations, CurrentUserId);
+            return _engine.RecordBatchPathogenResultsAsync(testOrderId, observations, CurrentUserId, cancellationToken);
         });
     }
 
     [HttpPost("{testOrderId}/submit-broth")]
-    public async Task<IActionResult> SubmitBroth(int testOrderId, SubmitBrothRequest request)
+    public async Task<IActionResult> SubmitBroth(int testOrderId, SubmitBrothRequest request, CancellationToken cancellationToken = default)
     {
         await _scopeService.EnsureTestOrderAccessAsync(CurrentUserId, testOrderId);
-        return await RunAsync(() => _engine.SubmitBrothAsync(testOrderId, request.StepName, request.Observation, CurrentUserId));
+        return await RunAsync(() => _engine.SubmitBrothAsync(testOrderId, request.StepName, request.Observation, CurrentUserId, cancellationToken));
     }
 
     [HttpPost("{testOrderId}/start-selective-plating-incubation")]
-    public async Task<IActionResult> StartSelectivePlatingIncubation(int testOrderId, StartSelectivePlatingIncubationRequest request)
+    public async Task<IActionResult> StartSelectivePlatingIncubation(int testOrderId, StartSelectivePlatingIncubationRequest request, CancellationToken cancellationToken = default)
     {
         await _scopeService.EnsureTestOrderAccessAsync(CurrentUserId, testOrderId);
         return await RunAsync(async () =>
         {
             var incubation = await _engine.StartSelectivePlatingIncubationAsync(
-                testOrderId, request.StepName, request.MediaLotId, request.EquipmentId, request.IncubationStartUtc, CurrentUserId);
+                testOrderId, request.StepName, request.MediaLotId, request.EquipmentId, request.IncubationStartUtc, CurrentUserId, cancellationToken);
             return new
             {
                 incubation.Id,
@@ -545,11 +545,11 @@ public class TestWorkflowController : ControllerBase
     }
 
     [HttpPost("{testOrderId}/submit-selective-plating-observation")]
-    public async Task<IActionResult> SubmitSelectivePlatingObservation(int testOrderId, SubmitSelectivePlatingObservationRequest request)
+    public async Task<IActionResult> SubmitSelectivePlatingObservation(int testOrderId, SubmitSelectivePlatingObservationRequest request, CancellationToken cancellationToken = default)
     {
         await _scopeService.EnsureTestOrderAccessAsync(CurrentUserId, testOrderId);
         return await RunAsync(() => _engine.SubmitSelectivePlatingObservationAsync(
-            testOrderId, request.StepName, request.Observation, request.ObservedAppearanceNote, CurrentUserId));
+            testOrderId, request.StepName, request.Observation, request.ObservedAppearanceNote, CurrentUserId, cancellationToken));
     }
 
     [HttpPost("{testOrderId}/submit-selective-plating")]
@@ -569,36 +569,36 @@ public class TestWorkflowController : ControllerBase
     }
 
     [HttpPost("{testOrderId}/submit-confirmatory-setup")]
-    public async Task<IActionResult> SubmitConfirmatorySetup(int testOrderId, SubmitConfirmatorySetupRequest request)
+    public async Task<IActionResult> SubmitConfirmatorySetup(int testOrderId, SubmitConfirmatorySetupRequest request, CancellationToken cancellationToken = default)
     {
         await _scopeService.EnsureTestOrderAccessAsync(CurrentUserId, testOrderId);
         return await RunAsync(() => _engine.SubmitConfirmatorySetupAsync(testOrderId, request.StepName,
             request.Selections.Select(s => new ConfirmatorySelectionInput(s.StepMediaId, s.MediaLotId, s.EquipmentId)).ToList(),
-            request.IncubationStartUtc, request.IncubationEndUtc, CurrentUserId));
+            request.IncubationStartUtc, request.IncubationEndUtc, CurrentUserId, cancellationToken));
     }
 
     [HttpPost("{testOrderId}/submit-confirmatory-observations")]
-    public async Task<IActionResult> SubmitConfirmatoryObservations(int testOrderId, SubmitConfirmatoryObservationsRequest request)
+    public async Task<IActionResult> SubmitConfirmatoryObservations(int testOrderId, SubmitConfirmatoryObservationsRequest request, CancellationToken cancellationToken = default)
     {
         await _scopeService.EnsureTestOrderAccessAsync(CurrentUserId, testOrderId);
         return await RunAsync(() => _engine.SubmitConfirmatoryObservationsAsync(testOrderId, request.StepName,
             request.Observations.Select(o => new ConfirmatoryObservationInput(o.MaterialId, o.Observation)).ToList(),
-            CurrentUserId));
+            CurrentUserId, cancellationToken));
     }
 
     [HttpPost("{testOrderId}/analyst-decision")]
-    public async Task<IActionResult> RecordAnalystDecision(int testOrderId, AnalystDecisionRequest request)
+    public async Task<IActionResult> RecordAnalystDecision(int testOrderId, AnalystDecisionRequest request, CancellationToken cancellationToken = default)
     {
         await _scopeService.EnsureTestOrderAccessAsync(CurrentUserId, testOrderId);
-        return await RunAsync(() => _engine.RecordAnalystDecisionAsync(testOrderId, request.Decision, CurrentUserId));
+        return await RunAsync(() => _engine.RecordAnalystDecisionAsync(testOrderId, request.Decision, CurrentUserId, cancellationToken));
     }
 
     [HttpPost("{testOrderId}/submit-biochemical")]
-    public async Task<IActionResult> SubmitBiochemical(int testOrderId, SubmitBiochemicalRequest request)
+    public async Task<IActionResult> SubmitBiochemical(int testOrderId, SubmitBiochemicalRequest request, CancellationToken cancellationToken = default)
     {
         await _scopeService.EnsureTestOrderAccessAsync(CurrentUserId, testOrderId);
         return await RunAsync(() => _engine.SubmitBiochemicalAsync(testOrderId, request.StepName,
-            request.BiochemicalResultText, request.AttachmentId, request.OrganismDetected, CurrentUserId));
+            request.BiochemicalResultText, request.AttachmentId, request.OrganismDetected, CurrentUserId, cancellationToken));
     }
 
     [Authorize(Policy = PermissionConstants.TestWorkflowBiochemicalDecision)]

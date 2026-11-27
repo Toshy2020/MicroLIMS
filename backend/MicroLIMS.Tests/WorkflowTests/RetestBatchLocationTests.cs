@@ -1,137 +1,85 @@
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
-using MicroLIMS.Application.Services;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
-using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Tests.Fixtures;
+using MicroLIMS.Tests.IntegrationTests;
 using Xunit;
 
 namespace MicroLIMS.Tests.WorkflowTests;
 
-// EM/Water/After Cleaning retest must carry over ONLY the locations that
-// actually failed on the original TestOrder - not every location assigned
-// to it, and not a free re-pick from the whole department/machine/room
-// catalog via the Preparation screen. See SampleApprovalService.
-// CloneFailedLocationsAsync.
-public class RetestBatchLocationTests
+[Collection("PostgresDatabaseCollection")]
+public class RetestBatchLocationTests(PostgresTestFixture fixture)
 {
-    private const string Password = "Correct-Horse-1!";
-
-    private static MicroLimsDbContext NewDb()
-    {
-        var options = new DbContextOptionsBuilder<MicroLimsDbContext>()
-            .UseInMemoryDatabase(Guid.NewGuid().ToString())
-            .Options;
-        return new MicroLimsDbContext(options);
-    }
-
-    private static async Task<User> SeedUser(MicroLimsDbContext db, int id, RoleType roleType)
-    {
-        var role = new Role { Type = roleType, Name = roleType.ToString() };
-        db.Roles.Add(role);
-        await db.SaveChangesAsync();
-
-        var user = new User { Id = id, FullName = $"User {id}", Username = $"user{id}", RoleId = role.Id, PasswordHash = TestPasswords.Hash(Password) };
-        db.Users.Add(user);
-        await db.SaveChangesAsync();
-        TestServiceFactory.AssignUserToMicroSection(db, user.Id);
-        return user;
-    }
-
-    // Three rooms, one TestCode (TAMC) TestOrder covering all three via
-    // SampleLocation rows - two came back non-conforming, one conformed.
-    private static async Task<(Sample sample, TestOrder order, SampleLocation failed1, SampleLocation failed2, SampleLocation passed)> SeedEmSampleUnderApprovalAsync(
-        MicroLimsDbContext db, int analystId, int reviewerId)
-    {
-        db.CausesOfTesting.Add(new CauseOfTesting { Name = "Retest" });
-        var department = new Department { Name = "Filling Suite", Class = "B", TestingFrequency = "Monthly" };
-        db.Departments.Add(department);
-        await db.SaveChangesAsync();
-
-        var room1 = new Room { Name = "Room 1", DepartmentId = department.Id, GradeClassification = "B" };
-        var room2 = new Room { Name = "Room 2", DepartmentId = department.Id, GradeClassification = "B" };
-        var room3 = new Room { Name = "Room 3", DepartmentId = department.Id, GradeClassification = "B" };
-        db.Rooms.AddRange(room1, room2, room3);
-        await db.SaveChangesAsync();
-
-        var config1 = new RoomTestConfiguration { RoomId = room1.Id, TestType = "PassiveAirSample", TestCode = "TAMC", AlertLimit = "10", ActionLimit = "50", SpecLimit = "100", Unit = "CFU/plate/4 hours" };
-        var config2 = new RoomTestConfiguration { RoomId = room2.Id, TestType = "PassiveAirSample", TestCode = "TAMC", AlertLimit = "10", ActionLimit = "50", SpecLimit = "100", Unit = "CFU/plate/4 hours" };
-        var config3 = new RoomTestConfiguration { RoomId = room3.Id, TestType = "PassiveAirSample", TestCode = "TAMC", AlertLimit = "10", ActionLimit = "50", SpecLimit = "100", Unit = "CFU/plate/4 hours" };
-        db.RoomTestConfigurations.AddRange(config1, config2, config3);
-        await db.SaveChangesAsync();
-
-        var cause = await db.CausesOfTesting.FirstAsync(c => c.Name == "Retest");
-
-        var sample = new Sample
-        {
-            ReferenceNumber = "EM0826001",
-            Category = SampleCategory.EnvironmentalMonitoring,
-            DepartmentId = department.Id,
-            ControlNumber = "CTRL-EM-1",
-            SampledBy = "Sampler",
-            ReceivedByUserId = analystId,
-            ReceivedAt = DateTime.UtcNow,
-            CauseOfTestingId = cause.Id,
-            Status = SampleStatus.UnderApproval,
-            PreparationStatus = SamplePreparationStatus.Ready,
-            ReviewedByUserId = reviewerId,
-            ReviewedAt = DateTime.UtcNow
-        };
-        var order = new TestOrder
-        {
-            SectionId = TestServiceFactory.EnsureMicroSection(db).Id,
-            TestCode = "TAMC",
-            Status = ApprovalStatus.Reviewed,
-            CurrentStep = WorkflowStep.Reviewed,
-            AssignedAnalystId = analystId
-        };
-        sample.TestOrders.Add(order);
-        db.Samples.Add(sample);
-        await db.SaveChangesAsync();
-
-        var failed1 = new SampleLocation { SampleId = sample.Id, TestOrderId = order.Id, LocationType = LocationType.Room, RoomTestConfigurationId = config1.Id, Status = ResultStatus.ActionLimitExceeded, CFUResult = 75 };
-        var failed2 = new SampleLocation { SampleId = sample.Id, TestOrderId = order.Id, LocationType = LocationType.Room, RoomTestConfigurationId = config2.Id, Status = ResultStatus.OutOfSpecification, CFUResult = 150 };
-        var passed = new SampleLocation { SampleId = sample.Id, TestOrderId = order.Id, LocationType = LocationType.Room, RoomTestConfigurationId = config3.Id, Status = ResultStatus.WithinLimits, CFUResult = 2 };
-        db.SampleLocations.AddRange(failed1, failed2, passed);
-        await db.SaveChangesAsync();
-
-        return (sample, order, failed1, failed2, passed);
-    }
-
-    [Fact]
+    [PostgresFact]
     public async Task RetestRetainedSample_EmBatchOrder_CarriesOnlyFailedLocationsAndSkipsPreparation()
     {
-        await using var db = NewDb();
-        await SeedUser(db, 1, RoleType.Analyst);
-        await SeedUser(db, 2, RoleType.Reviewer);
-        await SeedUser(db, 3, RoleType.SectionHead);
+        var scenarios = new ActionGuardScenarios(fixture);
+        var section = await scenarios.SectionAsync();
+        var analyst = await scenarios.AnalystAsync(section);
+        var reviewer = await scenarios.ReviewerAsync(section);
+        var head = await scenarios.HeadAsync(section);
+        var seed = await scenarios.UnderApprovalAsync(section, reviewer.Id, analystId: analyst.Id);
+        var sampleId = seed.Sample.Id;
+        var orderId = seed.Orders[0].Id;
+        int[] configurationIds;
 
-        var (origin, order, failed1, failed2, passed) = await SeedEmSampleUnderApprovalAsync(db, analystId: 1, reviewerId: 2);
-        var approvalService = TestServiceFactory.SampleApproval(db);
+        await using (var arrange = fixture.CreateDbContext())
+        {
+            if (!await arrange.CausesOfTesting.AnyAsync(c => c.Name == "Retest"))
+                arrange.CausesOfTesting.Add(new CauseOfTesting { Name = "Retest", IsActive = true });
 
-        await approvalService.DecideAsync(origin.Id, sectionHeadUserId: 3, Password, ApprovalDecision.RetestRetainedSample,
-            null, null, selectedTestOrderIds: new List<int> { order.Id });
+            var tag = Guid.NewGuid().ToString("N")[..8];
+            var department = new Department { Name = $"Filling Suite {tag}", Class = "B", TestingFrequency = "Monthly" };
+            var sample = await arrange.Samples.SingleAsync(s => s.Id == sampleId);
+            sample.Category = SampleCategory.EnvironmentalMonitoring;
+            sample.Department = department;
+            sample.PreparationStatus = SamplePreparationStatus.Ready;
+            var statuses = new[] { ResultStatus.ActionLimitExceeded, ResultStatus.AlertLimitExceeded, ResultStatus.WithinLimits };
+            var configurations = statuses.Select((_, index) => new RoomTestConfiguration
+            {
+                Room = new Room { Name = $"Room {index + 1} {tag}", Department = department, GradeClassification = "B" },
+                TestType = "PassiveAirSample", TestCode = seed.Orders[0].TestCode,
+                AlertLimit = "10", ActionLimit = "50", SpecLimit = "100", Unit = "CFU/plate/4 hours"
+            }).ToArray();
+            arrange.SampleLocations.AddRange(configurations.Zip(statuses, (configuration, status) => new SampleLocation
+            {
+                SampleId = sampleId, TestOrderId = orderId, LocationType = LocationType.Room,
+                RoomTestConfiguration = configuration, Status = status
+            }));
+            await arrange.SaveChangesAsync();
+            configurationIds = configurations.Select(c => c.Id).ToArray();
+        }
 
-        var retestSample = await db.Samples.SingleAsync(s => s.OriginSampleId == origin.Id);
+        await using (var refusal = fixture.CreateDbContext())
+        {
+            refusal.CurrentUserId = head.Id;
+            var error = await Assert.ThrowsAsync<BusinessRuleException>(() => TestServiceFactory.SampleApproval(refusal).DecideAsync(
+                sampleId, head.Id, ActionGuardScenarios.Password, ApprovalDecision.RetestRetainedSample,
+                null, null, selectedTestOrderIds: [int.MaxValue]));
+            Assert.Equal("One or more selected tests do not belong to this sample's current test orders.", error.Message);
+        }
 
-        // Skips the checkbox Preparation screen entirely - the failed
-        // locations are already attached, so re-picking from the room
-        // catalog would only risk re-adding the room that already passed.
-        Assert.Equal(SamplePreparationStatus.Ready, retestSample.PreparationStatus);
+        await using (var act = fixture.CreateDbContext())
+        {
+            act.CurrentUserId = head.Id;
+            await TestServiceFactory.SampleApproval(act).DecideAsync(
+                sampleId, head.Id, ActionGuardScenarios.Password, ApprovalDecision.RetestRetainedSample,
+                null, null, selectedTestOrderIds: [orderId]);
+        }
 
-        var retestOrder = await db.TestOrders.SingleAsync(o => o.SampleId == retestSample.Id);
-        Assert.Equal("TAMC", retestOrder.TestCode);
-
-        var retestLocations = await db.SampleLocations.Where(l => l.TestOrderId == retestOrder.Id).ToListAsync();
-
-        // Only the 2 failed rooms carried over - not the 3rd, passing one.
-        Assert.Equal(2, retestLocations.Count);
-        var carriedConfigIds = retestLocations.Select(l => l.RoomTestConfigurationId).ToHashSet();
-        Assert.Contains(failed1.RoomTestConfigurationId, carriedConfigIds);
-        Assert.Contains(failed2.RoomTestConfigurationId, carriedConfigIds);
-        Assert.DoesNotContain(passed.RoomTestConfigurationId, carriedConfigIds);
-
-        // Cloned locations are fresh - no leftover result/status from the
-        // original failing reading.
+        await using var verify = fixture.CreateDbContext();
+        var origin = await verify.Samples.AsNoTracking().SingleAsync(s => s.Id == sampleId);
+        var retest = await verify.Samples.AsNoTracking().SingleAsync(s => s.OriginSampleId == sampleId);
+        Assert.Equal(SampleStatus.RetestRequested, origin.Status);
+        Assert.NotNull(origin.OosGroupCode);
+        Assert.Equal(origin.OosGroupCode, retest.OosGroupCode);
+        Assert.Equal(SamplePreparationStatus.Ready, retest.PreparationStatus);
+        var retestOrder = await verify.TestOrders.AsNoTracking().SingleAsync(o => o.SampleId == retest.Id);
+        Assert.Equal(seed.Orders[0].TestCode, retestOrder.TestCode);
+        var retestLocations = await verify.SampleLocations.AsNoTracking().Where(l => l.TestOrderId == retestOrder.Id).ToListAsync();
+        Assert.Equal(configurationIds.Take(2).Order(), retestLocations.Select(l => l.RoomTestConfigurationId.GetValueOrDefault()).Order());
         Assert.All(retestLocations, l =>
         {
             Assert.Null(l.Status);
@@ -139,9 +87,16 @@ public class RetestBatchLocationTests
             Assert.Null(l.EnteredAt);
             Assert.Null(l.EnteredByUserId);
         });
-
-        // The original order's locations are untouched (audit trail intact).
-        var originalLocations = await db.SampleLocations.Where(l => l.TestOrderId == order.Id).ToListAsync();
-        Assert.Equal(3, originalLocations.Count);
+        Assert.Equal(3, await verify.SampleLocations.AsNoTracking().CountAsync(l => l.TestOrderId == orderId));
+        var signature = await verify.ElectronicSignatures.AsNoTracking().SingleAsync(s => s.EntityId == sampleId && s.EntityType == "Sample");
+        Assert.Equal(SignatureMeaning.RetestRequested, signature.MeaningOfSignature);
+        Assert.Equal(head.Id, signature.UserId);
+        var audit = await verify.AuditLogs.AsNoTracking().SingleAsync(a =>
+            a.EntityName == nameof(Sample) && a.EntityId == sampleId.ToString() && a.UserId == head.Id && a.Action == "Update");
+        using var before = JsonDocument.Parse(Assert.IsType<string>(audit.PreviousValue));
+        using var after = JsonDocument.Parse(Assert.IsType<string>(audit.NewValue));
+        Assert.Equal((int)SampleStatus.UnderApproval, before.RootElement.GetProperty(nameof(Sample.Status)).GetInt32());
+        Assert.Equal((int)SampleStatus.RetestRequested, after.RootElement.GetProperty(nameof(Sample.Status)).GetInt32());
+        Assert.False(await verify.OosInvestigations.AsNoTracking().AnyAsync(i => i.SampleId == sampleId));
     }
 }

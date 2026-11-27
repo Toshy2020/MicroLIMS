@@ -35,12 +35,14 @@ export const trainingAssignmentService = {
   },
 
   getMyAssignments: async (
-    status?: TrainingAssignmentStatus
+    status?: TrainingAssignmentStatus,
+    signal?: AbortSignal
   ): Promise<DocumentTrainingAssignmentDto[]> => {
     const res = await apiClient.get(
       "/document-control/training-assignments/my-assignments",
       {
-        params: status ? { status } : undefined
+        params: status ? { status } : undefined,
+        signal
       }
     );
     return res.data.data;

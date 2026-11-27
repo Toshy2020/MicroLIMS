@@ -6,7 +6,6 @@ using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.Services;
-using MicroLIMS.Infrastructure.Pdf;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Persistence.DbContext;
@@ -51,8 +50,7 @@ public class SampleSummaryGoldenTests
     // A second context over the same store reads it back, as a request would
     // (nothing seeded is left tracked, so no navigation fix-up from the seed).
     private static SampleSummaryService Service(MicroLimsDbContext db) =>
-        new(db, new PdfGenerator(), new MicroLIMS.Infrastructure.Word.WordGenerator(),
-            TestServiceFactory.ReviewGate(db), new FixedTimeProvider(new DateTimeOffset(2026, 3, 20, 12, 0, 0, TimeSpan.Zero)));
+        TestServiceFactory.SampleSummary(db, new FixedTimeProvider(new DateTimeOffset(2026, 3, 20, 12, 0, 0, TimeSpan.Zero)));
 
     private static MicroLimsDbContext Seed(DbContextOptions<MicroLimsDbContext> options)
     {

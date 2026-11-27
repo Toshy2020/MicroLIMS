@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using System.Globalization;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.Helpers;
@@ -40,7 +41,7 @@ public class ReferenceNumberGenerator
     // is released at commit or rollback. Other categories and months do not
     // wait. Without a transaction the lock would be released at once, so that
     // is refused. Non-relational providers (unit tests) take no lock.
-    public async Task<string> GenerateAsync(SampleCategory category)
+    public async Task<string> GenerateAsync(SampleCategory category, CancellationToken ct = default)
     {
         var code = CategoryCodes.TryGetValue(category, out var c) ? c : "SM";
         // The month rolls over at lab midnight, not UTC midnight, so a
@@ -52,19 +53,19 @@ public class ReferenceNumberGenerator
         var prefix = $"{code}{mm}{yy}";
 
         var labMonthStart = new DateTime(labNow.Year, labNow.Month, 1, 0, 0, 0, DateTimeKind.Unspecified);
-        await LockAsync(prefix);
+        await LockAsync(prefix, ct);
 
         var monthStart = TimeZoneInfo.ConvertTimeToUtc(labMonthStart, _labClock.LabTimeZone);
         var monthEnd = TimeZoneInfo.ConvertTimeToUtc(labMonthStart.AddMonths(1), _labClock.LabTimeZone);
 
         var countThisMonth = await _db.Samples.CountAsync(s =>
-            s.Category == category && s.ReceivedAt >= monthStart && s.ReceivedAt < monthEnd);
+            s.Category == category && s.ReceivedAt >= monthStart && s.ReceivedAt < monthEnd, ct);
 
         var sequence = (countThisMonth + 1).ToString("D3");
         return $"{prefix}{sequence}";
     }
 
-    private async Task LockAsync(string prefix)
+    private async Task LockAsync(string prefix, CancellationToken ct)
     {
         if (!_db.Database.IsRelational())
             return;
@@ -74,23 +75,103 @@ public class ReferenceNumberGenerator
 
         var key = $"sample-ref:{prefix}";
         var seed = AdvisoryLockKeys.SampleNumber;
-        await _db.Database.ExecuteSqlAsync($"SELECT pg_advisory_xact_lock(hashtextextended({key}, {seed}))");
+        await _db.Database.ExecuteSqlAsync($"SELECT pg_advisory_xact_lock(hashtextextended({key}, {seed}))", ct);
     }
 
-    public async Task<string> GenerateOosCodeAsync()
+    public async Task<string> GenerateOosCodeAsync(CancellationToken cancellationToken = default)
     {
-        var now = _time.GetUtcNow().UtcDateTime;
-        var mm = now.ToString("MM");
-        var yy = now.ToString("yy");
-        var prefix = $"OOS{mm}{yy}";
+        await AcquireOosNumberLockAsync(cancellationToken);
 
-        var countThisMonth = await _db.Samples
+        var labNow = _labClock.ToLabLocal(_time.GetUtcNow().UtcDateTime);
+        var prefix = FormattableString.Invariant($"OOS{labNow:MMyy}");
+        var legacyNumbers = _db.Samples
             .Where(s => s.OosGroupCode != null && s.OosGroupCode.StartsWith(prefix))
-            .Select(s => s.OosGroupCode)
-            .Distinct()
-            .CountAsync();
+            .Select(s => s.OosGroupCode);
+        var investigationNumbers = _db.OosInvestigations
+            .Where(i => i.Number.StartsWith(prefix))
+            .Select(i => (string?)i.Number);
 
-        var sequence = (countThisMonth + 1).ToString("D3");
-        return $"{prefix}{sequence}";
+        var numbers = await legacyNumbers.Union(investigationNumbers).ToListAsync(cancellationToken);
+        numbers.AddRange(_db.OosInvestigations.Local
+            .Where(i => i.Number.StartsWith(prefix, StringComparison.Ordinal))
+            .Select(i => (string?)i.Number));
+        long highest = 0;
+        foreach (var number in numbers)
+        {
+            if (number is not null &&
+                long.TryParse(number.AsSpan(prefix.Length), NumberStyles.None, CultureInfo.InvariantCulture, out var suffix))
+                highest = Math.Max(highest, suffix);
+        }
+        return FormattableString.Invariant($"{prefix}{highest + 1:D3}");
+    }
+
+    internal async Task AcquireOosNumberLockAsync(CancellationToken cancellationToken = default)
+    {
+        // In-memory workflow tests use the same sequence without database locks.
+        if (!_db.Database.IsRelational()) return;
+
+        if (_db.Database.CurrentTransaction is null)
+            throw new InvalidOperationException(
+                "An OOS number can only be generated inside a database transaction that also saves the record.");
+
+        await _db.Database.ExecuteSqlAsync(
+            $"SELECT pg_advisory_xact_lock({AdvisoryLockKeys.OosNumber})", cancellationToken);
+    }
+
+    public async Task<string> GenerateQualityNumberAsync(QualityRecordType type, CancellationToken cancellationToken = default)
+    {
+        await AcquireQualityNumberLockAsync(type, cancellationToken);
+
+        var typeCode = type switch
+        {
+            QualityRecordType.Deviation => "DEV",
+            QualityRecordType.Capa => "CAPA",
+            QualityRecordType.ChangeControl => "CC",
+            QualityRecordType.Complaint => "CMP",
+            _ => throw new ArgumentOutOfRangeException(nameof(type), type, null)
+        };
+
+        var labNow = _labClock.ToLabLocal(_time.GetUtcNow().UtcDateTime);
+        var prefix = FormattableString.Invariant($"{typeCode}-{labNow.Year:D4}-");
+
+        var numbers = await _db.QualityRecords
+            .Where(r => r.Type == type && r.Number.StartsWith(prefix))
+            .Select(r => r.Number)
+            .ToListAsync(cancellationToken);
+
+        numbers.AddRange(_db.QualityRecords.Local
+            .Where(r => r.Type == type && r.Number.StartsWith(prefix, StringComparison.Ordinal))
+            .Select(r => r.Number));
+
+        long highest = 0;
+        foreach (var number in numbers)
+        {
+            if (number is not null &&
+                long.TryParse(number.AsSpan(prefix.Length), NumberStyles.None, CultureInfo.InvariantCulture, out var suffix))
+                highest = Math.Max(highest, suffix);
+        }
+
+        return FormattableString.Invariant($"{prefix}{highest + 1:D4}");
+    }
+
+    internal async Task AcquireQualityNumberLockAsync(QualityRecordType type, CancellationToken cancellationToken = default)
+    {
+        if (!_db.Database.IsRelational()) return;
+
+        if (_db.Database.CurrentTransaction is null)
+            throw new InvalidOperationException(
+                "A quality record number can only be generated inside a database transaction that also saves the record.");
+
+        var lockKey = type switch
+        {
+            QualityRecordType.Deviation => AdvisoryLockKeys.QualityDeviation,
+            QualityRecordType.Capa => AdvisoryLockKeys.QualityCapa,
+            QualityRecordType.ChangeControl => AdvisoryLockKeys.QualityChangeControl,
+            QualityRecordType.Complaint => AdvisoryLockKeys.QualityComplaint,
+            _ => throw new ArgumentOutOfRangeException(nameof(type), type, null)
+        };
+
+        await _db.Database.ExecuteSqlAsync(
+            $"SELECT pg_advisory_xact_lock({lockKey})", cancellationToken);
     }
 }

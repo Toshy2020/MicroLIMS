@@ -17,6 +17,7 @@ import { DateTimeField24, getLocalIsoString } from "../../components/DateTimeFie
 import { SignatureDialog } from "../../components/SignatureDialog";
 import { Ltr } from "../../components/Ltr";
 import { useTranslation } from "../../i18n";
+import { hasServerErrorCodePrefix } from "../../i18n/serverMessages";
 import { CriteriaCard, ResultSection, VerdictBanner, verdictFromServerStatus } from "../../components/lab";
 import type { CriteriaRow } from "../../components/lab";
 import { UnitEntryGrid, UnitEntryGridColumn } from "../../components/UnitEntryGrid";
@@ -66,6 +67,7 @@ export function MeasurementPanel({
   const { t } = useTranslation("testingWorkspace");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isCompetencyRefusal, setIsCompetencyRefusal] = useState(false);
 
   const [testDef, setTestDef] = useState<TestDefinitionOption | null>(null);
   const [specs, setSpecs] = useState<SpecificationDto[]>([]);
@@ -209,6 +211,7 @@ export function MeasurementPanel({
 
   const submit = async (password: string) => {
     setError(null);
+    setIsCompetencyRefusal(false);
     try {
       const payload = {
         analysedAt: new Date(analysedAt).toISOString(),
@@ -231,9 +234,9 @@ export function MeasurementPanel({
       await onRecorded();
     } catch (err: unknown) {
       setSigning(false);
-      const msg =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
-        t("measurement.recordFailed");
+      const resp = (err as { response?: { status?: number; data?: { message?: string } } })?.response;
+      const msg = resp?.data?.message ?? t("measurement.recordFailed");
+      setIsCompetencyRefusal(hasServerErrorCodePrefix(err, "Competency."));
       setError(msg);
     }
   };
@@ -291,12 +294,6 @@ export function MeasurementPanel({
           {current.returnInfo.reason
             ? t("measurement.returnedWithReason", { reason: current.returnInfo.reason })
             : t("measurement.returnedDefault")}
-        </Alert>
-      )}
-
-      {error && (
-        <Alert severity="error" sx={{ mb: 2 }}>
-          {error}
         </Alert>
       )}
 
@@ -367,7 +364,19 @@ export function MeasurementPanel({
         />
 
         {/* Action button */}
-        <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
+        <Box sx={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 2, flexWrap: "wrap" }}>
+          {error && (
+            <Stack spacing={0.25} sx={{ alignItems: "flex-end" }}>
+              <Typography role="alert" variant="caption" color="error">
+                {error}
+              </Typography>
+              {isCompetencyRefusal && (
+                <Typography variant="caption" color="text.secondary">
+                  {t("measurement.competencyOverrideHint")}
+                </Typography>
+              )}
+            </Stack>
+          )}
           <Button
             variant="contained"
             disabled={!isFormValid}

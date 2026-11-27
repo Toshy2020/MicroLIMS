@@ -1,4 +1,5 @@
 using System.Reflection;
+using MicroLIMS.API.Authorization;
 using System.Text.RegularExpressions;
 using MicroLIMS.Shared.Constants;
 using Microsoft.AspNetCore.Authorization;
@@ -40,9 +41,12 @@ public class PermissionAuthorizationTests
         // The edge-agent policy is not a user permission; it is guarded by the AgentKey scheme.
         var used = AuthorizeAttributes()
             .Where(x => x.Attribute.Policy != MicroLIMS.API.Authorization.AgentKeyDefaults.Policy)
-            .Select(x => x.Attribute.Policy).OfType<string>().ToHashSet();
+            .Select(x => x.Attribute.Policy).OfType<string>()
+            .SelectMany(PermissionPolicyProvider.PermissionsFor).ToHashSet();
         Assert.Empty(used.Except(PermissionConstants.Enforced));
     }
+
+    private static readonly HashSet<string> ProvisionedAheadOfEnforcement = new();
 
     [Fact]
     public void EveryEnforcedCode_IsCheckedSomewhere()
@@ -58,7 +62,9 @@ public class PermissionAuthorizationTests
             .Select(f => (string)f.GetRawConstantValue()!)
             .ToHashSet();
 
-        Assert.Empty(PermissionConstants.Enforced.Except(referenced));
+        Assert.Empty(PermissionConstants.Enforced.Except(referenced).Except(ProvisionedAheadOfEnforcement).Order(StringComparer.Ordinal));
+        // A provisioned code leaves this list when a service or endpoint starts checking it.
+        Assert.Empty(ProvisionedAheadOfEnforcement.Intersect(referenced).Order(StringComparer.Ordinal));
     }
 
     [Fact]

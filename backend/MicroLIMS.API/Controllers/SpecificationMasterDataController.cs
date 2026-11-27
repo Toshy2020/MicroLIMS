@@ -52,7 +52,7 @@ public class SpecificationMasterDataController : ControllerBase
     [Authorize(Policy = PermissionConstants.MasterDataManage)]
     [HttpPost("specifications")]
     public async Task<IActionResult> CreateSpecification(CreateSpecificationRequest request) =>
-        Ok(ApiResponse<object>.Ok(await _service.CreateSpecificationAsync(CurrentUserId, request)));
+        Ok(ApiResponse<object>.Ok(await _service.CreateSpecificationAsync(CurrentUserId, request, Ct)));
 
     [Authorize(Policy = PermissionConstants.MasterDataManage)]
     [HttpPost("specifications/batch")]

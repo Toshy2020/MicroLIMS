@@ -4,7 +4,7 @@
 |---|---|
 | Document number | FS-PAT |
 | Title | Pathogen testing workflow functional specification |
-| Version | 0.1 |
+| Version | 0.2 |
 | Status | Draft |
 | Author | Claude (AI agent), draft from code |
 | Reviewer | To be assigned by QA |
@@ -16,6 +16,7 @@
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1 | 2026-11-12 | Claude (AI agent), draft from code | First draft, written from the code as built. |
+| 0.2 | 2026-11-25 | AI coding agent, draft from code | Updated FS-PAT-005 for CONF-214 (whole-request rejection on out-of-sample primary observation IDs) and competency filtering. Draft — pending approval. |
 
 ## Scope and reading notes
 
@@ -54,11 +55,12 @@
 **Conflicts:** CONF-013, CONF-014
 
 ### FS-PAT-005
+*(Draft — pending approval)*
 **Satisfies:** URS-PAT-006
-**Function:** Save confirmatory plate readings and decide the location result (endpoint `save-confirmatory-readings`). Input: readings of (primary observation ID, material ID, medium index, growth observation) and an optional biochemical comment. Each reading upserts one confirmatory plate row for (primary observation, material, medium index) — an existing row is overwritten — and stores the expected-appearance text for the target organism configured on the step at that moment. Readings whose primary observation ID is unknown are skipped. After saving, for each primary observation that has at least the required number of plates, `ConfirmationAgreementEvaluator.EvaluateAgreement` is applied to the first required plates ordered by medium index. Rule as coded: if every plate is GrowthConforming the location is Detected ("Detected (+)"); if every plate is NoGrowth or every plate is GrowthNonConforming the location is NotDetected, stored as status Absent ("Not Detected (-)"); any other mix, including NoGrowth with GrowthNonConforming, is Inconclusive ("Inconclusive (Retest)", status Inconclusive). The call throws when the plate count differs from the required count. A comment, when given, is written to the workflow history of each affected order. The method does not check the scope of the sample (the controller does), does not check that the confirmation incubation has finished, and does not check that the primary observations belong to the sample in the URL. No transaction wrapper is used.
-**Code:** `backend/MicroLIMS.Application/Services/PathogenSessionService.cs` — `SaveBatchConfirmatoryPlateReadingsAsync`, `ApplyConfirmationAgreement`; `backend/MicroLIMS.Application/Services/ConfirmationAgreementEvaluator.cs` — `EvaluateAgreement`
+**Function:** Save confirmatory plate readings and decide the location result (endpoint `save-confirmatory-readings`). Runs inside `UnitOfWork.RunAsync`. Input: readings of (primary observation ID, material ID, medium index, growth observation) and an optional biochemical comment. Primary observations are loaded with `o.SampleLocation.SampleId == sampleId && o.TestOrder.SampleId == sampleId`; per CONF-214, if any requested primary observation ID is not found for the requested sample, the entire request is rejected before writing (`NotFoundException`, `PathogenConfirmatoryPrimaryObservationNotFound`). Competency guard (`_competency.FilterAsync`) is applied to the affected test orders, skipping refused orders with their reasons. Each reading upserts one confirmatory plate row for (primary observation, material, medium index) — an existing row is overwritten — and stores the expected-appearance text for the target organism configured on the step at that moment. After saving, for each primary observation that has at least the required number of plates, `ConfirmationAgreementEvaluator.EvaluateAgreement` is applied to the first required plates ordered by medium index. Rule as coded: if every plate is GrowthConforming the location is Detected ("Detected (+)"); if every plate is NoGrowth or every plate is GrowthNonConforming the location is NotDetected, stored as status Absent ("Not Detected (-)"); any other mix, including NoGrowth with GrowthNonConforming, is Inconclusive ("Inconclusive (Retest)", status Inconclusive). The call throws when the plate count differs from the required count. A comment, when given, is written to the workflow history of each affected order. The method does not check that the confirmation incubation has finished.
+**Code:** `backend/MicroLIMS.Application/Services/PathogenSessionService.cs` — `SaveBatchConfirmatoryPlateReadingsAsync`, `SaveBatchConfirmatoryPlateReadingsCoreAsync`, `ApplyConfirmationAgreement`; `backend/MicroLIMS.Application/Services/ConfirmationAgreementEvaluator.cs` — `EvaluateAgreement`
 **Verified by:** reading (not run)
-**Conflicts:** CONF-016, CONF-017, CONF-018, CONF-021
+**Conflicts:** CONF-016, CONF-017, CONF-018, CONF-021, CONF-214
 
 ### FS-PAT-006
 **Satisfies:** URS-PAT-004

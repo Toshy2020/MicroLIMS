@@ -889,7 +889,7 @@
     "info": "يُنشأ <strong>معرّف مستند MicroLIMS</strong> الدائم (مثل <code>DOC-0000001</code>) تلقائيًا بواسطة تسلسل قاعدة البيانات عند التسجيل ولا يمكن تعديله. ستكون الحالة الأولية <strong>مسودة</strong>.",
     "companyCodeLabel": "رمز مستند الشركة *",
     "companyCodePlaceholder": "مثال: SOP-QC-001",
-    "companyCodeHelper": "يجب أن يكون فريدًا بين المستندات النشطة",
+    "companyCodeHelper": "يجب أن يكون فريدًا عبر جميع المستندات (بغض النظر عن حالة الأحرف)",
     "titleLabel": "عنوان المستند *",
     "titlePlaceholder": "مثال: الفحص الميكروبي للمنتجات غير المعقمة",
     "typeLabel": "نوع المستند *",

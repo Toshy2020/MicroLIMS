@@ -513,9 +513,9 @@ public class GroupedTestActionService
             {
                 currentStepResult = await _workflowEngine.GetCurrentStepAsync(id);
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not OperationCanceledException)
             {
-                skipped.Add(new BatchActionSkippedItem(id, sampleRef, ex.Message));
+                skipped.Add(new BatchActionSkippedItem(id, sampleRef, ex.Message, (ex as ICodedMessage)?.Code));
                 continue;
             }
 
@@ -594,7 +594,7 @@ public class GroupedTestActionService
                 if (string.Equals(transitionType, "TRANSFER_INCUBATOR", StringComparison.OrdinalIgnoreCase))
                 {
                     inc = await _workflowEngine.StartStage2IncubationAsync(
-                        id, request.StepName, request.IncubatorEquipmentId, currentUserId);
+                        id, request.StepName, request.IncubatorEquipmentId, currentUserId, ct);
 
                     _db.WorkflowHistories.Add(new WorkflowHistory
                     {
@@ -619,7 +619,7 @@ public class GroupedTestActionService
                 {
                     // 1. Complete the predecessor broth incubation
                     var predStepName = request.PredecessorStepName ?? activeStep.StepName;
-                    await _workflowEngine.SubmitBrothAsync(id, predStepName, null, currentUserId);
+                    await _workflowEngine.SubmitBrothAsync(id, predStepName, null, currentUserId, ct);
 
                     // 2. Start incubation for the target selective step
                     var targetStepName = request.TargetStepName ?? request.StepName;
@@ -633,12 +633,12 @@ public class GroupedTestActionService
                     if (targetStep.StepType == StepType.SelectivePlating)
                     {
                         inc = await _workflowEngine.StartSelectivePlatingIncubationAsync(
-                            id, targetStep.StepName, request.MediaLotId!.Value, request.IncubatorEquipmentId, request.IncubationStartUtc, currentUserId);
+                            id, targetStep.StepName, request.MediaLotId!.Value, request.IncubatorEquipmentId, request.IncubationStartUtc, currentUserId, ct);
                     }
                     else
                     {
                         inc = await _workflowEngine.SelectMediaAsync(
-                            id, targetStep.StepName, request.MediaLotId!.Value, request.IncubatorEquipmentId, currentUserId);
+                            id, targetStep.StepName, request.MediaLotId!.Value, request.IncubatorEquipmentId, currentUserId, ct);
                     }
 
                     _db.WorkflowHistories.Add(new WorkflowHistory
@@ -673,12 +673,12 @@ public class GroupedTestActionService
                     if (targetStep.StepType == StepType.SelectivePlating)
                     {
                         inc = await _workflowEngine.StartSelectivePlatingIncubationAsync(
-                            id, request.StepName, request.MediaLotId!.Value, request.IncubatorEquipmentId, request.IncubationStartUtc, currentUserId);
+                            id, request.StepName, request.MediaLotId!.Value, request.IncubatorEquipmentId, request.IncubationStartUtc, currentUserId, ct);
                     }
                     else
                     {
                         inc = await _workflowEngine.SelectMediaAsync(
-                            id, request.StepName, request.MediaLotId!.Value, request.IncubatorEquipmentId, currentUserId);
+                            id, request.StepName, request.MediaLotId!.Value, request.IncubatorEquipmentId, currentUserId, ct);
                     }
 
                     succeeded.Add(new BatchActionSuccessItem(
@@ -697,13 +697,13 @@ public class GroupedTestActionService
             }
             catch (WorkflowStepException ex)
             {
-                skipped.Add(new BatchActionSkippedItem(id, sampleRef, ex.Message));
+                skipped.Add(new BatchActionSkippedItem(id, sampleRef, ex.Message, (ex as ICodedMessage)?.Code));
             }
             catch (InvalidOperationException ex)
             {
-                skipped.Add(new BatchActionSkippedItem(id, sampleRef, ex.Message));
+                skipped.Add(new BatchActionSkippedItem(id, sampleRef, ex.Message, (ex as ICodedMessage)?.Code));
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not OperationCanceledException)
             {
                 skipped.Add(new BatchActionSkippedItem(id, sampleRef, $"Unexpected error: {ex.Message}"));
             }

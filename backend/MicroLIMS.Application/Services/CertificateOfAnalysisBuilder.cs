@@ -27,7 +27,8 @@ public static class CertificateOfAnalysisBuilder
             .Where(x => sectionIds is null || x.SectionId is null || sectionIds.Contains(x.SectionId.Value))
             .Where(x => x.Kind != "NotApplicable" || !ordered.Contains(x.TestCode))
             .ToList();
-        var sample = BuildScope(summary.TestOrders, noResultsText: SampleCompliesNoResultsText, supportingRows: visibleSupporting);
+        var sample = BuildScope(summary.TestOrders, noResultsText: SampleCompliesNoResultsText, supportingRows: visibleSupporting,
+            hasItem: summary.ItemId.HasValue, sopCaptureStartDateUtc: summary.SopCaptureStartDateUtc);
 
         // A rejected sample still gets a certificate; it names the rejecting
         // laboratories instead of restating the result verdict.
@@ -47,20 +48,40 @@ public static class CertificateOfAnalysisBuilder
                     SectionId = s.SectionId,
                     SectionName = s.SectionName,
                     Scope = BuildScope(summary.TestOrders.Where(t => t.SectionId == s.SectionId).ToList(), noResultsText: SampleCompliesNoResultsText,
-                        supportingRows: visibleSupporting?.Where(x => x.SectionId is null || x.SectionId == s.SectionId).ToList())
+                        supportingRows: visibleSupporting?.Where(x => x.SectionId is null || x.SectionId == s.SectionId).ToList(),
+                        hasItem: summary.ItemId.HasValue, sopCaptureStartDateUtc: summary.SopCaptureStartDateUtc)
                 })
                 .ToList()
         };
     }
 
     public static CoaScopeDto BuildScope(IReadOnlyList<TestOrderSummaryDetailDto> testOrders, string noResultsText,
-        IReadOnlyList<CoaSimpleRowDto>? supportingRows = null)
+        IReadOnlyList<CoaSimpleRowDto>? supportingRows = null, bool hasItem = false, DateTime? sopCaptureStartDateUtc = null)
     {
         var matrix = BuildMatrix(testOrders);
         var simple = matrix is null ? BuildSimpleRows(testOrders) : null;
 
+        var methods = testOrders
+            .Where(t => !t.IsSuperseded && !t.IsOosInvalidated)
+            .Select(t => t.SopCapture)
+            .OfType<SopCaptureDto>()
+            .Where(s => s.Status == nameof(SopCaptureStatus.Captured) && s.RevisionId.HasValue &&
+                s.DocumentCode != null && s.Title != null && s.RevisionNumber != null)
+            .DistinctBy(s => s.RevisionId)
+            .OrderBy(s => s.DocumentCode, StringComparer.Ordinal)
+            .ThenBy(s => s.RevisionNumber, RevisionNumberComparer)
+            .Select(s => new CoaMethodDocumentDto(s.DocumentCode ?? "", s.Title ?? "", s.RevisionNumber ?? "", s.EffectiveDateUtc))
+            .ToList();
+
+        if (hasItem && sopCaptureStartDateUtc is { } startDateUtc &&
+            testOrders.Any(t => !t.IsSuperseded && !t.IsOosInvalidated && t.SopCapture is null))
+        {
+            methods.Add(new CoaMethodDocumentDto("", "", "", null, startDateUtc));
+        }
+
         return new CoaScopeDto
         {
+            MethodDocuments = methods,
             Matrix = matrix,
             Simple = simple,
             SupportingRows = supportingRows?.ToList() ?? new(),
@@ -83,7 +104,7 @@ public static class CertificateOfAnalysisBuilder
         var testCodeOrder = new List<string>();
         foreach (var t in testOrders)
         {
-            if (t.Locations.Count == 0 || t.IsSuperseded) continue;
+            if (t.Locations.Count == 0 || t.IsSuperseded || t.IsOosInvalidated) continue;
             if (!byTestCode.TryGetValue(t.TestCode, out var existing))
             {
                 byTestCode[t.TestCode] = t;
@@ -106,7 +127,9 @@ public static class CertificateOfAnalysisBuilder
             TestCode = t.TestCode,
             TestDisplayName = t.TestDisplayName,
             IsQuantitative = IsQuantitative(t),
-            Unit = IsQuantitative(t) ? t.Locations.FirstOrDefault(l => !string.IsNullOrEmpty(l.Unit))?.Unit : null
+            Unit = IsQuantitative(t) ? t.Locations.FirstOrDefault(l => !string.IsNullOrEmpty(l.Unit))?.Unit : null,
+            OosInvestigationNumber = t.OosInvestigationNumber,
+            ReportableRetest = t.ReportableRetest
         }).ToList();
 
         // Rows = distinct physical locations, first seen across tests.
@@ -121,7 +144,8 @@ public static class CertificateOfAnalysisBuilder
         {
             TestOrderId = t.TestOrderId,
             TestCode = t.TestCode,
-            TestDisplayName = t.TestDisplayName
+            TestDisplayName = t.TestDisplayName,
+            OosInvestigationNumber = t.OosInvestigationNumber
         });
         var overallComplies = true;
 
@@ -221,7 +245,7 @@ public static class CertificateOfAnalysisBuilder
     {
         // Physicochemical (qualitative, assays, other) then microbiology
         // (counts, pathogens), each ordered by its Test Master CoA order.
-        var tests = CoaTestOrdering.Order(testOrders.Where(t => t.Locations.Count == 0 && !t.IsSuperseded)).ToList();
+        var tests = CoaTestOrdering.Order(testOrders.Where(t => t.Locations.Count == 0 && !t.IsSuperseded && !t.IsOosInvalidated)).ToList();
         if (tests.Count == 0) return null;
 
         var rows = tests.SelectMany(SimpleRowsFor).ToList();
@@ -282,6 +306,8 @@ public static class CertificateOfAnalysisBuilder
         TestCode = testCode,
         TestDisplayName = displayName,
         Specification = specification,
+        OosInvestigationNumber = t.OosInvestigationNumber,
+        ReportableRetest = t.ReportableRetest,
         Result = result,
         AnalystName = !string.IsNullOrEmpty(t.OutsourcedToLab) ? $"External lab: {t.OutsourcedToLab}" : (string.IsNullOrEmpty(analystName) ? null : analystName),
         AnalystAt = analystAt,
@@ -382,5 +408,31 @@ public static class CertificateOfAnalysisBuilder
         var spaced = Regex.Replace(value, "([a-z0-9])([A-Z])", "$1 $2");
         spaced = Regex.Replace(spaced, "([A-Z]+)([A-Z][a-z])", "$1 $2");
         return Regex.Replace(spaced, @"\s+(.)", m => " " + m.Groups[1].Value.ToLowerInvariant());
+    }
+
+    private static readonly IComparer<string?> RevisionNumberComparer = Comparer<string?>.Create(CompareRevisionNumbers);
+
+    // Document Control numbers revisions as "01", "02", ..., "10" or dotted minor revisions "01.2", "01.10".
+    // Compare each dot-separated segment numerically when both segments are non-negative integers so "2" < "10"
+    // and "01.2" < "01.10", while keeping ordinal comparison for non-numeric segments.
+    private static int CompareRevisionNumbers(string? left, string? right)
+    {
+        if (ReferenceEquals(left, right)) return 0;
+        if (left is null) return -1;
+        if (right is null) return 1;
+
+        var leftParts = left.Trim().Split('.');
+        var rightParts = right.Trim().Split('.');
+        var count = Math.Min(leftParts.Length, rightParts.Length);
+        for (var i = 0; i < count; i++)
+        {
+            var cmp = int.TryParse(leftParts[i], System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var li) &&
+                      int.TryParse(rightParts[i], System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var ri)
+                ? li.CompareTo(ri)
+                : StringComparer.Ordinal.Compare(leftParts[i], rightParts[i]);
+            if (cmp != 0) return cmp;
+        }
+        var lengthCmp = leftParts.Length.CompareTo(rightParts.Length);
+        return lengthCmp != 0 ? lengthCmp : StringComparer.Ordinal.Compare(left, right);
     }
 }

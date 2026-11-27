@@ -19,12 +19,12 @@ function renderPage(path: string, loadChapter?: (id: string) => Promise<string>)
 }
 
 describe("HelpPage", () => {
-  it("HelpPage lists 45 chapters and renders one by URL", async () => {
+  it("HelpPage lists 46 chapters and renders one by URL", async () => {
     const user = userEvent.setup();
     renderPage("/help");
 
     const list = screen.getByRole("list", { name: "Guide chapters" });
-    expect(within(list).getAllByRole("link")).toHaveLength(45);
+    expect(within(list).getAllByRole("link")).toHaveLength(46);
 
     await user.click(within(list).getByRole("link", { name: /Sample Receiving/ }));
     expect(await screen.findByRole("heading", { level: 2, name: /Sample Receiving/ })).toBeTruthy();

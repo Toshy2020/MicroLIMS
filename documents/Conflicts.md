@@ -901,7 +901,8 @@ Locations for CONF-001 to CONF-008 were added on 2026-11-12 from the area worker
 ### CONF-189
 - **Area:** SEC
 - **Status:** Decided
-- **What the code does:** As first recorded: `SystemSettingDefinitions` sets the default value of `security.mfa.requiredRoles` to `"SystemAdministrator,SectionHead,QcManager"`, which does not include the `Qa` (`Quality Assurance`) role introduced in B4. Location: `backend/MicroLIMS.Application/Services/SystemSettingDefinitions.cs` (`security.mfa.requiredRoles`). Changed 2026-11-13 (commit `0be29e45`): the default is now `"SystemAdministrator,SectionHead,QcManager,Qa"`. The default applies only where no saved value exists; sites that saved the setting keep their value.
+- **What the code does:** As first recorded: `SystemSettingDefinitions` sets the default value of `security.mfa.requiredRoles` to `"SystemAdministrator,SectionHead,QcManager"`, which does not include the `Qa` (`Quality Assurance`) role introduced in B4. Location: `backend/MicroLIMS.Application/Services/SystemSettingDefinitions.cs` (`security.mfa.requiredRoles`).
+ Changed 2026-11-13 (commit `0be29e45`): the default is now `"SystemAdministrator,SectionHead,QcManager,Qa"`. The default applies only where no saved value exists; sites that saved the setting keep their value.
 - **What the other source says:** Design specification `docs/superpowers/specs/2026-11-10-multi-factor-authentication-design.md` Section 5.3 lists `SystemAdministrator`, `SectionHead`, and `QcManager` as the default required roles (authored before B4 added `Qa` with `Audit.Review`, `Access.Review.Sign`, `Documents.Review`, and `Documents.Approve`).
 - **Question:** Should `Qa` be added to the default value of `security.mfa.requiredRoles` (or configured per site in System Settings)?
 - **Decision:** Decided by the user 2026-11-13: add `Qa` to the default required roles.
@@ -910,7 +911,8 @@ Locations for CONF-001 to CONF-008 were added on 2026-11-12 from the area worker
 ### CONF-190
 - **Area:** SEC
 - **Status:** Decided
-- **What the code does:** As first recorded: `MfaService.StartEnrolmentCoreAsync` checks only for an `Active` credential and then deletes all `Pending` `UserMfaCredential` rows for the user before creating a `Pending` `AuthenticatorApp` credential, without checking whether the pending row is an administrator-assigned `HardwareToken`. A signed-in user (for example during the enrolment grace period) can overwrite and delete an admin-assigned `Pending` hardware token by starting self-enrolment (`POST api/auth/mfa/enrol/start`). Location: `backend/MicroLIMS.Application/Services/Mfa/MfaService.cs` — `StartEnrolmentCoreAsync` (lines 679–695). Changed 2026-11-13 (commit `0be29e45`): `StartEnrolmentCoreAsync` refuses self-enrolment while a `Pending` `HardwareToken` exists, keeps the token, shows "A hardware token has been assigned to you; activate it, or ask an administrator to reset your two-factor setup, before setting up an authenticator app." and records `MFA_FAILED`. A user's own pending authenticator app is still replaced; an administrator reset still works.
+- **What the code does:** As first recorded: `MfaService.StartEnrolmentCoreAsync` checks only for an `Active` credential and then deletes all `Pending` `UserMfaCredential` rows for the user before creating a `Pending` `AuthenticatorApp` credential, without checking whether the pending row is an administrator-assigned `HardwareToken`. A signed-in user (for example during the enrolment grace period) can overwrite and delete an admin-assigned `Pending` hardware token by starting self-enrolment (`POST api/auth/mfa/enrol/start`). Location: `backend/MicroLIMS.Application/Services/Mfa/MfaService.cs` — `StartEnrolmentCoreAsync` (lines 679–695).
+ Changed 2026-11-13 (commit `0be29e45`): `StartEnrolmentCoreAsync` refuses self-enrolment while a `Pending` `HardwareToken` exists, keeps the token, shows "A hardware token has been assigned to you; activate it, or ask an administrator to reset your two-factor setup, before setting up an authenticator app." and records `MFA_FAILED`. A user's own pending authenticator app is still replaced; an administrator reset still works.
 - **What the other source says:** Design specification `docs/superpowers/specs/2026-11-10-multi-factor-authentication-design.md` Section 5.7 describes administrator hardware token assignment followed by user confirmation on first sign-in.
 - **Question:** Should `StartEnrolmentCoreAsync` block or require an administrator reset when a `Pending` `HardwareToken` is already assigned to the user?
 - **Decision:** Decided by the user 2026-11-13: block self-enrolment while an administrator-assigned hardware token is pending.
@@ -1077,3 +1079,305 @@ Locations for CONF-001 to CONF-008 were added on 2026-11-12 from the area worker
 - **Question:** Should a result with no specification be accepted as a pass (2026-11-11), or stay refused (current code)?
 - **Decision:** Keep it refused (user, 2026-11-16). The 2026-11-11 decision is superseded; the flag is not built. The plan and design spec carry a dated note.
 - **Date:** 2026-11-16
+
+### CONF-209
+- **Area:** REV
+- **Status:** Decided
+- **What the code does:** `ResultConformanceRules.FromStatus` classifies `AlertLimitExceeded` and `ActionLimitExceeded` as `DoesNotConform`. D1 Task 1 preserves that behavior for the shared outcome and for approval and retest propagation (user, 2026-11-20). The outcome also exposes the deciding status.
+- **What the other source says:** D1 Task 1 in `docs/superpowers/plans/2026-11-11-oos-investigation.md` called for alert and action limit exceedances to conform.
+- **Question:** Which outcomes should open an investigation at review in D1 Task 3?
+- **Decision:** Only out-of-specification or detected results open an investigation. Alert/action exceedances do not open an investigation (user, 2026-11-20).
+- **Note (user decision, 2026-11-24):** CONF-209 covers OOS-kind investigations only; Excursion-kind reviews are separate, never block approval or the certificate (`OosGate` ignores `Kind = Excursion`), and are skipped for samples belonging to a monitoring plan occurrence.
+- **Date:** 2026-11-20
+
+### CONF-210
+- **Area:** MDM
+- **Status:** Decided
+- **What the code does:** The existing Test Master update requires `MasterData.Manage`, as documented in FS-MDM-001. D4 Task 1 places requalification interval changes in that update path.
+- **What the other source says:** The competency design spec §5.7 says QC Managers can set intervals through `Competency.Manage`.
+- **Question:** Which permission governs changes to the requalification interval?
+- **Decision:** Set the interval only through the existing Test Master update, using `MasterData.Manage` (user, 2026-11-20). Keep the existing master-data grants. QC Managers retain `Competency.Manage` for signing and withdrawing qualifications. Update the design spec §5.7 and the FS wording in D4 Task 8.
+- **Date:** 2026-11-20
+
+### CONF-211
+- **Area:** MDM
+- **Status:** Decided
+- **What the code does:** The Test Master update can move a test to another laboratory.
+- **What the other source says:** D4 links qualifications to a test definition and applies laboratory scope when qualifying an analyst.
+- **Question:** Does a qualification remain valid after its test moves laboratory?
+- **Decision:** The existing qualification stays valid after a move (user, 2026-11-20). Assignment and recording still require membership in the test's current section.
+- **Date:** 2026-11-20
+
+### CONF-212
+- **Area:** DCM
+- **Status:** Decided
+- **What the code does:** Two active document masters can differ only by code case although FS-1a-120 requires case-insensitive uniqueness. The database index compares the stored codes. Item STM uses the first case-insensitive match.
+- **What the other source says:** `documents/DocumentControl/ML-DC-FRS-1A-001.md` FS-1a-120 requires company document codes to be case-insensitively unique.
+- **Question:** How should existing case-variant active codes be reconciled before enforcing case-insensitive uniqueness in the database?
+- **Decision:** User decision: "The code shall not be repeated even in lower case." Company document codes (`DocumentMaster.CompanyDocumentCode`) are unique case-insensitively across ALL document masters (active, withdrawn, obsolete, any `RecordStatus`), so a code is never reused. If an existing database holds codes that differ only by case (or exact duplicates among non-active masters), the migration refuses to install and lists the clashing code groups; nothing is renamed automatically (user, 2026-11-26).
+- **Date:** 2026-11-26
+
+### CONF-213
+- **Area:** REV
+- **Status:** Decided
+- **What the code does:** OOS cause categories are shared across laboratories and have no section ID.
+- **What the other source says:** The OOS design spec §5.1 describes configuration by laboratory.
+- **Question:** Who may edit the shared cause list?
+- **Decision:** Adding, renaming, or deactivating a category requires both `Oos.Manage` and `MasterData.Manage`. Each change requires an audited reason. The list has no section scope. The “No cause found” category keeps its name and stays active. Templates require `Oos.Manage` and Configure access to the section (user, 2026-11-20). Phase I signing requires a currently active category, and deactivation preserves existing records (orchestrator, 2026-11-20).
+- **Date:** 2026-11-20
+
+### CONF-214
+- **Area:** PAT
+- **Status:** Decided
+- **What the code did:** Confirmatory plate readings were loaded by primary observation ID without checking the sample in the URL.
+- **What the other source says:** CLAUDE.md 5.2 requires resource-level scope. FS-PAT-005 describes the prior behavior.
+- **Decision:** Reject the entire request before writing when any observation ID is unavailable for the requested sample. Orchestrator, 2026-11-20. User confirmation is pending at R3 approval. Update FS-PAT-005 in D4 Task 8.
+- **Date:** 2026-11-20
+
+### CONF-215
+- **Area:** PAT
+- **Status:** Fixed
+- **What the code does:** The pathogen session's confirmatory readout submits to save-confirmatory-readings. Its first plate insert links to a primary observation with no WorkflowStepResultId. On a clean PostgreSQL database migrated from base 22adaa01, the INSERT into public.ConfirmatoryPlateObservations fails with SQLSTATE 23502: null value in column "WorkflowStepResultId" of relation "ConfirmatoryPlateObservations" violates not-null constraint.
+- **What the other source says:** Migration 20260810225125 creates the column NOT NULL. Migration 20260818183000 adds the location links and leaves that constraint in place. Migration 20260911154200 only reads the column. The model snapshot declares int? and filters its unique index on WorkflowStepResultId IS NOT NULL.
+- **Question:** How should deployed schemas be reconciled with the intended location-linked plate model?
+- **Decision:** Fixed by the forward migration `20261120201135_FixConfirmatoryPlateWorkflowStepNullable`: the column is nullable and the unique index is recreated with the filter. Its Down() refuses to run while NULL rows exist and never deletes regulated rows (orchestrator, 2026-11-20).
+- **Date:** 2026-11-20
+
+### CONF-216
+- **Area:** REV
+- **Status:** Fixed
+- **What the code does:** POST api/water/calculate is open to SystemAdministrator, SectionHead, Reviewer, Analyst, QcManager, and Qa in the authorization matrix. WaterWorkflowEngine.CalculateAndCompareAsync adds a Result and moves the order to Ready under order.AssignedAnalystId ?? 0, irrespective of the caller. The competency gate does not apply. No production caller was found for the endpoint or for LocationPathogenObservationService.RecordPrimaryObservationAsync.
+- **Question:** User decision pending on whether to remove or guard the water endpoint. Remove or guard the direct observation writer if a production caller appears.
+- **Decision:** Removed (user, 2026-11-20). The endpoint POST api/water/calculate, WaterService.CalculateAsync and WaterWorkflowEngine.CalculateAndCompareAsync were deleted. The direct observation writer is unchanged and remains open if a production caller appears.
+- **Date:** 2026-11-20
+- **Documents:** URS-WAT-007 is Withdrawn and FS-WAT-006 was removed from FS-WAT.md (2026-11-25); the removed function description remains in git history.
+
+### CONF-217
+- **Area:** PAT
+- **Status:** Decided
+- **What the code does:** `PathogenSessionService.CompleteSessionCoreAsync` filters `eligibleOrders` to active orders (`!o.IsSuperseded`, status not `Voided`, `Cancelled`, `Approved`, `Rejected`, `Reviewed`, `RetestRequested`, and `CurrentStep != WorkflowStep.Reviewed`), evaluates competency only for them, and marks only those active orders `ResultEntered`. Cancelled and superseded orders retain their existing status.
+- **Question:** Which orders should participate in session completion, and which should retain their existing status?
+- **Decision:** Pathogen session completion marks only ACTIVE orders of that session as `ResultEntered` and evaluates competency only for them; cancelled and superseded orders keep their status (user, 2026-11-26).
+- **Date:** 2026-11-26
+
+### CONF-218
+- **Area:** REV
+- **Status:** Decided
+- **What the other source says:** The OOS design spec §5.5 requires a signed amendment with a reason for further retests.
+- **Question:** What limits, segregation of duties, and eligible orders apply to a retest plan?
+- **Decision:** Each revision permits 1 to 10 retests, with no cumulative cap. Every amendment requires a reason and a new signature. Assign exactly one analyst to each retest sample in the order specified by the plan. The signer may neither appear in the analyst list nor have performed any investigated order, including orders from earlier planned retests. For a new sample, an analyst who performed any investigated order is ineligible. For a retained-sample retest, the original analyst is eligible. A plan may select only current, non-superseded failing orders linked through OosInvestigationResults (user, 2026-11-20).
+- **Date:** 2026-11-20
+
+### CONF-219
+- **Area:** REV
+- **Status:** Decided
+- **Question:** How should a failing planned retest affect an investigation awaiting retest, and how should a reopened invalidation affect the original orders?
+- **Decision:** A failing retest joined through a signed plan moves the investigation from AwaitingRetest to PhaseTwo under the investigation row lock. Audit the transition with the reviewer and reason. Conclusion invalidates and supersedes only investigated orders of the origin sample. A signed reopening reverses those flags in the same transaction, preserves the previous signed conclusion, and allows either conclusion after reassessment. A retest with an out-of-specification result cannot be approved. Signing a Confirmed conclusion reverses any remaining origin invalidation and supersession flags in the same transaction, including flags set during Phase I (user and orchestrator, 2026-11-24).
+- **Date:** 2026-11-24
+
+### CONF-220
+- **Area:** REV
+- **Status:** Decided
+- **Question:** Which results should appear on the origin certificate after invalidation when several signed-plan retest samples exist?
+- **Decision:** The signed retest plan names which retest result is reportable (`ReportableRetestNumber`, bound to `ReportableSampleId` on signing); the origin certificate shows that named reportable retest result with its 21 CFR 11.50 signer manifestation (`OosReportableRetest.ResolveAsync`); the investigation report lists all retest results across all revisions and marks the reportable sample. An amended retest plan may name only one of its own retest samples as reportable (enforced by composite FK `FK_OosRetestPlans_ReportableSample`); the signed plan with the highest revision governs. A failing non-reportable retest keeps blocking origin approval (every plan sample must be approved). R3 supports one named reportable retest only; combining results (averaging etc.) is tracked separately as CONF-242 (user, 2026-11-26).
+- **Date:** 2026-11-26
+
+### CONF-221
+- **Area:** Quality records
+- **Status:** Decided
+- **Question:** Who may add or remove quality record links, upload or void attachments, and add comments?
+- **Decision:** A user who can read the record and holds `Quality.Raise` may add links, upload attachments, and add comments. This includes raisers, owners, and action holders who meet both conditions. A user who can read the record may remove a link or void an attachment if they hold `Quality.Investigate` or own the record. Links may be removed only before the first signed step. Voiding an attachment requires a reason and preserves the attachment row. Audit every change.
+- **Availability:** Anyone who can read the record may download a voided attachment. The attachment metadata identifies it as voided and displays the reason, actor, and timestamp.
+
+### CONF-222
+- **Area:** RPT / MDM
+- **Status:** Decided
+- **Question:** When does the test record show a newer SOP revision notice?
+- **Decision:** The current effective revision must belong to the captured document master and follow the captured revision. Its effective date must precede test completion, or the test must still be open. Reassigning an item to a different SOP does not trigger the notice.
+- **Date:** 2026-11-25
+
+### CONF-223
+- **Area:** Quality records
+- **Status:** Decided
+- **Question:** Which linked CAPA states satisfy the closure requirement for a deviation that requires a CAPA?
+- **Decision:** A linked CAPA qualifies when it is not cancelled and its status is PlanApproved, CompletionVerified, or Closed. A cancelled CAPA never qualifies, even when its plan was signed before cancellation (user, 2026-11-25).
+- **Date:** 2026-11-25
+
+### CONF-224
+- **Area:** Quality records
+- **Status:** Decided
+- **Decision:** For source-raised deviations, the caller supplies the title, occurrence time and immediate action. Validate those fields as on a manual raise.
+- **Decision:** QA can cancel a deviation only in Raised, Investigation, LabConcluded or Approved. Closed and Rejected are final.
+- **Decision:** An audit-finding deviation description identifies the finding by number or ID. The finding note stays in the audit review. The link shows only the reference number to users without Audit.View.
+- **Decision:** Refuse a source raise when a non-cancelled deviation already links the monitoring deviation, audit finding or already-addressed OOS request. Name the existing deviation in the refusal.
+- **Date:** 2026-11-25
+
+### CONF-225
+- **Area:** Quality records
+- **Status:** Decided
+- **Decision:** Only QA users holding `Quality.Approve` may administer the site-wide quality classification list and due rules. Every change is audited.
+- **Date:** 2026-11-25
+
+### CONF-226
+- **Area:** Quality records (Change control)
+- **Status:** Decided
+- **Decision:** The change-control affected list is frozen once the impact assessment is signed (`Assessed` onwards), not only after approval. The signed `ChangeImpactAssessed` snapshot includes the affected links (`TargetType`, `TargetId`, `NewRecordCode`). Both `ChangeControlService.AddAffectedAsync` and `QualityLinkService.AddAsync(..., isAffectedByChange: true)` refuse additions from `Assessed` onwards; link removal remains blocked after the first signed step.
+- **Decision:** The change-control owner is named explicitly when proposing (`OwnerUserId`, optional and defaulting to the proposer). The owner must be an active user with role type `SectionHead` or `QcManager` who is a member of the record's section when a section is set, and the assignment is audited.
+- **Date:** 2026-11-25
+
+### CONF-227
+- **Area:** Quality records (Master-data change-control gate)
+- **Status:** Decided (user confirmed 2026-11-26)
+- **Decision (gated writes):** The gate covers 16 writes: `SpecificationMasterDataService` (`CreateSpecificationAsync`, `UpdateSpecificationAsync`, `DeleteSpecificationAsync`, `ReinstateSpecificationAsync`), `TestDefinitionMasterDataService` (`CreateTestDefinitionAsync`, `UpdateTestDefinitionAsync`, `FreezeTestDefinitionAsync`, `UnfreezeTestDefinitionAsync`), `TestWorkflowStepMasterDataService` (`UpdateWorkflowTypeAsync`, `CreateTestWorkflowStepAsync`, `UpdateTestWorkflowStepAsync`, `MoveTestWorkflowStepAsync`, `DeleteTestWorkflowStepAsync`), and `TestStageReplicateMasterDataService` (`CreateTestDefinitionStageReplicateAsync`, `UpdateTestDefinitionStageReplicateAsync`, `DeleteTestDefinitionStageReplicateAsync`). Batch/copy/workbook specification paths route through `CreateSpecificationAsync`. `SpecificationService.CreateAsync` was unused in production and removed.
+- **Decision (follow-up):** Water/EM limits, chemistry limits, HPLC/ICP methods, and item test assignments stay ungated in R3.
+- **Decision (matching):** Each specification must be listed individually for updates, deletes, and reinstates (matched by `Specification` ID). A new specification is matched by an affected `Item` (`ItemId`) or `TestDefinition` (`TestCode`). A listed test or item does not cover edits to existing specifications. A created test definition is matched by `NewRecordCode` (trimmed, case-insensitive); later edits of that created test in other requests also match that same link by code while the change control is `ApprovedForImplementation`. For a specification create, the matching link (`Item` or `TestDefinition`) is marked changed; repeated changes keep the latest `ChangedAtUtc` and `ChangeAuditLogId`.
+- **Decision (authorization & toggle):** Any user allowed to configure that laboratory (normal `MasterData.Manage` permission and section configure scope) may implement under an approved change control. Turning the gate on or off requires `Quality.Approve`, a non-blank reason, expected version (`If-Match`), and an electronic signature (`SignatureMeaning.ChangeControlGateChanged`), and is audited. With the gate off, a valid `X-Change-Control` header is ignored (no link update, no audit reason change); an invalid `X-Change-Control` header is still refused with 400 on every endpoint. Refused gated writes return coded errors only.
+- **Orchestrator defaults (pending user confirmation):**
+  - **D1 (no-op gated write):** A gated write that changes nothing (EF writes no new audit row for the entity) does not mark the link: `ChangedAtUtc` and `ChangeAuditLogId` stay as they were (no second save), and the write is not refused.
+  - **D2 (specification create `NewRecordCode` matching):** `Specification` create matches an `Item` link by `TargetId == itemId` OR (`TargetId == null` AND `NewRecordCode` trimmed, case-insensitive == `Item.Code`), and a `TestDefinition` link by `TargetId == testDefinitionId` OR (`TargetId == null` AND `NewRecordCode` trimmed, case-insensitive == `TestCode`). A `Specification`-type affected link must name an existing specification: `ChangeControlService.ProposeAsync` and `AddAffectedAsync` refuse a `Specification` target with `NewRecordCode` and no `TargetId` ("List a new specification by its item or test.").
+  - **D3 (item delete cascade):** `ItemService.DeleteAsync` cascades to `Specifications` without the gate. When the item has any specification whose test belongs to a section with the gate ON, `DeleteAsync` refuses with a coded error ("Delete or retire this item's specifications first; each specification change needs an approved change control."). When the gate is off for all those sections, behaviour is unchanged.
+  - **D4 (header validation):** An invalid `X-Change-Control` header is refused with HTTP 400 on every endpoint, including when the gate is off.
+
+### CONF-228
+- **Area:** Quality records
+- **Status:** Decided
+- **What the code does:** `DeviationService.AssessAsync` and `DeviationService.RejectAsync` do not call `QualityRecordCore.EnsureNotRaiserOrOwner`. A user who holds `Quality.Approve` and raised the deviation can assess or reject it. `QualityConfigService.DecideAsync` (extension decision) refuses only the user who requested the extension (`Quality.ExtensionSelfDecision`); it does not refuse the raiser or the owner. Every other approval or closure step does call `EnsureNotRaiserOrOwner`: deviation approve, return and close; CAPA plan approve and return, completion verification and effectiveness check; change control approve, reject and close; complaint conclude and close.
+- **What the other source says:** Specification section 5.9: "Nobody signs an approval or closure of a record they raised or own." The plan's Review Focus item 4 requires the raiser to be refused at each type's closing step.
+- **Question:** Should the raiser and owner exclusion also apply to assessment, rejection and extension decisions? For assessment and rejection the owner is not yet named, so the question concerns the raiser.
+- **Decision:** Raiser/owner exclusion ALSO applies to extension decisions (`QualityConfigService.DecideAsync`): the person who requested an extension cannot decide it (`Quality.ExtensionSelfDecision`), and the raiser or owner of the record cannot decide extensions on it (`Quality.RaiserOrOwner`). Deviation assessment and rejection remain unchanged.
+- **Date:** 2026-11-26
+
+### CONF-229
+- **Area:** Quality records
+- **Status:** Decided
+- **What the code does:** Cancellation of a deviation, CAPA, change control or complaint (`CancelAsync` in each service, which calls `QualityRecordCore.CancelAsync`) requires `Quality.Approve` and only refuses the states listed for each type. It does not refuse the raiser or the owner.
+- **What the other source says:** Specification section 5.1: "Any record can be cancelled only by QA with a reason and signature." Section 5.9 forbids the raiser or owner from signing "an approval or closure". Cancellation is named in neither.
+- **Question:** Is cancellation an approval or a closure for the purposes of section 5.9? If so, the raiser and owner must be refused.
+- **Decision:** Cancellation counts as closure: the raiser and the owner may not cancel their own record (`QualityRecordCore.CancelAsync` calls `EnsureNotRaiserOrOwner`), for all four types.
+- **Date:** 2026-11-26
+
+### CONF-230
+- **Area:** Quality records
+- **Status:** Decided
+- **What the code does:** `QualityRecordsController.Create` (`POST api/quality/{type}`, policy `Quality.View`) accepts the types Capa, ChangeControl and Complaint. Only Deviation is refused (`Deviation.RaiseRoute`). `QualityRecordCore.CreateAsync` writes only the `QualityRecords` row. It writes no `CapaDetails`, `ChangeControlDetails` or `ComplaintDetails` row and sets no owner. Later typed steps then refuse with `QualityRecordCore.Missing()`, because `CapaService.ChangeAsync`, `ChangeControlService.ChangeAsync` and `ComplaintService.ChangeAsync` each require the detail row. The typed creates are `CapaService.CreateAsync`, `ChangeControlService.ProposeAsync` and `ComplaintService.ReceiveAsync`.
+- **What the other source says:** Specification section 3 and section 5.1 fix the four types and their paths. Plan Task 2 routes each type through its own service.
+- **Question:** Should the generic route be removed, or should it refuse every type except the four typed creates?
+- **Decision:** Remove the generic create endpoint `POST api/quality/{type}` and its authorization-matrix line. Each type is created only through its typed service (`DeviationService` raise routes, `CapaService.CreateAsync`, `ChangeControlService.ProposeAsync`, `ComplaintService.ReceiveAsync`). `QualityRecordCore.CreateAsync` stays as an internal entry point for those services; `CreateDtoAsync` was removed. The message code `Deviation.RaiseRoute` became unused and was removed from `MessageCodes` and both locale files.
+- **Date:** 2026-11-26
+
+### CONF-231
+- **Area:** Quality records (Change control)
+- **Status:** Decided
+- **What the code does:** `ChangeControlService.AddAffectedAsync` and `QualityLinkService.AddAsync` (with `isAffectedByChange`) refuse additions when the status is not `Proposed`, using `MessageCodes.ChangeControlAffectedFrozen`. The C# default text reads "Affected records cannot be added after the impact assessment is signed." The English value of `ChangeControl.AffectedFrozen` in `frontend/src/locales/en/serverMessages.json` reads "Affected records cannot be added after change control approval." The Arabic value in `frontend/src/locales/ar/serverMessages.json` says the same (after approval).
+- **What the other source says:** CONF-226 (decided 2026-11-25) freezes the affected list once the impact assessment is signed, not only after approval.
+- **Question:** Should the English and Arabic texts be changed to match the assessment wording?
+- **Decision:** The English text of `ChangeControl.AffectedFrozen` is now "Affected records cannot be added after the impact assessment is signed." The Arabic text uses the glossary terms for the signed impact assessment.
+- **Date:** 2026-11-26
+
+### CONF-232
+- **Area:** Quality records (Change control)
+- **Status:** Fixed
+- **What the code does:** `ChangeControlService.CloseAsync` refuses closure without `UnchangedJustification` when any affected link of type `Specification` or `TestDefinition` has `ChangedAtUtc == null`. Since D2 T9, the master-data change-control gate writes `ChangedAtUtc` (and `ChangeAuditLogId`) on matching affected links, and the detail view lists unchanged records (`Unchanged`). Affected links of type `Item`, `Equipment` and `DocumentMaster` are not checked.
+- **What the other source says:** Specification section 5.5: "A change control cannot be closed while it lists a record that has not been changed, unless QA records why at closure." The wording covers any listed record. Section 5.5 is written about specifications, tests and workflows.
+- **Question:** Which affected types must be changed before closure, and should closure wait until the gate exists? Until the gate is built, should closure always require the justification for specifications and tests?
+- **Decision:** Fixed by D2 T9 (master-data gate writes `ChangedAtUtc` and `ChangeAuditLogId`; detail lists unchanged records).
+- **Date:** 2026-11-26
+
+### CONF-233
+- **Area:** Quality records (Complaint)
+- **Status:** Decided
+- **What the code does:** `ComplaintService.ReceiveAsync` takes `ItemId` (checked to be an active item) and `LotText` (free text, up to 200 characters). The lot is not linked to any stock or media lot record.
+- **What the other source says:** Specification section 5.8: the complaint records "product and lot (chosen from the system where known)".
+- **Question:** Should the lot be chosen from the system, for example from a stock lot or media lot, or remain free text?
+- **Decision:** Complaint lot stays free text (`LotText`); no code change.
+- **Date:** 2026-11-26
+
+### CONF-234
+- **Area:** Quality records (Complaint)
+- **Status:** Decided
+- **What the code does:** `ComplaintService.ConcludeAsync` stores `Outcome` (`Justified`, `NotJustified` or `Inconclusive`) and `ConclusionSummary`. Nothing records whether a deviation or a CAPA is raised as a result, and no link is created.
+- **What the other source says:** Specification section 5.8, Conclusion row: "whether a deviation or CAPA is raised".
+- **Question:** Should the conclusion record and link the follow-up deviation or CAPA, and should it be required when the outcome is Justified?
+- **Decision:** Concluding a complaint as `Justified` requires a linked non-cancelled follow-up deviation or CAPA (`QualityRecordLink` from the complaint to a non-cancelled Deviation or CAPA, or passed via `FollowUpRecordId` in `ConcludeComplaintRequest` which creates the link); refused with `Complaint.FollowUpRequired` ("A justified complaint needs a linked deviation or CAPA.") otherwise. Optional for `NotJustified` and `Inconclusive`.
+- **Date:** 2026-11-26
+
+### CONF-235
+- **Area:** Quality records (Change control)
+- **Status:** Decided
+- **What the code does:** `ChangeControlService.IsAllowedAffectedType` accepts `Item`, `Specification`, `TestDefinition`, `Equipment` and `DocumentMaster`. `QualityLinkTargetType` has no workflow-step value, and `DocumentRevision` is not accepted for a change control.
+- **What the other source says:** Specification section 5.4 (Proposed): "what is affected, chosen from the system: items, specifications, tests, workflow steps, equipment, documents".
+- **Question:** Should workflow steps be selectable as affected records, or is the link to the test definition enough? Should a document revision be selectable as well as a document?
+- **Decision:** Test definition and document master are enough as affected records; no code change.
+- **Date:** 2026-11-26
+
+### CONF-236
+- **Area:** Quality records (Change control)
+- **Status:** Decided
+- **What the code does:** `ChangeControlService.SaveAssessmentAsync` and `SignAssessmentAsync` require the `Quality.Investigate` permission. They do not accept the named owner in its place. `ChangeControlService.EnsureChangeControlOwnerAsync` accepts an owner whose role is `SectionHead` or `QcManager`. The seeded `QcManager` role holds `Quality.Raise` and `Quality.LabConclude` but not `Quality.Investigate` (`DbSeeder`). A QC Manager named as owner therefore cannot save or sign the impact assessment.
+- **What the other source says:** Specification section 5.9: `Quality.Investigate` is for "Section Head; the named owner of a record", covering "Investigation, plans, tasks, laboratory signature".
+- **Question:** Should the named owner of a change control be able to save and sign the impact assessment without the permission, or should only a Section Head be named as owner?
+- **Decision:** The named change-control owner (Section Head or QC Manager) may save and sign the impact assessment even without `Quality.Investigate`; others still need `Quality.Investigate`. QA (`Quality.Approve`) is refused on assessment, and QA approval with raiser/owner exclusion stays.
+- **Date:** 2026-11-26
+
+### CONF-237
+- **Area:** Quality records (Due dates and extensions)
+- **Status:** Decided
+- **What the code does:** `QualityConfigService.RequestAsync` lets the record owner request an extension of the record's own due date (no action), and lets the responsible user request an extension of that action. The owner cannot request an action extension, and the responsible user cannot request a record extension.
+- **What the other source says:** Specification section 5.7: "The owner can ask for an extension with a reason". The plan (Task 4) says "owner or action responsible".
+- **Question:** May the record owner request an extension of an action, as well as the responsible user?
+- **Decision:** The record owner may also request an extension of an action (besides the responsible user).
+- **Date:** 2026-11-26
+
+### CONF-238
+- **Area:** Quality records
+- **Status:** Decided
+- **What the code does:** Ordinary links (`QualityLinkService.AddAsync`), attachments (`QualityAttachmentService.UploadAsync` and `VoidAsync`) and comments (`QualityCommentService.AddAsync`) run through `QualityRecordCore.MutateAsync`. That checks the version, readability, `Quality.Raise` (or owner or `Quality.Investigate` for removal and voiding) and nothing else. They are not refused on a closed, rejected or cancelled record. Only checklist answers (`QualityConfigService.AnswerAsync`) and extension requests (`RequestAsync`) call `EnsureOpenAsync`, which refuses with `Quality.RecordTerminal`.
+- **What the other source says:** Not stated in the specification or the plan.
+- **Question:** May evidence (a link, an attachment or a comment) be added to a closed, rejected or cancelled record? If yes, should it be a dated addendum that the record's signed content does not change?
+- **Decision:** After closed/rejected/cancelled: links are blocked (`Quality.RecordTerminal`); comments and attachments are allowed as a dated addendum, derived from the record's terminal step timestamp vs the comment/attachment timestamp, clearly marked "Added after closure" with date and person in the UI and PDF report; signed content never changes.
+- **Date:** 2026-11-26
+
+### CONF-239
+- **Area:** Quality records (Due dates)
+- **Status:** Decided
+- **What the code does:** `QualityDueDateService.ComputeDueAsync` takes the rule for the classification when one exists, otherwise the site rule (`ClassificationId` null), and returns that rule's `WorkingDays`. If the classification rule exists but its `WorkingDays` is empty, the result is empty, and the site rule is not used.
+- **What the other source says:** Specification section 5.7: due times are "configurable per type and classification, in working days; empty until the site sets them".
+- **Question:** Should an empty classification rule fall back to the site rule for the same type?
+- **Decision:** A classification due rule with empty `WorkingDays` falls back to the site (default) rule for that type.
+- **Date:** 2026-11-26
+
+### CONF-240
+- **Area:** Quality records (Deviation)
+- **Status:** Decided
+- **What the code does:** `DeviationService.SaveInvestigationAsync` stores `ImpactAssessment` as free text (1 to 4000 characters). Affected samples, results, lots and equipment are recorded only as links, added through `QualityLinkService.AddAsync`. The assessment does not select them.
+- **What the other source says:** Specification section 5.2, Investigation row: impact is "chosen from the system, 5.6".
+- **Question:** Is the link panel enough to satisfy "chosen from the system", or does the impact assessment need a structured selection of the affected records?
+- **Decision:** The links panel is enough; no code change.
+- **Date:** 2026-11-26
+
+### CONF-241
+- **Area:** Quality records (D2 T10 trending/dashboard defaults)
+- **Status:** Decided (user confirmed 2026-11-26)
+- **What the code does:** Implements the five orchestrator defaults for D2 Task 10:
+  - **O1:** Product (item) for trending and repeat causes resolves from direct `Item` links, else `ComplaintDetail.ItemId`, else `Sample.ItemId` from linked `Sample`, `TestOrder` (its sample), or `OosInvestigation` (its sample); a record linked to several distinct items is counted under each.
+  - **O2:** Actions (`CapaAction`, `ChangeTask`) count as overdue in `QualityOverdueWorker`, `QualityQueryService.GetDashboardAsync`, and `QualityConfigService.ListOverdueAsync` only once their plan is approved (`CapaStatus.PlanApproved` or later; `ChangeControlStatus.ApprovedForImplementation` or later); record due dates count while open.
+  - **O3:** Cancelled and rejected records are excluded from repeat-cause detection, time-to-close, on-time rate, and CAPA effectiveness rate; trends report them as `CancelledCount` and `RejectedCount` per group while `TotalCount` continues to count all records.
+  - **O4:** Trends without `from`/`to` default to the last 365 lab days (from `ILabClock.LabToday`); the `from`/`to` window is capped at 5 years (`Quality.TrendWindowTooLarge` beyond); a date-only `to` includes that entire day.
+  - **O5:** Each dashboard list returns at most 50 items plus a `TotalCount`; Section Head users (with section scope, not QA) also receive `LaboratoryOpenRecords` and `LaboratoryOpenActions` for their readable sections.
+- **Date:** 2026-11-26
+
+### CONF-242
+- **Area:** REV / RPT
+- **Status:** Open
+- **Question:** Combining several retest results (averaging, rounding, and eligibility rules) on an origin certificate after OOS invalidation.
+- **Current behavior:** R3 supports one named reportable retest (`OosRetestPlan.ReportableRetestNumber` / `ReportableSampleId`, per CONF-220). Combining several retest results needs a formula, rounding rule, and eligibility specification from the approved documents before implementation.
+- **Date:** 2026-11-26
+
+### CONF-243
+- **Area:** MDM / RPT (D5 pre-capture SOP display)
+- **Status:** Decided (user confirmed 2026-11-26)
+- **What the code did:** Item-based test orders that pre-date SOP revision capture (`SopCaptureStatus` is null) fell through to plain `"SOP not recorded"` in `ReportDocumentMapper.SopCaptureText` and `SopMethodDetails.tsx`.
+- **What the other source says:** D5 specification section 3: "Tests recorded before this package: they stay without a captured revision and show 'Not recorded (before {release date})'."
+- **Question:** What date should `{date}` be, where is it stored, and who can edit it?
+- **Decision:** Pre-capture test orders must show `"Not recorded (before {date})"` in the laboratory time zone, where `{date}` is the date this update was installed on that database, stored automatically once by migration `RecordSopCaptureStartDate` in `SystemSettings` (`sopCapture.startDateUtc`) and never editable or listed as editable in the settings UI. `NoSopNumber`, `NotFound`, `NoEffectiveRevision`, and `Ambiguous` keep their existing `"SOP not recorded: {reason}"` wording.
+- **Date:** 2026-11-26

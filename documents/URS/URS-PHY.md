@@ -4,7 +4,7 @@
 |---|---|
 | Document number | URS-PHY |
 | Title | Physicochemical testing user requirements |
-| Version | 0.1 |
+| Version | 0.2 |
 | Status | Draft |
 | Author | Claude (AI agent), draft from code |
 | Reviewer | To be assigned by QA |
@@ -16,6 +16,7 @@
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1 | 2026-11-12 | Claude (AI agent), draft from code | First draft, written from the code as built. |
+| 0.2 | 2026-11-25 | AI coding agent, draft from code | Added competency gate enforcement at physicochemical assignment and recording points (URS-PHY-016). Draft — pending approval. |
 
 ## Requirements
 
@@ -109,4 +110,11 @@ Each requirement below is a need that the code as built serves. Gaps found in th
 **Requirement:** The system shall show the recorded results of a test order only to a user who may read the laboratory section that owns the test order.
 **GxP:** Yes
 **Serves:** 21 CFR 11.10(d) (to be confirmed by QA)
+**Status:** Active
+
+### URS-PHY-016
+*(Draft — pending approval)*
+**Requirement:** When the laboratory's competency gate is enabled, the system shall refuse physicochemical test assignment (manual, bulk, self-assignment, and planned OOS retests) and physicochemical result recording (single-entry, staged, titration, UV, outsourced, chromatography/ICP assays, and sample preparation) for any analyst who lacks a current, non-withdrawn qualification for the test, an active per-order override, or acknowledgement (or open grace-period assignment) of the item's effective SOP revision, and shall record an unresolvable or ambiguous SOP status in the audit reason when recording proceeds.
+**GxP:** Yes
+**Serves:** 21 CFR 211.25; EU GMP Chapter 2 (personnel qualification and SOP training enforcement, to be confirmed by QA)
 **Status:** Active

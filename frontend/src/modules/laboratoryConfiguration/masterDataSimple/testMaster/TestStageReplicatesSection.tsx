@@ -4,14 +4,17 @@ import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import AddIcon from "@mui/icons-material/Add";
 import { ConfirmationDialog } from "../../../../components/ConfirmationDialog";
+import { useChangeControlGate } from "../../../../hooks/useChangeControlGate";
 import { useTranslation } from "react-i18next";
 import { FloatingDialog } from "../../../../components/FloatingDialog";
 import { masterDataOptions, TestDefinitionStageReplicateDto, ProductionStageRole } from "../../../../services/masterDataOptions";
 import { tableHeadSx } from "../../../../theme";
 import { ALL_STAGE_ROLES } from "./testMasterConstants";
 
-export function TestStageReplicatesSection({ testDefinitionId }: { testDefinitionId: number }) {
+// sectionId is the laboratory of the test; it is what the change-control gate (CONF-227) checks and lists change controls for.
+export function TestStageReplicatesSection({ testDefinitionId, sectionId }: { testDefinitionId: number; sectionId?: number | null }) {
   const { t } = useTranslation("masterData");
+  const gate = useChangeControlGate({ sectionId: sectionId ?? null, recordKey: `test-${testDefinitionId}` });
   const [replicates, setReplicates] = useState<TestDefinitionStageReplicateDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -81,14 +84,17 @@ export function TestStageReplicatesSection({ testDefinitionId }: { testDefinitio
     setDialogError(null);
     try {
       if (editingReplicate) {
-        await masterDataOptions.updateTestDefinitionStageReplicate(testDefinitionId, editingReplicate.id, {
-          sampleReplicates: smp
-        }, editingReplicate.version);
+        const replicate = editingReplicate;
+        await gate.run((cc) =>
+          cc
+            ? masterDataOptions.updateTestDefinitionStageReplicate(testDefinitionId, replicate.id, { sampleReplicates: smp }, replicate.version, cc)
+            : masterDataOptions.updateTestDefinitionStageReplicate(testDefinitionId, replicate.id, { sampleReplicates: smp }, replicate.version)
+        );
       } else {
-        await masterDataOptions.createTestDefinitionStageReplicate(testDefinitionId, {
-          role: role as ProductionStageRole,
-          sampleReplicates: smp
-        });
+        const created = { role: role as ProductionStageRole, sampleReplicates: smp };
+        await gate.run((cc) =>
+          cc ? masterDataOptions.createTestDefinitionStageReplicate(testDefinitionId, created, cc) : masterDataOptions.createTestDefinitionStageReplicate(testDefinitionId, created)
+        );
       }
       setDialogOpen(false);
       loadReplicates();
@@ -106,7 +112,9 @@ export function TestStageReplicatesSection({ testDefinitionId }: { testDefinitio
     setPendingDelete(null);
     setError(null);
     try {
-      await masterDataOptions.deleteTestDefinitionStageReplicate(testDefinitionId, target.id);
+      await gate.run((cc) =>
+        cc ? masterDataOptions.deleteTestDefinitionStageReplicate(testDefinitionId, target.id, cc) : masterDataOptions.deleteTestDefinitionStageReplicate(testDefinitionId, target.id)
+      );
       loadReplicates();
     } catch (e: unknown) {
       const errObj = e as { response?: { data?: { message?: string } }; message?: string };
@@ -251,6 +259,7 @@ export function TestStageReplicatesSection({ testDefinitionId }: { testDefinitio
         onConfirm={confirmDelete}
         onCancel={() => setPendingDelete(null)}
       />
+      {gate.prompt}
     </Box>
   );
 }

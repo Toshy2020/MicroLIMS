@@ -41,3 +41,21 @@ These notes are inputs for the SOP authors. They are not approved procedures. Si
 - **Release notes are not change control.** A release note tells users what changed. The laboratory's change control and validation records govern the change. Users check the version shown in About, and state it, when they report a problem.
 - **Open SOP.** The "Open SOP" action in a test's workflow opens the SOP for the item from Document Control. When the action says that no SOP number is set, the SOP is not in Document Control, the SOP has no effective revision or the user may not read it, the analyst follows the laboratory's procedure for finding the correct SOP. A missing link is not a reason to skip a test step, and the analyst does not work from an older copy of the SOP.
 - **Field hints.** A hint explains what a field means. It does not set the value that is correct for the laboratory. The values come from the approved specifications and SOPs.
+
+### Training, qualification and competency gate (package D4; FS-ADM-016, FS-ADM-017, FS-MIC-015, FS-PHY-017) *(Draft — pending approval)*
+
+- **Competency gate ships OFF.** Every laboratory section starts with its competency gate disabled (`GateEnabled = false`). Before enabling the gate, the Section Head or QC Manager must enter analyst qualifications, review the **Impact Preview Before Enabling** for open assigned test orders, and sign the gate change with a reason and password.
+- **Qualification records and requalification intervals.** Qualifications are recorded and withdrawn under `Competency.Manage` with a basis, evidence, qualified-on date, optional attachments, and an electronic signature (self-qualification is refused). Requalification intervals (`RequalificationMonths`) are configured in Test Master (`MasterData.Manage`); the laboratory SOP should define the required qualification basis, evidence standards, and requalification intervals per test.
+- **SOP acknowledgement and unresolvable SOPs.** When the gate is enabled, analysts must have acknowledged the current effective SOP revision for the sample's item (or hold an open reading assignment within its grace period after acknowledging the immediately superseded revision). When an item has no SOP number, an unknown or ambiguous SOP number, or no effective revision, recording is allowed and the system logs `SopNotChecked` in the audit reason; the SOP should specify how QA and Document Control resolve missing or ambiguous SOP links.
+- **One-time overrides and whole-sample separation.** A competency override (`Competency.Override`) is an exceptional, signed, single-order permission for one analyst on one open test order (never for planned OOS retests). Granting an override bars the granter from reviewing or approving any test on the entire sample, even after the override has ended; the SOP should state who reviews and approves samples when a Section Head grants an override.
+
+### Quality records (package D2) — draft SOP templates
+
+Four SOP templates were drafted from the coded quality-record workflow (FS-QLT, BusinessRules section 15). They are not approved procedures. Square-bracket fields `[SITE: …]` must be completed by the laboratory and approved by QA.
+
+- `SOP-Deviation-Handling.md` — raising, assessment, investigation, laboratory conclusion, QA approval, closure, cancellation and extensions of deviations.
+- `SOP-CAPA.md` — creation, plan approval, action completion, verification and the effectiveness check of a CAPA.
+- `SOP-Change-Control.md` — proposal, impact assessment, approval or rejection, implementation tasks and closure. The interim rule for master-data changes is a site decision, because the master-data change-control gate is not yet built.
+- `SOP-Complaint-Handling.md` — receipt, investigation, laboratory report, conclusion, closure and cancellation of complaints.
+
+Each template lists the conflicts that the site must decide before approval (CONF-228 to CONF-240). A signature in MicroLIMS is the user's identity plus password, with the meaning shown on the signed step. Notifications and e-mails are not evidence that a quality step was done; the signed step is the record.

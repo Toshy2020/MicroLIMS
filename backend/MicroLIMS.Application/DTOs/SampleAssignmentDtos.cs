@@ -1,3 +1,6 @@
+using System.Text.Json.Serialization;
+using MicroLIMS.Shared.Responses;
+
 namespace MicroLIMS.Application.DTOs;
 
 // One test's analyst in a batch assignment; null unassigns the test.
@@ -18,7 +21,11 @@ public record AssignableTestDto(
     int? AssignedAnalystId,
     string? AssignedAnalystName,
     bool CanAssign,
-    IReadOnlyList<int> EligibleUserIds);
+    IReadOnlyList<int> EligibleUserIds,
+    IReadOnlyList<AssignmentCompetencyRefusalDto> CompetencyRefusals);
+
+public sealed record AssignmentCompetencyRefusalDto(
+    int UserId, string Code, IReadOnlyDictionary<string, string> Params, string Reason);
 
 public record SampleAssignmentOptionsDto(
     int SampleId,
@@ -27,7 +34,14 @@ public record SampleAssignmentOptionsDto(
 
 public sealed record BulkAssignRequest(IReadOnlyList<int> SampleIds, int AnalystUserId, string? Reason);
 
-public sealed record BulkAssignRowResult(int SampleId, string ReferenceNumber, bool Assigned, string? RefusedReason);
+public sealed record BulkAssignRowResult(int SampleId, string ReferenceNumber, bool Assigned, string? RefusedReason)
+{
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? RefusedCode { get; init; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public IReadOnlyList<ApiError>? ErrorDetails { get; init; }
+}
 
 public sealed record BulkAssignResult(int AssignedCount, int RefusedCount, IReadOnlyList<BulkAssignRowResult> Rows);
 

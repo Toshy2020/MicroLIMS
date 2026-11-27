@@ -10,6 +10,7 @@ export const NOTIFICATION_ROUTES: Record<string, string> = {
   CalibrationDue: "/inventory/equipment",
   EquipmentCalibrationOverdue: "/inventory/equipment",
   EquipmentPmOverdue: "/inventory/equipment",
+  CompetencyExpiry: "/my-work",
   IncubationReady: "/receiving-testing",
   ApprovalWaiting: "/receiving-testing?status=UnderApproval",
   ReviewWaiting: "/receiving-testing?status=UnderReview",
@@ -90,7 +91,8 @@ export function notificationTypeOptions(t: TFunction): readonly NotificationType
     { value: "MonitoringDeviationsOpen", label: t("types.MonitoringDeviationsOpen") },
     { value: "MonitoringDueThisMonth", label: t("types.MonitoringDueThisMonth") },
     { value: "EquipmentCalibrationOverdue", label: t("types.EquipmentCalibrationOverdue") },
-    { value: "EquipmentPmOverdue", label: t("types.EquipmentPmOverdue") }
+    { value: "EquipmentPmOverdue", label: t("types.EquipmentPmOverdue") },
+    { value: "CompetencyExpiry", label: t("types.CompetencyExpiry") }
   ];
 }
 

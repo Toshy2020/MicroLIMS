@@ -41,6 +41,8 @@ import { Ltr } from "../../../../components/Ltr";
 import { Trans } from "react-i18next";
 import { useTranslation } from "../../../../i18n";
 import { useTrackRecent } from "../../../navigation/useTrackRecent";
+import { RaiseDeviationButton } from "../../../quality/components/RaiseDeviationButton";
+import { QualityRecordsPanel } from "../../../quality/components/QualityRecordsPanel";
 
 interface Props {
   open: boolean;
@@ -81,6 +83,7 @@ export function EquipmentDetailsDialog({
   const [isRecordCalibrationOpen, setIsRecordCalibrationOpen] = useState(false);
   const [message, setMessage] = useState<{ text: string; ok: boolean } | null>(null);
   const [notification, setNotification] = useState<{ text: string; severity: "success" | "error" } | null>(null);
+  const [qualityRefreshKey, setQualityRefreshKey] = useState(0);
 
   const prevOpenRef = useRef(false);
   const prevIdRef = useRef<number | null>(null);
@@ -140,6 +143,11 @@ export function EquipmentDetailsDialog({
         }
         actions={
           <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+            <RaiseDeviationButton
+              targetType="Equipment"
+              targetId={equipment.id}
+              onRaised={() => setQualityRefreshKey((k) => k + 1)}
+            />
             <PrintLabelButton
               target={{
                 entityType: "EquipmentAsset",
@@ -308,6 +316,17 @@ export function EquipmentDetailsDialog({
                   ))}
                 </Stack>
               )}
+            </Box>
+
+            <Divider sx={{ my: 2.5 }} />
+
+            <Box sx={{ mb: 2.5 }}>
+              <QualityRecordsPanel
+                targetType="Equipment"
+                targetId={equipment.id}
+                refreshKey={qualityRefreshKey}
+                compact
+              />
             </Box>
 
             <Divider sx={{ my: 2.5 }} />

@@ -1,0 +1,95 @@
+{
+  "panel": {
+    "title": "Quality records",
+    "empty": "No quality records linked.",
+    "loadError": "Failed to load linked quality records.",
+    "retry": "Retry",
+    "restricted": "Restricted",
+    "openAria": "Open {{number}}"
+  },
+  "raiseDeviation": {
+    "button": "Raise deviation",
+    "dialogTitle": "Raise deviation",
+    "titleLabel": "Title",
+    "descriptionLabel": "Description",
+    "sourceContextLabel": "Source description",
+    "occurredAtLabel": "Occurred at (UTC)",
+    "locationLabel": "Location (optional)",
+    "immediateActionLabel": "Immediate action",
+    "cancel": "Cancel",
+    "submit": "Raise deviation",
+    "submitting": "Raising...",
+    "success": "Deviation {{number}} raised.",
+    "error": "Failed to raise deviation."
+  },
+  "config": {
+    "title": "Quality Configuration",
+    "subtitle": "Manage checklist templates, classifications, due rules, and laboratory section change-control gates.",
+    "tabs": {
+      "templates": "Checklist templates",
+      "classifications": "Classifications",
+      "dueRules": "Due rules",
+      "sectionSettings": "Section settings"
+    },
+    "recordTypes": {
+      "Deviation": "Deviation",
+      "Capa": "CAPA",
+      "ChangeControl": "Change control",
+      "Complaint": "Complaint"
+    },
+    "templates": {
+      "typeLabel": "Record type",
+      "scopeLabel": "Scope",
+      "siteWide": "Site-wide (default)",
+      "addItem": "Add item",
+      "itemTextLabel": "Checklist item text",
+      "activeLabel": "Active",
+      "removeItem": "Remove item",
+      "save": "Save template",
+      "saving": "Saving...",
+      "saved": "Checklist template saved.",
+      "loadError": "Failed to load checklist template.",
+      "saveError": "Failed to save checklist template.",
+      "empty": "No checklist items configured for this scope.",
+      "readOnlySiteWide": "Only QA can change the site-wide checklist template.",
+      "readOnlySection": "Changing a section checklist template needs the Quality.Investigate permission."
+    },
+    "classifications": {
+      "nameLabel": "Name",
+      "orderLabel": "Order",
+      "activeLabel": "Active",
+      "add": "Add classification",
+      "save": "Save",
+      "create": "Create",
+      "saved": "Classification saved.",
+      "loadError": "Failed to load classifications.",
+      "saveError": "Failed to save classification.",
+      "readOnly": "Only QA can add or edit classifications."
+    },
+    "dueRules": {
+      "typeLabel": "Record type",
+      "classificationLabel": "Classification",
+      "allClassifications": "Default (no classification)",
+      "workingDaysLabel": "Working days",
+      "save": "Save rule",
+      "saved": "Due rule saved.",
+      "loadError": "Failed to load due rules.",
+      "saveError": "Failed to save due rule.",
+      "readOnly": "Only QA can update due rules."
+    },
+    "sectionSettings": {
+      "sectionLabel": "Laboratory section",
+      "gateLabel": "Require an approved change control for master-data changes (change-control gate)",
+      "reasonLabel": "Reason for change",
+      "save": "Save gate setting",
+      "saving": "Saving...",
+      "saved": "Section change-control gate updated.",
+      "loadError": "Failed to load section settings.",
+      "saveError": "Failed to update section settings.",
+      "reload": "Reload setting",
+      "readOnly": "Only QA can change the section change-control gate.",
+      "meaningStatement": "I am changing the change-control gate setting for this laboratory section.",
+      "meaningTranslation": "أغيّر إعداد بوابة التحكم في التغيير لهذا القسم المخبري."
+    }
+  }
+}

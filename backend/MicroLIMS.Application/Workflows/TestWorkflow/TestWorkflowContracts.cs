@@ -253,57 +253,57 @@ public interface ITestWorkflowEngine : IStatefulWorkflowEngine
     Task<bool> IsStepDoneAsync(int testOrderId, WorkflowType workflowType, TestWorkflowStep step);
     Task<List<SiblingPathogenOrderDto>> GetSiblingPathogenOrdersAsync(int testOrderId, CancellationToken ct = default);
     Task PropagateSharedTsbToSiblingOrdersAsync(int testOrderId, int incubationId, int userId, CancellationToken ct = default);
-    Task<IncubationResponse> SelectMediaAsync(int testOrderId, string stepName, int mediaLotId, int incubatorEquipmentId, int userId);
-    Task<IncubationResponse> StartStage2IncubationAsync(int testOrderId, string stepName, int incubatorEquipmentId, int userId);
-    Task<TestWorkflowResult> RecordResultAsync(int testOrderId, string stepName, ResultPayload payload, int userId);
+    Task<IncubationResponse> SelectMediaAsync(int testOrderId, string stepName, int mediaLotId, int incubatorEquipmentId, int userId, CancellationToken cancellationToken = default);
+    Task<IncubationResponse> StartStage2IncubationAsync(int testOrderId, string stepName, int incubatorEquipmentId, int userId, CancellationToken cancellationToken = default);
+    Task<TestWorkflowResult> RecordResultAsync(int testOrderId, string stepName, ResultPayload payload, int userId, CancellationToken cancellationToken = default);
     // What a count-test save of these readings would report; writes nothing.
     Task<CountCalculationResult> PreviewCountResultAsync(int testOrderId, string stepName, CountTestPayload payload);
-    Task<TestWorkflowResult> SubmitHplcMethodAssayAsync(int runSampleId, string password, string? comment, int userId, string? ipAddress = null);
-    Task<TestWorkflowResult> SubmitIcpMethodAssayAsync(int runSampleId, string password, string? comment, int userId, string? ipAddress = null);
-    Task<TestWorkflowResult> RecordMeasurementResultAsync(int testOrderId, MeasurementPayload payload, int userId, string? ipAddress = null);
-    Task<TestWorkflowResult> RecordGravimetricResultAsync(int testOrderId, GravimetricPayload payload, int userId, string? ipAddress = null);
-    Task<TestWorkflowResult> RecordTitrationResultAsync(int testOrderId, TitrationPayload payload, int userId, string? ipAddress = null);
-    Task<TestWorkflowResult> RecordUvResultAsync(int testOrderId, UvPayload payload, int userId, string? ipAddress = null);
+    Task<TestWorkflowResult> SubmitHplcMethodAssayAsync(int runSampleId, string password, string? comment, int userId, string? ipAddress = null, CancellationToken cancellationToken = default);
+    Task<TestWorkflowResult> SubmitIcpMethodAssayAsync(int runSampleId, string password, string? comment, int userId, string? ipAddress = null, CancellationToken cancellationToken = default);
+    Task<TestWorkflowResult> RecordMeasurementResultAsync(int testOrderId, MeasurementPayload payload, int userId, string? ipAddress = null, CancellationToken cancellationToken = default);
+    Task<TestWorkflowResult> RecordGravimetricResultAsync(int testOrderId, GravimetricPayload payload, int userId, string? ipAddress = null, CancellationToken cancellationToken = default);
+    Task<TestWorkflowResult> RecordTitrationResultAsync(int testOrderId, TitrationPayload payload, int userId, string? ipAddress = null, CancellationToken cancellationToken = default);
+    Task<TestWorkflowResult> RecordUvResultAsync(int testOrderId, UvPayload payload, int userId, string? ipAddress = null, CancellationToken cancellationToken = default);
     Task OutsourceTestAsync(int testOrderId, OutsourceTestPayload payload, int userId, string? ipAddress = null);
-    Task<TestWorkflowResult> RecordOutsourcedResultAsync(int testOrderId, RecordOutsourcedResultPayload payload, int userId, string? ipAddress = null);
-    Task<TestWorkflowResult> RecordQualitativeResultAsync(int testOrderId, QualitativePayload payload, int userId, string? ipAddress = null);
-    Task<TestWorkflowResult> RecordDissolutionResultAsync(int testOrderId, DissolutionPayload payload, int userId, string? ipAddress = null);
-    Task<TestWorkflowResult> RecordDissolutionStageAsync(int testOrderId, DissolutionStagePayload payload, int userId, string? ipAddress = null);
-    Task<TestWorkflowResult> RecordDisintegrationResultAsync(int testOrderId, DisintegrationPayload payload, int userId, string? ipAddress = null);
-    Task<TestWorkflowResult> RecordDisintegrationStageAsync(int testOrderId, DisintegrationStagePayload payload, int userId, string? ipAddress = null);
-    Task<TestWorkflowResult> RecordWeightVariationResultAsync(int testOrderId, WeightVariationPayload payload, int userId, string? ipAddress = null);
-    Task<TestWorkflowResult> RecordWeightVariationStageAsync(int testOrderId, WeightVariationStagePayload payload, int userId, string? ipAddress = null);
+    Task<TestWorkflowResult> RecordOutsourcedResultAsync(int testOrderId, RecordOutsourcedResultPayload payload, int userId, string? ipAddress = null, CancellationToken cancellationToken = default);
+    Task<TestWorkflowResult> RecordQualitativeResultAsync(int testOrderId, QualitativePayload payload, int userId, string? ipAddress = null, CancellationToken cancellationToken = default);
+    Task<TestWorkflowResult> RecordDissolutionResultAsync(int testOrderId, DissolutionPayload payload, int userId, string? ipAddress = null, CancellationToken cancellationToken = default);
+    Task<TestWorkflowResult> RecordDissolutionStageAsync(int testOrderId, DissolutionStagePayload payload, int userId, string? ipAddress = null, CancellationToken cancellationToken = default);
+    Task<TestWorkflowResult> RecordDisintegrationResultAsync(int testOrderId, DisintegrationPayload payload, int userId, string? ipAddress = null, CancellationToken cancellationToken = default);
+    Task<TestWorkflowResult> RecordDisintegrationStageAsync(int testOrderId, DisintegrationStagePayload payload, int userId, string? ipAddress = null, CancellationToken cancellationToken = default);
+    Task<TestWorkflowResult> RecordWeightVariationResultAsync(int testOrderId, WeightVariationPayload payload, int userId, string? ipAddress = null, CancellationToken cancellationToken = default);
+    Task<TestWorkflowResult> RecordWeightVariationStageAsync(int testOrderId, WeightVariationStagePayload payload, int userId, string? ipAddress = null, CancellationToken cancellationToken = default);
     Task<List<TestOrderLocationResponse>> GetLocationsAsync(int testOrderId);
-    Task<IncubationResponse> CloseCurrentIncubationWindowAsync(int testOrderId, int userId);
+    Task<IncubationResponse> CloseCurrentIncubationWindowAsync(int testOrderId, int userId, CancellationToken cancellationToken = default);
     // Section Head/System Administrator only (enforced at the controller) -
     // bypasses the minimum-duration wait gate for the currently open
     // incubation on this test order. Never changes the recorded window.
     Task<IncubationResponse> OverrideMinimumDurationAsync(int testOrderId, int userId);
-    Task<TestWorkflowResult> RecordBatchResultsAsync(int testOrderId, List<BatchLocationReadings> locations, int userId);
-    Task<TestWorkflowResult> RecordWaterBatchReadingsAsync(int testOrderId, List<WaterBatchLocationReadings> locations, int userId);
-    Task<TestWorkflowResult> RecordBatchPathogenResultsAsync(int testOrderId, List<BatchLocationObservation>? observations, int userId);
-    Task<TestWorkflowResult> RecordLocationResultsAsync(int testOrderId, List<LocationResultInput> inputs, int userId);
+    Task<TestWorkflowResult> RecordBatchResultsAsync(int testOrderId, List<BatchLocationReadings> locations, int userId, CancellationToken cancellationToken = default);
+    Task<TestWorkflowResult> RecordWaterBatchReadingsAsync(int testOrderId, List<WaterBatchLocationReadings> locations, int userId, CancellationToken cancellationToken = default);
+    Task<TestWorkflowResult> RecordBatchPathogenResultsAsync(int testOrderId, List<BatchLocationObservation>? observations, int userId, CancellationToken cancellationToken = default);
+    Task<TestWorkflowResult> RecordLocationResultsAsync(int testOrderId, List<LocationResultInput> inputs, int userId, CancellationToken cancellationToken = default);
 
     // Broth steps carry no result logic - completion is the incubation
     // window elapsing plus the analyst submitting the form. The window
     // is server-controlled from Test Master and recorded when media is selected.
-    Task<StepResultDto> SubmitBrothAsync(int testOrderId, string stepName, string? observation, int userId);
+    Task<StepResultDto> SubmitBrothAsync(int testOrderId, string stepName, string? observation, int userId, CancellationToken cancellationToken = default);
 
     Task<IncubationResponse> StartSelectivePlatingIncubationAsync(int testOrderId, string stepName, int mediaLotId, int equipmentId,
-        DateTime? incubationStartUtc, int userId);
+        DateTime? incubationStartUtc, int userId, CancellationToken cancellationToken = default);
 
     Task<StepResultDto> SubmitSelectivePlatingObservationAsync(int testOrderId, string stepName, GrowthObservation observation,
-        string? observedAppearanceNote, int userId);
+        string? observedAppearanceNote, int userId, CancellationToken cancellationToken = default);
 
     Task<StepResultDto> SubmitConfirmatorySetupAsync(int testOrderId, string stepName,
-        IReadOnlyList<ConfirmatorySelectionInput> selections, DateTime incubationStartUtc, DateTime incubationEndUtc, int userId);
+        IReadOnlyList<ConfirmatorySelectionInput> selections, DateTime incubationStartUtc, DateTime incubationEndUtc, int userId, CancellationToken cancellationToken = default);
 
     Task<ConfirmatoryOutcomeDto> SubmitConfirmatoryObservationsAsync(int testOrderId, string stepName,
-        IReadOnlyList<ConfirmatoryObservationInput> observations, int userId);
+        IReadOnlyList<ConfirmatoryObservationInput> observations, int userId, CancellationToken cancellationToken = default);
 
-    Task<StepResultDto> RecordAnalystDecisionAsync(int testOrderId, AnalystDecision decision, int userId);
+    Task<StepResultDto> RecordAnalystDecisionAsync(int testOrderId, AnalystDecision decision, int userId, CancellationToken cancellationToken = default);
 
-    Task<StepResultDto> SubmitBiochemicalAsync(int testOrderId, string stepName, string biochemicalResultText, int? attachmentId, bool organismDetected, int userId);
+    Task<StepResultDto> SubmitBiochemicalAsync(int testOrderId, string stepName, string biochemicalResultText, int? attachmentId, bool organismDetected, int userId, CancellationToken cancellationToken = default);
 
     Task<StepResultDto> RecordBiochemicalReviewDecisionAsync(int workflowStepResultId, bool approve, string comment, int reviewerUserId);
 }

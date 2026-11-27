@@ -1,3 +1,4 @@
+using MicroLIMS.Application.Services.Competency;
 using System.Globalization;
 using MicroLIMS.Application.Helpers;
 using MicroLIMS.Shared.Exceptions;
@@ -30,22 +31,22 @@ public class SectionClosureService
         _approval = approval;
     }
 
-    public Task CloseTestingAsync(int sampleId, int sectionId, int sectionHeadUserId, string password, string reason, string? ipAddress) =>
-        UnitOfWork.RunAsync(_db, () => CloseTestingCoreAsync(sampleId, sectionId, sectionHeadUserId, password, reason, ipAddress));
+    public Task CloseTestingAsync(int sampleId, int sectionId, int sectionHeadUserId, string password, string reason, string? ipAddress, CancellationToken ct = default) =>
+        UnitOfWork.RunAsync(_db, () => CloseTestingCoreAsync(sampleId, sectionId, sectionHeadUserId, password, reason, ipAddress, ct), ct);
 
-    private async Task CloseTestingCoreAsync(int sampleId, int sectionId, int sectionHeadUserId, string password, string reason, string? ipAddress)
+    private async Task CloseTestingCoreAsync(int sampleId, int sectionId, int sectionHeadUserId, string password, string reason, string? ipAddress, CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(reason))
             throw new BusinessRuleException(MessageCodes.OrganizationClosureReasonRequired, "A reason is required to close testing.");
 
         var sample = await _db.Samples.Include(s => s.TestOrders).Include(s => s.SectionSignoffs)
-            .FirstOrDefaultAsync(s => s.Id == sampleId)
+            .FirstOrDefaultAsync(s => s.Id == sampleId, ct)
             ?? throw new NotFoundException(
                 MessageCodes.SampleNotFound,
                 $"Sample {sampleId} not found.",
                 new Dictionary<string, string> { ["sampleId"] = sampleId.ToString(CultureInfo.InvariantCulture) });
 
-        var userScope = await _scope.GetMemberSectionIdsAsync(sectionHeadUserId);
+        var userScope = await _scope.GetMemberSectionIdsAsync(sectionHeadUserId, ct);
         if (userScope is not null && !userScope.Contains(sectionId))
             throw new UnauthorizedAccessException("This test belongs to a laboratory section you are not assigned to.");
         if (!SampleSectionRollup.SectionIds(sample).Contains(sectionId))
@@ -82,7 +83,7 @@ public class SectionClosureService
             .Where(i => i.TestOrderId != null && orderIds.Contains(i.TestOrderId.Value))
             .GroupBy(i => i.TestOrderId!.Value)
             .Select(g => new { g.Key, Stage = g.Max(i => i.StageNumber) })
-            .ToDictionaryAsync(x => x.Key, x => x.Stage);
+            .ToDictionaryAsync(x => x.Key, x => x.Stage, ct);
 
         foreach (var order in SampleSectionRollup.CurrentOrders(sample, sectionId))
         {
@@ -106,9 +107,12 @@ public class SectionClosureService
         signoff.ClosedAt = _time.GetUtcNow().UtcDateTime;
         signoff.CloseReason = reason.Trim();
         signoff.CloseSignature = signature;
+        _db.CurrentUserId = sectionHeadUserId;
+        await CompetencyOverrideLifecycle.EndAsync(_db, SampleSectionRollup.CurrentOrders(sample, sectionId),
+            _time.GetUtcNow().UtcDateTime, CompetencyOverrideEndReason.Cancelled, ct);
         SampleSectionRollup.Apply(sample);
 
-        await _db.SaveChangesAsync();
-        await _approval.FinalizeIfClosedAsync(sample, "Laboratory testing closed", sectionHeadUserId);
+        await _db.SaveChangesAsync(ct);
+        await _approval.FinalizeIfClosedAsync(sample, "Laboratory testing closed", sectionHeadUserId, ct);
     }
 }

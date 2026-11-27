@@ -158,6 +158,14 @@ export interface SessionAssignedTestDto {
   numericValue?: number | null;
 }
 
+export interface CompetencySkipDto {
+  testOrderId: number;
+  testCode: string;
+  code: string;
+  reason: string;
+  reasons: Array<{ code: string; params: Record<string, string>; reason: string }>;
+}
+
 export interface SharedTsbStateDto {
   isStarted: boolean;
   isIncubating: boolean;
@@ -185,6 +193,7 @@ export interface SharedTsbStateDto {
   // A TSB test's own window can't be resolved from Test Master; the ranges
   // above then read "not configured" for that test.
   windowNotConfigured?: boolean;
+  skipped?: CompetencySkipDto[] | null;
 }
 
 export interface MatrixCellResultDto {
@@ -240,6 +249,7 @@ export interface PathogenTestingSessionDto {
   sharedTsb: SharedTsbStateDto;
   resultMatrix: MatrixCellResultDto[];
   missingResults: MissingResultDto[];
+  skipped?: CompetencySkipDto[] | null;
 }
 
 export interface StartSharedTsbRequest {

@@ -104,7 +104,14 @@ public static class PermissionConstants
     public const string MaterialCategoriesManage = "MaterialCategories.Manage";
     // Release a received stock lot whose category requires approval before use.
     public const string MaterialsRelease = "Materials.Release";
+    public const string CompetencyView = "Competency.View";
+    public const string CompetencyManage = "Competency.Manage";
+    public const string CompetencyOverride = "Competency.Override";
+
     public const string OosManage = "Oos.Manage";
+    public const string OosView = "Oos.View";
+    public const string OosContribute = "Oos.Contribute";
+    public const string OosRequestDeviation = "Oos.RequestDeviation";
     public const string TestWorkflowSupervise = "TestWorkflow.Supervise";
     public const string SamplesReceiveOwnLab = "Samples.ReceiveOwnLab";
     public const string SamplesCorrect = "Samples.Correct";
@@ -173,6 +180,13 @@ public static class PermissionConstants
     // Notification centre and escalation (C5): mark notification types mandatory and configure escalation rules and working hours for your section.
     public const string NotificationsConfigure = "Notifications.Configure";
 
+    // Quality events (D2): Deviation, CAPA, Change Control, Complaint.
+    public const string QualityView = "Quality.View";
+    public const string QualityRaise = "Quality.Raise";
+    public const string QualityInvestigate = "Quality.Investigate";
+    public const string QualityLabConclude = "Quality.LabConclude";
+    public const string QualityApprove = "Quality.Approve";
+
     public static readonly IReadOnlyList<string> All = new[]
     {
         UsersManage, RolesManage, AuditView, ReportingAdmin,
@@ -189,7 +203,7 @@ public static class PermissionConstants
         DocumentsReview, DocumentsApprove, DocumentsPeriodicReview,
         DocumentsTrainingAssign, DocumentsTrainingViewMatrix, DocumentsConfigManage, DocumentsReassign,
         DashboardsLabOverview, DashboardsReview, KpiView, KpiViewTeam, KpiConfigureProfiles,
-        MediaPrepare, MediaRelease, MaterialCategoriesManage, MaterialsRelease, OosManage, TestWorkflowSupervise,
+        MediaPrepare, MediaRelease, MaterialCategoriesManage, MaterialsRelease, OosManage, OosView, OosContribute, OosRequestDeviation, TestWorkflowSupervise,
         SamplesReceiveOwnLab, SamplesCorrect, SamplesAssignAnalyst,
         SolutionsPrepare, SolutionsRelease, HplcOperate, WorkingStandardsQualify,
         MonitoringPlanView, MonitoringPlanManage, MonitoringPlanApprove,
@@ -200,7 +214,9 @@ public static class PermissionConstants
         AuditReview, AccessReviewSign,
         LabelsReprint, LabelsConfigure,
         TableViewsShare, DataExport,
-        NotificationsConfigure
+        CompetencyView, CompetencyManage, CompetencyOverride,
+        NotificationsConfigure,
+        QualityView, QualityRaise, QualityInvestigate, QualityLabConclude, QualityApprove
     };
 
     // What the built-in System Administrator role holds. Segregation of duties
@@ -231,19 +247,21 @@ public static class PermissionConstants
         DiscussionsView, MonitoringPlanView, AuditView, AuditReview, AccessReview, AccessReviewSign,
         SectionsViewAll, SamplesTrackAll, DashboardsLabOverview, DashboardsReview,
         KpiView, KpiViewTeam, MessagesUse, SystemViewSecurityAudit,
-        DocumentsReview, DocumentsApprove, DocumentsPeriodicReview, DocumentsTrainingViewMatrix
+        DocumentsReview, DocumentsApprove, DocumentsPeriodicReview, DocumentsTrainingViewMatrix, CompetencyView, OosView, OosRequestDeviation,
+        QualityView, QualityRaise, QualityApprove
     };
 
     // The codes some endpoint or service actually checks. The rest are
     // declared for the Roles screen but not yet enforced anywhere; the
     // screen shows which is which (Permission.IsEnforced).
-    // tests.not-applicable.* and tests.outsource join this set with the endpoints that check them.
+    // D1 Task 4 provisions the OOS investigation codes as enforced ahead of their endpoint checks.
     public static readonly IReadOnlySet<string> Enforced = new HashSet<string>
     {
         AuditView, CryovialsApprove, CryovialsManage, DashboardsLabOverview, DashboardsReview,
         DiscussionsEditAny, DocumentsApprove, DocumentsConfigManage, DocumentsDraftEdit, DocumentsPeriodicReview, DocumentsReassign, DocumentsRegister, DocumentsReview, DocumentsRevisionCreate, DocumentsTrainingAssign, DocumentsTrainingViewMatrix,
         EquipmentDocumentControl, EquipmentManage, ItemsDocumentUpload, ItemsManage, KpiView, KpiViewTeam, KpiConfigureProfiles,
-        MasterDataManage, MaterialsDocumentControl, MaterialsManage, MaterialCategoriesManage, MaterialsRelease, MediaPrepare, MediaRelease, OosManage,
+        CompetencyManage, CompetencyView, CompetencyOverride,
+        MasterDataManage, MaterialsDocumentControl, MaterialsManage, MaterialCategoriesManage, MaterialsRelease, MediaPrepare, MediaRelease, OosManage, OosView, OosContribute, OosRequestDeviation,
         ReportingAdmin, RolesManage, SamplesApprove, SamplesAssignAnalyst, SamplesCorrect, SamplesReceive,
         SamplesReceiveOwnLab, SamplesReview, SamplesTrackAll, SignaturesManage, SystemViewErrorLog, SystemViewSecurityAudit, SystemConfigureSettings,
         TestWorkflowBiochemicalDecision, TestWorkflowExecute, TestWorkflowSupervise, UsersManage,
@@ -256,7 +274,8 @@ public static class PermissionConstants
         AuditReview, AccessReviewSign,
         LabelsReprint, LabelsConfigure,
         TableViewsShare, DataExport,
-        NotificationsConfigure
+        NotificationsConfigure,
+        QualityView, QualityRaise, QualityInvestigate, QualityLabConclude, QualityApprove
     };
 
     // Declared and granted, but no feature checks them yet. Kept in the

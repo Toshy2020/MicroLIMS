@@ -1,3 +1,4 @@
+using System.Globalization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using MicroLIMS.Application.Abstractions.Live;
@@ -26,6 +27,7 @@ public sealed class NotificationScheduler
     private const string ItemOverduePrefix = "ItemOverdue:";
     private const string PendingConfigPrefix = "PendingPreparationConfigApproval:config:";
     private const string MonitoringPrefix = "Monitoring:";
+    private const string CompetencyExpiryPrefix = "CompetencyExpiry:qualification:";
 
     private readonly IMicroLimsDbContext _db;
     private readonly INotificationPublisher _publisher;
@@ -35,6 +37,7 @@ public sealed class NotificationScheduler
     private readonly string _appBaseUrl;
     private readonly MonitoringReminderService? _monitoring;
     private readonly EscalationService? _escalation;
+    private readonly Competency.CompetencyReminderService? _competencyReminders;
 
     public NotificationScheduler(
         IMicroLimsDbContext db,
@@ -44,7 +47,8 @@ public sealed class NotificationScheduler
         ISystemSettingsReader? settings = null,
         IConfiguration? config = null,
         MonitoringReminderService? monitoring = null,
-        EscalationService? escalation = null)
+        EscalationService? escalation = null,
+        Competency.CompetencyReminderService? competencyReminders = null)
     {
         _db = db;
         _publisher = publisher;
@@ -54,6 +58,7 @@ public sealed class NotificationScheduler
         _appBaseUrl = NotificationEmailComposer.ResolveAppBaseUrl(config);
         _monitoring = monitoring;
         _escalation = escalation;
+        _competencyReminders = competencyReminders;
     }
 
     public async Task<int> RunAsync(CancellationToken ct = default)
@@ -101,6 +106,8 @@ public sealed class NotificationScheduler
         {
             await ScheduleMonitoringRemindersAsync(ct);
         }
+
+        await ScheduleCompetencyExpiryAsync(ct);
 
         var createdCount = escalationCreatedNotifications + (efDb is not null
             ? efDb.ChangeTracker.Entries<Domain.Entities.NotificationLog>().Count(e => e.State == EntityState.Added)
@@ -384,6 +391,43 @@ public sealed class NotificationScheduler
         }
 
         await ResolveStaleKeysAsync(CalibrationDuePrefix, activeKeys, ct);
+    }
+
+    // Daily competency-expiry check, driven by each section's reminder-days setting.
+    public async Task ScheduleCompetencyExpiryAsync(CancellationToken ct = default)
+    {
+        if (_competencyReminders is null)
+            return;
+
+        var reminders = await _competencyReminders.GetExpiringAsync(null, ct);
+        var activeKeys = new HashSet<string>(StringComparer.Ordinal);
+        var headsBySection = new Dictionary<int, IReadOnlyCollection<int>>();
+        foreach (var reminder in reminders)
+        {
+            var dedupeKey = $"{CompetencyExpiryPrefix}{reminder.QualificationId}";
+            activeKeys.Add(dedupeKey);
+
+            if (!headsBySection.TryGetValue(reminder.SectionId, out var heads))
+            {
+                heads = await _recipients.RoleInSectionAsync(RoleType.SectionHead, reminder.SectionId, ct);
+                headsBySection[reminder.SectionId] = heads;
+            }
+
+            var recipients = new HashSet<int>(heads) { reminder.UserId };
+            var dueAt = reminder.ExpiresOn.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+            await _publisher.PublishAsync(new NotificationRequest(
+                Type: "CompetencyExpiry",
+                UserIds: recipients,
+                Message: $"{reminder.UserName}'s qualification for {reminder.TestCode} expires on {reminder.ExpiresOn.ToString("d MMM yyyy", CultureInfo.InvariantCulture)}.",
+                TargetType: "AnalystQualification",
+                TargetId: reminder.QualificationId,
+                SectionId: reminder.SectionId,
+                DedupeKey: dedupeKey,
+                Severity: "warning",
+                DueAtUtc: dueAt), ct);
+        }
+
+        await ResolveStaleKeysAsync(CompetencyExpiryPrefix, activeKeys, ct);
     }
 
     public async Task ScheduleItemOverdueAsync(DateTime now, CancellationToken ct = default)

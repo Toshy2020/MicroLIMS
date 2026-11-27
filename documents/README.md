@@ -4,7 +4,7 @@ This folder holds the user requirements (URS), functional specifications (FS), t
 
 ## Areas
 
-Each of the 24 areas has one URS and one FS. Both are drafts.
+Each of the 25 areas has one URS and one FS. Both are drafts. QLT (quality records) was added on 2026-11-25.
 
 | Area | URS file | FS file | Version | Status |
 |---|---|---|---|---|
@@ -32,6 +32,7 @@ Each of the 24 areas has one URS and one FS. Both are drafts.
 | NTF | `URS/URS-NTF.md` | `FunctionalSpecification/FS-NTF.md` | 0.1 | Draft 0.1 |
 | ADM | `URS/URS-ADM.md` | `FunctionalSpecification/FS-ADM.md` | 0.1 | Draft 0.1 |
 | SEC | `URS/URS-SEC.md` | `FunctionalSpecification/FS-SEC.md` | 0.1 | Draft 0.1 |
+| QLT | `URS/URS-QLT.md` | `FunctionalSpecification/FS-QLT.md` | 0.2 | Draft — pending approval |
 
 ## Other documents
 
@@ -42,6 +43,10 @@ Each of the 24 areas has one URS and one FS. Both are drafts.
 | SOP draft outline (Label printing and handling) | `SOP/SOP-Label-Printing-And-Handling.md` | Draft outline |
 | SOP draft outline (Multi-factor authentication) | `SOP/SOP-Multi-Factor-Authentication.md` | Draft outline |
 | SOP draft outline (Company sign-in, single sign-on) | `SOP/SOP-Single-Sign-On.md` | Draft outline |
+| SOP draft template (Deviation handling) | `SOP/SOP-Deviation-Handling.md` | Draft template — pending approval |
+| SOP draft template (CAPA) | `SOP/SOP-CAPA.md` | Draft template — pending approval |
+| SOP draft template (Change control) | `SOP/SOP-Change-Control.md` | Draft template — pending approval |
+| SOP draft template (Complaint handling) | `SOP/SOP-Complaint-Handling.md` | Draft template — pending approval |
 | User Manual role guide (QA) | `UserManual/roles/qa.md` | Draft |
 | Document Control set (Releases 1a to 1d) | `DocumentControl/` (see `DocumentControl/README.md`) | Moved, unchanged |
 
@@ -50,7 +55,8 @@ Each of the 24 areas has one URS and one FS. Both are drafts.
 - URS entries: 271
 - FS entries: 286
 - Calculation register rows (CALC): 83
-- Conflicts (CONF) entries: 108. Open: 103. Decided: 5.
+- Conflicts (CONF) entries: 108. Open: 103. Decided: 5. (This snapshot predates the quality entries.)
+- QLT added 2026-11-25 and extended 2026-11-26 (D2 Task 9, the master-data change-control gate): 19 URS entries (URS-QLT-001..019) and 24 FS entries (FS-QLT-001..024). The R3 quality decisions are in Conflicts CONF-221 to CONF-241, all Decided or Fixed; CONF-242 (combining retest results) is Open. The totals above are the 2026-11-13 snapshot and do not include QLT.
 
 | Area | URS entries | FS entries |
 |---|---|---|

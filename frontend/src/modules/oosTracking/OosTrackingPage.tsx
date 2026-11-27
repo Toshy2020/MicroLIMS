@@ -1,674 +1,389 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import {
-  Box,
-  Paper,
-  Table,
-  TableHead,
-  TableRow,
-  TableCell,
-  TableBody,
-  TableContainer,
-  Typography,
-  Chip,
   Alert,
-  Tooltip,
+  Box,
   Button,
-  IconButton,
-  Collapse,
+  Chip,
+  FormControl,
+  InputLabel,
+  MenuItem,
+  Select,
   Stack,
+  Tab,
+  Tabs,
   TextField,
-  LinearProgress,
-  Divider,
-  useTheme
+  Typography
 } from "@mui/material";
-import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
-import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
-import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
-import FileUploadOutlinedIcon from "@mui/icons-material/FileUploadOutlined";
-import DownloadOutlinedIcon from "@mui/icons-material/DownloadOutlined";
-import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
-import AttachFileIcon from "@mui/icons-material/AttachFile";
-import { Link } from "react-router-dom";
-import { Trans } from "react-i18next";
-import { Ltr } from "../../components/Ltr";
+import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "../../i18n";
-import { serverMessage } from "../../utils/errorMessage";
+import { useAuth } from "../../contexts/AuthContext";
+import { PERMISSIONS } from "../../routes/routes";
 import { PageHeader } from "../../components/PageHeader";
-import { SectionTitle } from "../../components/SectionTitle";
-import { StatusBadge, CategoryBadge, ToneBadge } from "../../components/StatusBadge";
-import { DialogBodySkeleton } from "../../components/DialogBodySkeleton";
-import { FloatingDialog } from "../../components/FloatingDialog";
+import { StatusBadge } from "../../components/StatusBadge";
 import {
-  OosTrackingService,
-  OosGroup,
-  OosInvestigationDocument
-} from "./services/OosTrackingService";
-import { tableHeadSx } from "../../theme";
-import { FileDropZone } from "../../components/FileDropZone";
+  RegisterTable,
+  type RegisterColumn
+} from "../../components/lab/RegisterTable";
+import { monospaceFontFamily } from "../../theme/palette";
+import { serverMessage } from "../../utils/errorMessage";
 import { formatDateTimeWithTimeZone } from "../../utils/formatDate";
+import {
+  laboratorySectionService,
+  type LaboratorySection
+} from "../../services/laboratorySectionService";
+import {
+  oosInvestigationService,
+  type OosInvestigationFilter,
+  type OosInvestigationListItemDto,
+  type OosInvestigationStatus
+} from "../../services/oosInvestigationService";
+import { LegacyGroupsView } from "./components/LegacyGroupsView";
 
-const formatDate = (d: string) =>
-  formatDateTimeWithTimeZone(d);
-
-// Mirrors MaterialDocumentFileValidator (the server is authoritative) and the
-// 25 MB MaterialDocuments:MaxFileSizeBytes default in appsettings.json.
-const INVESTIGATION_ACCEPT = ".pdf,.jpg,.jpeg,.png,.webp,.tiff";
-
-const formatBytes = (bytes: number) => {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
-};
+type RegisterTab = "open" | "overdue" | "concluded" | "excursions" | "legacy";
 
 export function OosTrackingPage() {
   const { t } = useTranslation("oosTracking");
-  const theme = useTheme();
-  const [groups, setGroups] = useState<OosGroup[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
-  const [activeDocGroup, setActiveDocGroup] = useState<OosGroup | null>(null);
+  const navigate = useNavigate();
+  const { permissions } = useAuth();
+  const canManage = permissions.includes(PERMISSIONS.OOS_MANAGE);
 
-  const loadGroups = () => {
-    OosTrackingService.getOosGroups()
-      .then((data) => {
-        setGroups(data);
-        // Expand all groups by default
-        setExpandedGroups(new Set(data.map((g) => g.oosGroupCode)));
-      })
-      .catch((e) =>
-        setError(serverMessage(e) ?? t("page.loadError"))
-      );
-  };
+  const [tab, setTab] = useState<RegisterTab>("open");
+  const [sections, setSections] = useState<LaboratorySection[]>([]);
+  const [sectionId, setSectionId] = useState<number | "">("");
+  const [statusFilter, setStatusFilter] = useState<OosInvestigationStatus | "">("");
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
+  const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(25);
+
+  const [rows, setRows] = useState<OosInvestigationListItemDto[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    loadGroups();
+    const controller = new AbortController();
+    laboratorySectionService
+      .getMySections(controller.signal)
+      .then(setSections)
+      .catch(() => {
+        if (!controller.signal.aborted) setSections([]);
+      });
+    return () => controller.abort();
   }, []);
 
-  const toggleGroup = (code: string) => {
-    setExpandedGroups((prev) => {
-      const next = new Set(prev);
-      if (next.has(code)) {
-        next.delete(code);
-      } else {
-        next.add(code);
-      }
-      return next;
-    });
+  useEffect(() => {
+    if (tab === "legacy") return;
+
+    const controller = new AbortController();
+    setLoading(true);
+    setError(null);
+
+    const filter: OosInvestigationFilter = {
+      page: page + 1,
+      pageSize
+    };
+
+    if (tab === "open") {
+      filter.kind = "Oos";
+      filter.openOnly = true;
+      if (statusFilter) filter.status = statusFilter;
+    } else if (tab === "overdue") {
+      filter.overdue = true;
+    } else if (tab === "concluded") {
+      filter.status = "Concluded";
+    } else if (tab === "excursions") {
+      filter.kind = "Excursion";
+      if (statusFilter) filter.status = statusFilter;
+    }
+
+    if (sectionId !== "") filter.sectionId = sectionId;
+    if (fromDate) filter.from = fromDate;
+    if (toDate) filter.to = toDate;
+
+    oosInvestigationService
+      .list(filter, controller.signal)
+      .then((res) => {
+        setRows(res.items);
+        setTotalCount(res.totalCount);
+        setLoading(false);
+      })
+      .catch((e: unknown) => {
+        if (controller.signal.aborted) return;
+        setError(serverMessage(e) ?? t("page.loadError"));
+        setLoading(false);
+      });
+
+    return () => controller.abort();
+  }, [tab, sectionId, statusFilter, fromDate, toDate, page, pageSize, t]);
+
+  const handleTabChange = (nextTab: RegisterTab) => {
+    setTab(nextTab);
+    setPage(0);
+    setStatusFilter("");
   };
 
-  const totalRetestCount = groups?.reduce((acc, g) => acc + g.retestSamples.length, 0) ?? 0;
-  const retestTypeLabels: Record<string, string> = {
-    RetestRetainedSample: t("retests.types.RetestRetainedSample"),
-    NewSampleRequest: t("retests.types.NewSampleRequest")
-  };
+  const columns: RegisterColumn<OosInvestigationListItemDto>[] = [
+    {
+      key: "number",
+      label: t("register.columns.number"),
+      nowrap: true,
+      render: (row) => (
+        <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+          <Typography
+            variant="body2"
+            sx={{ fontFamily: monospaceFontFamily, fontWeight: 700 }}
+          >
+            {row.number}
+          </Typography>
+          {row.isOverdue && (
+            <Chip
+              size="small"
+              color="error"
+              variant="outlined"
+              label={t("register.overdueChip")}
+            />
+          )}
+        </Stack>
+      )
+    },
+    {
+      key: "kind",
+      label: t("register.columns.kind"),
+      render: (row) => <StatusBadge status={row.kind} />
+    },
+    {
+      key: "status",
+      label: t("register.columns.status"),
+      render: (row) => <StatusBadge status={row.status} />
+    },
+    {
+      key: "sampleReferenceNumber",
+      label: t("register.columns.sample"),
+      render: (row) => (
+        <Box>
+          <Typography
+            variant="body2"
+            sx={{ fontFamily: monospaceFontFamily, fontWeight: 600 }}
+          >
+            {row.sampleReferenceNumber}
+          </Typography>
+          <Typography variant="caption" color="text.secondary">
+            {row.sampleDisplayName}
+          </Typography>
+        </Box>
+      )
+    },
+    {
+      key: "sectionName",
+      label: t("register.columns.section")
+    },
+    {
+      key: "testCodes",
+      label: t("register.columns.tests"),
+      render: (row) => (
+        <Stack direction="row" spacing={0.5} sx={{ flexWrap: "wrap" }}>
+          {row.testCodes.map((code) => (
+            <Chip
+              key={code}
+              size="small"
+              label={code}
+              sx={{ fontFamily: monospaceFontFamily }}
+            />
+          ))}
+        </Stack>
+      )
+    },
+    {
+      key: "openedAtUtc",
+      label: t("register.columns.opened"),
+      numeric: true,
+      render: (row) => (
+        <Typography variant="body2" sx={{ fontVariantNumeric: "tabular-nums" }}>
+          {formatDateTimeWithTimeZone(row.openedAtUtc)}
+        </Typography>
+      )
+    },
+    {
+      key: "dueDate",
+      label: t("register.columns.dueDate"),
+      numeric: true,
+      render: (row) => (
+        <Typography variant="body2" sx={{ fontVariantNumeric: "tabular-nums" }}>
+          {row.dueDate ?? "—"}
+        </Typography>
+      )
+    },
+    {
+      key: "conclusion",
+      label: t("register.columns.conclusion"),
+      render: (row) =>
+        row.conclusion ? <StatusBadge status={row.conclusion} /> : "—"
+    }
+  ];
 
   return (
     <Box>
-      <PageHeader
-        title={t("page.title")}
-        subtitle={t("page.subtitle")}
-      />
+      <PageHeader title={t("page.title")} subtitle={t("page.subtitle")}>
+        <Button component={Link} to="/oos-tracking/trends" variant="outlined">
+          {t("trends.openTrends")}
+        </Button>
+      </PageHeader>
 
-      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+      <Tabs
+        value={tab}
+        onChange={(_, val: RegisterTab) => handleTabChange(val)}
+        sx={{ mb: 2, borderBottom: 1, borderColor: "divider" }}
+      >
+        <Tab value="open" label={t("register.tabs.open")} />
+        <Tab value="overdue" label={t("register.tabs.overdue")} />
+        <Tab value="concluded" label={t("register.tabs.concluded")} />
+        <Tab value="excursions" label={t("register.tabs.excursions")} />
+        {canManage && <Tab value="legacy" label={t("register.tabs.legacy")} />}
+      </Tabs>
 
-      <Box sx={{ display: "flex", alignItems: "baseline", gap: 1.5, mb: 2 }}>
-        <SectionTitle>{t("page.sectionTitle")}</SectionTitle>
-        {groups && (
-          <Typography sx={{ fontSize: 13, color: "text.secondary" }}>
-            {t("summary.groupsAndRetests", {
-              groups: t("summary.groupCount", { count: groups.length }),
-              retests: t("summary.retestCount", { count: totalRetestCount })
-            })}
-          </Typography>
-        )}
-      </Box>
-
-      {!groups && !error ? (
-        <DialogBodySkeleton blocks={3} blockHeight={120} />
-      ) : groups && groups.length === 0 ? (
-        <Paper
-          elevation={0}
-          sx={{
-            p: 6,
-            textAlign: "center",
-            border: "1px solid",
-            borderColor: "divider",
-            borderRadius: 1.5,
-            bgcolor: "background.paper"
-          }}
-        >
-          <Typography sx={{ color: "text.secondary", fontSize: 14 }}>
-            {t("page.noGroups")}
-          </Typography>
-        </Paper>
+      {tab === "legacy" && canManage ? (
+        <LegacyGroupsView />
       ) : (
         <Stack spacing={2}>
-          {groups?.map((group) => {
-            const isExpanded = expandedGroups.has(group.oosGroupCode);
-
-            return (
-              <Paper
-                key={group.oosGroupCode}
-                elevation={0}
-                sx={{
-                  border: "1px solid",
-                  borderColor: "divider",
-                  borderRadius: 1.5,
-                  overflow: "hidden",
-                  bgcolor: "background.paper"
+          <Stack
+            direction={{ xs: "column", sm: "row" }}
+            spacing={1.5}
+            sx={{ alignItems: { sm: "center" }, flexWrap: "wrap" }}
+          >
+            <FormControl size="small" sx={{ minWidth: 180 }}>
+              <InputLabel id="oos-filter-section">
+                {t("register.filters.section")}
+              </InputLabel>
+              <Select
+                labelId="oos-filter-section"
+                label={t("register.filters.section")}
+                value={sectionId}
+                onChange={(e) => {
+                  const raw = e.target.value as number | "";
+                  setSectionId(raw === "" ? "" : Number(raw));
+                  setPage(0);
                 }}
               >
-                {/* Group Summary Header */}
-                <Box
-                  sx={{
-                    p: 2,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    flexWrap: "wrap",
-                    gap: 2,
-                    bgcolor: "background.default",
-                    borderBottom: isExpanded ? "1px solid" : "none",
-                    borderColor: "divider",
-                    cursor: "pointer"
+                <MenuItem value="">{t("register.filters.allSections")}</MenuItem>
+                {sections.map((s) => (
+                  <MenuItem key={s.sectionId} value={s.sectionId}>
+                    {s.sectionName}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            {(tab === "open" || tab === "excursions") && (
+              <FormControl size="small" sx={{ minWidth: 180 }}>
+                <InputLabel id="oos-filter-status">
+                  {t("register.filters.status")}
+                </InputLabel>
+                <Select
+                  labelId="oos-filter-status"
+                  label={t("register.filters.status")}
+                  value={statusFilter}
+                  onChange={(e) => {
+                    setStatusFilter(
+                      e.target.value as OosInvestigationStatus | ""
+                    );
+                    setPage(0);
                   }}
-                  onClick={() => toggleGroup(group.oosGroupCode)}
                 >
-                  <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, flexWrap: "wrap" }}>
-                    <IconButton aria-label={isExpanded ? t("group.collapse") : t("group.expand")} aria-expanded={Boolean(isExpanded)} size="small" onClick={(e) => { e.stopPropagation(); toggleGroup(group.oosGroupCode); }}>
-                      {isExpanded ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
-                    </IconButton>
+                  <MenuItem value="">{t("register.filters.allStatuses")}</MenuItem>
+                  <MenuItem value="PhaseOne">
+                    {t("statuses.PhaseOne", { ns: "common" })}
+                  </MenuItem>
+                  <MenuItem value="AwaitingRetest">
+                    {t("statuses.AwaitingRetest", { ns: "common" })}
+                  </MenuItem>
+                  <MenuItem value="PhaseTwo">
+                    {t("statuses.PhaseTwo", { ns: "common" })}
+                  </MenuItem>
+                </Select>
+              </FormControl>
+            )}
 
-                    <Box>
-                      <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                        <Typography
-                          sx={{
-                            fontFamily: "monospace",
-                            fontWeight: 700,
-                            fontSize: 15,
-                            color: "primary.main"
-                          }}
-                        >
-                          {group.oosGroupCode}
-                        </Typography>
-                        <CategoryBadge category={group.category} />
-                      </Box>
-                      <Typography sx={{ fontSize: 12, color: "text.secondary", mt: 0.25 }}>
-                        <Trans i18nKey="group.opened" ns="oosTracking" values={{ date: formatDate(group.openedAt) }} components={{ ltr: <Ltr>{null}</Ltr> }} />
-                      </Typography>
-                    </Box>
+            <TextField
+              size="small"
+              type="date"
+              label={t("register.filters.from")}
+              slotProps={{ inputLabel: { shrink: true } }}
+              value={fromDate}
+              onChange={(e) => {
+                setFromDate(e.target.value);
+                setPage(0);
+              }}
+            />
+            <TextField
+              size="small"
+              type="date"
+              label={t("register.filters.to")}
+              slotProps={{ inputLabel: { shrink: true } }}
+              value={toDate}
+              onChange={(e) => {
+                setToDate(e.target.value);
+                setPage(0);
+              }}
+            />
 
-                    <Divider orientation="vertical" flexItem sx={{ mx: 0.5, height: 28, my: "auto" }} />
+            {(sectionId !== "" || statusFilter !== "" || fromDate || toDate) && (
+              <Button
+                size="small"
+                onClick={() => {
+                  setSectionId("");
+                  setStatusFilter("");
+                  setFromDate("");
+                  setToDate("");
+                  setPage(0);
+                }}
+              >
+                {t("register.filters.clear")}
+              </Button>
+            )}
+          </Stack>
 
-                    <Box>
-                      <Typography sx={{ fontSize: 12, color: "text.secondary", textTransform: "uppercase", fontWeight: 600 }}>
-                        {t("group.rootOrigin")}
-                      </Typography>
-                      <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                        <Typography sx={{ fontSize: 13, fontWeight: 700, fontFamily: "monospace" }}>
-                          {group.originReferenceNumber}
-                        </Typography>
-                        <StatusBadge status={group.originSampleStatus} />
-                      </Box>
-                    </Box>
+          {error && <Alert severity="error">{error}</Alert>}
 
-                    <Box sx={{ ml: 1 }}>
-                      <Typography sx={{ fontSize: 13, fontWeight: 600 }}>
-                        {group.displayName}
-                      </Typography>
-                      {group.batchNumber && (
-                        <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-                          <Trans i18nKey="group.batch" ns="oosTracking" values={{ batch: group.batchNumber }} components={{ ltr: <Ltr>{null}</Ltr> }} />
-                        </Typography>
-                      )}
-                    </Box>
-                  </Box>
-
-                  {/* Investigation Document & Count Actions */}
-                  <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }} onClick={(e) => e.stopPropagation()}>
-                    {group.hasInvestigationDocument ? (
-                      <Chip
-                        icon={<AttachFileIcon sx={{ fontSize: "16px !important" }} />}
-                        label={t("group.reportAttached")}
-                        color="success"
-                        variant="outlined"
-                        size="small"
-                        sx={{ fontWeight: 600, fontSize: 12 }}
-                      />
-                    ) : (
-                      <Chip
-                        label={t("group.noReport")}
-                        variant="outlined"
-                        size="small"
-                        sx={{ color: "text.secondary", borderColor: "divider", fontSize: 12 }}
-                      />
-                    )}
-
-                    <Button
-                      size="small"
-                      variant="outlined"
-                      startIcon={<DescriptionOutlinedIcon fontSize="small" />}
-                      onClick={() => setActiveDocGroup(group)}
-                      sx={{ fontSize: 12, textTransform: "none", fontWeight: 600 }}
-                    >
-                      {group.hasInvestigationDocument ? t("group.manageInvestigation") : t("group.uploadInvestigation")}
-                    </Button>
-                  </Box>
-                </Box>
-
-                {/* Retest Samples Table */}
-                <Collapse in={isExpanded} timeout="auto" unmountOnExit>
-                  <TableContainer>
-                    <Table size="small">
-                      <TableHead sx={{ bgcolor: "background.paper" }}>
-                        <TableRow>
-                          {[t("retests.columns.retestSample"), t("retests.columns.parentOrigin"), t("retests.columns.itemPoint"), t("retests.columns.retestType"), t("retests.columns.tests"), t("retests.columns.analysts"), t("retests.columns.retestStatus"), t("retests.columns.opened"), t("retests.columns.actions")].map((h) => (
-                            <TableCell key={h} sx={{ fontWeight: 700, fontSize: 12, color: "text.secondary" }}>
-                              {h}
-                            </TableCell>
-                          ))}
-                        </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        {group.retestSamples.length === 0 ? (
-                          <TableRow>
-                            <TableCell colSpan={9} align="center" sx={{ py: 3 }}>
-                              <Typography sx={{ color: "text.secondary", fontSize: 13 }}>
-                                {t("retests.noRetests")}
-                              </Typography>
-                            </TableCell>
-                          </TableRow>
-                        ) : (
-                          group.retestSamples.map((retest) => (
-                            <TableRow key={retest.newSampleId} hover sx={{ "&:last-child td, &:last-child th": { border: 0 } }}>
-                              {/* Retest Sample */}
-                              <TableCell sx={{ py: 1.25 }}>
-                                <Typography sx={{ fontSize: 13, fontWeight: 700, fontFamily: "monospace" }}>
-                                  {retest.newReferenceNumber}
-                                </Typography>
-                              </TableCell>
-
-                              {/* Parent / Origin */}
-                              <TableCell sx={{ py: 1.25 }}>
-                                <Typography sx={{ fontSize: 12, fontFamily: "monospace", fontWeight: 600 }}>
-                                  {retest.originReferenceNumber}
-                                </Typography>
-                                <StatusBadge status={retest.originSampleStatus} />
-                              </TableCell>
-
-                              {/* Item / Point */}
-                              <TableCell sx={{ py: 1.25 }}>
-                                <Typography sx={{ fontSize: 12, color: "text.primary" }}>
-                                  {retest.displayName || "—"}
-                                </Typography>
-                                {retest.batchNumber && (
-                                  <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-                                    <Trans i18nKey="retests.batch" ns="oosTracking" values={{ batch: retest.batchNumber }} components={{ ltr: <Ltr>{null}</Ltr> }} />
-                                  </Typography>
-                                )}
-                              </TableCell>
-
-                              {/* Retest Type */}
-                              <TableCell sx={{ py: 1.25 }}>
-                                <Typography sx={{ fontSize: 12 }}>
-                                  {retestTypeLabels[retest.retestType] ?? retest.retestType}
-                                </Typography>
-                              </TableCell>
-
-                              {/* Test(s) */}
-                              <TableCell sx={{ py: 1.25 }}>
-                                {retest.testCodes.map((code) => (
-                                  <Chip key={code} size="small" label={code} sx={{ mr: 0.5, mb: 0.5, height: 20, fontSize: 12 }} />
-                                ))}
-                              </TableCell>
-
-                              {/* Analyst(s) */}
-                              <TableCell sx={{ py: 1.25 }}>
-                                <Typography sx={{ fontSize: 12 }}>
-                                  {retest.analystNames.length > 0 ? retest.analystNames.join(", ") : "—"}
-                                </Typography>
-                              </TableCell>
-
-                              {/* Retest Status */}
-                              <TableCell sx={{ py: 1.25 }}>
-                                <StatusBadge status={retest.newSampleStatus} />
-                              </TableCell>
-
-                              {/* Opened */}
-                              <TableCell sx={{ py: 1.25 }}>
-                                <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-                                  {formatDate(retest.openedAt)}
-                                </Typography>
-                              </TableCell>
-
-                              {/* Actions */}
-                              <TableCell sx={{ py: 1.25 }}>
-                                <Tooltip title={t("retests.recordTooltip")}>
-                                  <Button
-                                    component={Link}
-                                    to={`/samples/${retest.newSampleId}/report`}
-                                    target="_blank"
-                                    rel="noopener"
-                                    size="small"
-                                    variant="outlined"
-                                    startIcon={<DescriptionOutlinedIcon fontSize="small" />}
-                                    sx={{ px: 1, py: 0.25, fontSize: 12, borderColor: "divider", color: "text.secondary" }}
-                                  >
-                                    {t("retests.record")}
-                                  </Button>
-                                </Tooltip>
-                              </TableCell>
-                            </TableRow>
-                          ))
-                        )}
-                      </TableBody>
-                    </Table>
-                  </TableContainer>
-                </Collapse>
-              </Paper>
-            );
-          })}
+          <RegisterTable
+            tableKey="oosTracking.register"
+            columns={columns}
+            rows={rows}
+            getRowId={(r) => r.id}
+            loading={loading}
+            onRowClick={(row) => navigate(`/oos-tracking/${row.id}`)}
+            empty={{
+              title: t("register.emptyTitle"),
+              description: t("register.emptyDescription")
+            }}
+            serverPaged={{
+              totalCount,
+              page,
+              pageSize,
+              onPageChange: setPage,
+              onPageSizeChange: (next) => {
+                setPageSize(next);
+                setPage(0);
+              }
+            }}
+            trailingCell={{
+              label: t("register.columns.actions"),
+              render: (row) => (
+                <Button
+                  size="small"
+                  variant="outlined"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigate(`/oos-tracking/${row.id}`);
+                  }}
+                >
+                  {t("register.openDetail")}
+                </Button>
+              )
+            }}
+          />
         </Stack>
-      )}
-
-      {/* Investigation Documents Dialog */}
-      {activeDocGroup && (
-        <OosInvestigationDocumentsDialog
-          open={Boolean(activeDocGroup)}
-          group={activeDocGroup}
-          onClose={() => setActiveDocGroup(null)}
-          onChanged={() => {
-            loadGroups();
-          }}
-        />
       )}
     </Box>
   );
 }
-
-interface DocDialogProps {
-  open: boolean;
-  group: OosGroup;
-  onClose: () => void;
-  onChanged: () => void;
-}
-
-function OosInvestigationDocumentsDialog({ open, group, onClose, onChanged }: DocDialogProps) {
-  const { t } = useTranslation("oosTracking");
-  const formatsHint = t("docs.formatsHint");
-  const [docs, setDocs] = useState<OosInvestigationDocument[] | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [submitting, setSubmitting] = useState(false);
-
-  // Upload state
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-
-  // Supersede state
-  const [supersedingDoc, setSupersedingDoc] = useState<OosInvestigationDocument | null>(null);
-  const [supersedeFile, setSupersedeFile] = useState<File | null>(null);
-  const [supersedeReason, setSupersedeReason] = useState("");
-
-  const loadDocuments = () => {
-    setLoading(true);
-    setError(null);
-    OosTrackingService.getDocuments(group.oosGroupCode)
-      .then((res) => {
-        setDocs(res);
-        setLoading(false);
-      })
-      .catch((e) => {
-        setError(serverMessage(e) ?? t("errors.loadDocuments"));
-        setLoading(false);
-      });
-  };
-
-  useEffect(() => {
-    if (open) {
-      loadDocuments();
-    }
-  }, [open, group.oosGroupCode]);
-
-  const handleUpload = async () => {
-    if (!selectedFile) return;
-    setSubmitting(true);
-    setError(null);
-    try {
-      await OosTrackingService.uploadDocument(group.oosGroupCode, selectedFile);
-      setSelectedFile(null);
-      loadDocuments();
-      onChanged();
-    } catch (e: unknown) {
-      setError(serverMessage(e) ?? t("errors.upload"));
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const handleDownload = async (doc: OosInvestigationDocument) => {
-    try {
-      const blob = await OosTrackingService.downloadDocument(doc.id, group.oosGroupCode);
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = doc.originalFileName;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-    } catch (e: unknown) {
-      setError(serverMessage(e) ?? t("errors.download"));
-    }
-  };
-
-  const handleSupersede = async () => {
-    if (!supersedingDoc || !supersedeFile || !supersedeReason.trim()) return;
-    setSubmitting(true);
-    setError(null);
-    try {
-      await OosTrackingService.supersedeDocument(
-        supersedingDoc.id,
-        group.oosGroupCode,
-        supersedeFile,
-        supersedeReason.trim()
-      );
-      setSupersedingDoc(null);
-      setSupersedeFile(null);
-      setSupersedeReason("");
-      loadDocuments();
-      onChanged();
-    } catch (e: unknown) {
-      setError(serverMessage(e) ?? t("errors.supersede"));
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const currentDoc = docs?.find((d) => d.status === "Current" || d.status === 0);
-
-  return (
-    <FloatingDialog
-      open={open}
-      title={t("docs.title", { code: group.oosGroupCode })}
-      onClose={onClose}
-      actions={
-        <Button onClick={onClose} disabled={submitting}>
-          {t("docs.close")}
-        </Button>
-      }
-    >
-      {submitting && <LinearProgress sx={{ mb: 2 }} />}
-      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-
-      <Box sx={{ mb: 2.5 }}>
-        <Typography sx={{ fontSize: 13, color: "text.secondary" }}>
-          <Trans i18nKey="docs.intro" ns="oosTracking" values={{ code: group.oosGroupCode, reference: group.originReferenceNumber }} components={{ ltr: <Ltr>{null}</Ltr>, strong: <strong /> }} />
-        </Typography>
-      </Box>
-
-      {/* Upload new document section if no Current document exists */}
-      {!currentDoc && !loading && (
-        <Box sx={{ mb: 3 }}>
-          <Typography sx={{ fontSize: 13, fontWeight: 700, mb: 1 }}>
-            {t("docs.uploadInitialTitle")}
-          </Typography>
-          <FileDropZone
-            file={selectedFile}
-            onFile={setSelectedFile}
-            accept={INVESTIGATION_ACCEPT}
-            formatsHint={formatsHint}
-            note={t("docs.note")}
-            disabled={submitting}
-          />
-          {selectedFile && (
-            <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 1.5 }}>
-              <Button variant="contained" size="small" startIcon={<FileUploadOutlinedIcon />} onClick={handleUpload} disabled={submitting}>
-                {t("docs.upload")}
-              </Button>
-            </Box>
-          )}
-        </Box>
-      )}
-
-      {/* Supersede Panel */}
-      {supersedingDoc && (
-        <Paper elevation={0} sx={{ p: 2, mb: 3, border: "1px solid", borderColor: "warning.main", borderRadius: 1.5, bgcolor: "background.paper" }}>
-          <Typography sx={{ fontSize: 13, fontWeight: 700, color: "warning.dark", mb: 1 }}>
-            {t("supersede.title", { file: supersedingDoc.originalFileName })}
-          </Typography>
-          <Alert severity="info" sx={{ mb: 1.5, fontSize: 12 }}>
-            <Trans i18nKey="supersede.info" ns="oosTracking" components={{ strong: <strong /> }} />
-          </Alert>
-
-          <TextField
-            label={t("supersede.reasonLabel")}
-            size="small"
-            fullWidth
-            multiline
-            rows={2}
-            value={supersedeReason}
-            onChange={(e) => setSupersedeReason(e.target.value)}
-            sx={{ mb: 1.5 }}
-          />
-
-          <FileDropZone
-            file={supersedeFile}
-            onFile={setSupersedeFile}
-            accept={INVESTIGATION_ACCEPT}
-            formatsHint={formatsHint}
-            note={t("docs.note")}
-            disabled={submitting}
-          />
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mt: 1.5 }}>
-            <Box sx={{ ml: "auto", display: "flex", gap: 1 }}>
-              <Button size="small" onClick={() => setSupersedingDoc(null)} disabled={submitting}>
-                {t("supersede.cancel")}
-              </Button>
-              <Button
-                variant="contained"
-                color="warning"
-                size="small"
-                disabled={!supersedeFile || !supersedeReason.trim() || submitting}
-                onClick={handleSupersede}
-              >
-                {t("supersede.action")}
-              </Button>
-            </Box>
-          </Box>
-        </Paper>
-      )}
-
-      {/* Documents Table */}
-      <TableContainer sx={{ border: "1px solid", borderColor: "divider", borderRadius: 1 }}>
-        <Table size="small">
-          <TableHead sx={tableHeadSx}>
-            <TableRow>
-              {[t("docs.columns.status"), t("docs.columns.filename"), t("docs.columns.size"), t("docs.columns.uploadedBy"), t("docs.columns.date"), t("docs.columns.actions")].map((h) => (
-                <TableCell key={h} sx={{ fontWeight: 700, fontSize: 12, color: "text.secondary" }}>
-                  {h}
-                </TableCell>
-              ))}
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {loading ? (
-              <TableRow>
-                <TableCell colSpan={6} sx={{ py: 2 }}>
-                  <DialogBodySkeleton blocks={2} blockHeight={24} />
-                </TableCell>
-              </TableRow>
-            ) : docs && docs.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
-                  <Typography sx={{ color: "text.secondary", fontSize: 13 }}>
-                    {t("docs.empty")}
-                  </Typography>
-                </TableCell>
-              </TableRow>
-            ) : (
-              docs?.map((doc) => {
-                const isCurrent = doc.status === "Current" || doc.status === 0;
-                const isSuperseded = doc.status === "Superseded" || doc.status === 1;
-
-                return (
-                  <TableRow key={doc.id} hover sx={{ "&:last-child td, &:last-child th": { border: 0 } }}>
-                    <TableCell>
-                      {isCurrent && (
-                        <ToneBadge tone="notDetected" label={t("docs.statuses.current")} />
-                      )}
-                      {isSuperseded && (
-                        <ToneBadge tone="pending" label={t("docs.statuses.superseded")} />
-                      )}
-                      {(!isCurrent && !isSuperseded) && (
-                        <ToneBadge tone="detected" label={t("docs.statuses.voided")} />
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <Typography sx={{ fontSize: 12, fontWeight: 600 }}>{doc.originalFileName}</Typography>
-                      {doc.supersessionReason && (
-                        <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-                          {t("docs.supersededReason", { reason: doc.supersessionReason })}
-                        </Typography>
-                      )}
-                      {doc.voidReason && (
-                        <Typography sx={{ fontSize: 12, color: "error.main" }}>
-                          {t("docs.voidedReason", { reason: doc.voidReason })}
-                        </Typography>
-                      )}
-                    </TableCell>
-                    <TableCell sx={{ fontSize: 12, color: "text.secondary" }}>
-                      {formatBytes(doc.fileSizeBytes)}
-                    </TableCell>
-                    <TableCell sx={{ fontSize: 12 }}>
-                      {doc.uploadedByName}
-                    </TableCell>
-                    <TableCell sx={{ fontSize: 12, color: "text.secondary" }}>
-                      {formatDate(doc.uploadedAt)}
-                    </TableCell>
-                    <TableCell>
-                      <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-                        <Tooltip title={t("docs.download")}>
-                          <IconButton size="small" onClick={() => handleDownload(doc)}>
-                            <DownloadOutlinedIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                        {isCurrent && !supersedingDoc && (
-                          <Tooltip title={t("docs.supersedeTooltip")}>
-                            <IconButton size="small" color="warning" onClick={() => setSupersedingDoc(doc)}>
-                              <SwapHorizIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                        )}
-                      </Box>
-                    </TableCell>
-                  </TableRow>
-                );
-              })
-            )}
-          </TableBody>
-        </Table>
-      </TableContainer>
-    </FloatingDialog>
-  );
-}
-

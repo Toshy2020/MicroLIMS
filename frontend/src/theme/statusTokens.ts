@@ -160,11 +160,43 @@ const STATUS_TONE: Record<string, StatusTone> = {
   // Calibration runs withdrawn after the fact.
   Withdrawn: "inconclusive",
 
+  // Analyst competency matrix cell states (D4).
+  ExpiringSoon: "action",
+  NotQualified: "pending",
+
   // Audit trail review & finding states.
   Signed: "notDetected",
   NoFindings: "notDetected",
   FindingsRecorded: "action",
-  Closed: "notDetected"
+  Closed: "notDetected",
+
+  // OOS / Excursion investigation register states.
+  PhaseOne: "info",
+  AwaitingRetest: "action",
+  PhaseTwo: "purple",
+  Concluded: "notDetected",
+  Confirmed: "detected",
+  Invalidated: "notDetected",
+  ExcursionClosed: "notDetected",
+  Oos: "detected",
+  Excursion: "action",
+  Addressed: "notDetected",
+  LaboratoryErrorConfirmed: "action",
+  NoLaboratoryErrorFound: "info",
+
+  // Quality events (deviation, CAPA, change control, complaint). Closed, Cancelled, Rejected, Approved,
+  // Received and Concluded keep the tones above. Open steps are blue or purple, a signed hand-over waiting for
+  // the next person is orange, and a state that releases work (approved for implementation) is green.
+  Raised: "info",
+  Investigation: "purple",
+  LabConcluded: "action",
+  Plan: "info",
+  PlanApproved: "purple",
+  CompletionVerified: "action",
+  Proposed: "info",
+  Assessed: "action",
+  ApprovedForImplementation: "notDetected",
+  LabReported: "action"
 };
 
 export function statusTone(status: string): StatusTone {
@@ -291,10 +323,34 @@ const STATUS_LABEL_KEYS: Record<string, string> = {
   Removed: "statuses.Removed",
   RequiresReview: "statuses.RequiresReview",
   Withdrawn: "statuses.Withdrawn",
+  ExpiringSoon: "statuses.ExpiringSoon",
+  NotQualified: "statuses.NotQualified",
   Signed: "statuses.Signed",
   NoFindings: "statuses.NoFindings",
   FindingsRecorded: "statuses.FindingsRecorded",
-  Closed: "statuses.Closed"
+  Closed: "statuses.Closed",
+  PhaseOne: "statuses.PhaseOne",
+  AwaitingRetest: "statuses.AwaitingRetest",
+  PhaseTwo: "statuses.PhaseTwo",
+  Concluded: "statuses.Concluded",
+  Confirmed: "statuses.Confirmed",
+  Invalidated: "statuses.Invalidated",
+  ExcursionClosed: "statuses.ExcursionClosed",
+  Oos: "statuses.Oos",
+  Excursion: "statuses.Excursion",
+  Addressed: "statuses.Addressed",
+  LaboratoryErrorConfirmed: "statuses.LaboratoryErrorConfirmed",
+  NoLaboratoryErrorFound: "statuses.NoLaboratoryErrorFound",
+  Raised: "statuses.Raised",
+  Investigation: "statuses.Investigation",
+  LabConcluded: "statuses.LabConcluded",
+  Plan: "statuses.Plan",
+  PlanApproved: "statuses.PlanApproved",
+  CompletionVerified: "statuses.CompletionVerified",
+  Proposed: "statuses.Proposed",
+  Assessed: "statuses.Assessed",
+  ApprovedForImplementation: "statuses.ApprovedForImplementation",
+  LabReported: "statuses.LabReported"
 };
 
 export function statusLabel(status: string, t?: TFunction): string {

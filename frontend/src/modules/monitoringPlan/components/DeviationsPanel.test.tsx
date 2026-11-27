@@ -8,7 +8,8 @@ import type { Deviation, DeviationList } from "../types";
 
 vi.mock("../../../contexts/AuthContext", () => ({
   useHasPermission: () => true,
-  useAuth: () => ({ fullName: "Head One", username: "head", role: "SectionHead" })
+  useAuth: () => ({ fullName: "Head One", username: "head", role: "SectionHead" }),
+  useOptionalAuth: () => ({ fullName: "Head One", username: "head", role: "SectionHead", permissions: [] })
 }));
 vi.mock("../services/MonitoringPlanService", () => ({
   MonitoringDeviationApi: { list: vi.fn(), scan: vi.fn(), close: vi.fn() }

@@ -1,4 +1,4 @@
-import { apiClient, ifMatch, withChangeReason } from "./apiClient";
+import { apiClient, ifMatch, withChangeControl, withChangeReason } from "./apiClient";
 import type { FieldError } from "./apiTypes";
 import type { TitrationDefinitionFields } from "../modules/laboratoryConfiguration/masterDataSimple/titrationConfig";
 import type { PhyschemArea } from "../modules/laboratoryConfiguration/masterDataSimple/testMasterArea";
@@ -159,6 +159,7 @@ export interface CreateTestDefinitionPayload extends TitrationDefinitionFields {
   perContainer?: boolean;
   moistureRole?: MoistureRole;
   coaDisplayOrder?: number | null;
+  requalificationMonths?: number | null;
   uvCalculationMode?: UvCalculationMode | null;
   uvSpecificAbsorbance?: number | null;
   uvTotalVolumeMl?: number | null;
@@ -213,6 +214,7 @@ export interface UpdateTestDefinitionPayload extends TitrationDefinitionFields {
   perContainer?: boolean;
   moistureRole?: MoistureRole;
   coaDisplayOrder?: number | null;
+  requalificationMonths?: number | null;
   changeReason?: string | null;
   uvCalculationMode?: UvCalculationMode | null;
   uvSpecificAbsorbance?: number | null;
@@ -296,50 +298,67 @@ export const masterDataOptions = {
   getTestDefinitions: () => apiClient.get("/masterdata/test-definitions").then((r) => r.data.data),
   getEditableTestCodes: (): Promise<string[]> =>
     apiClient.get("/masterdata/test-definitions/editable-codes").then((r) => r.data.data || []),
-  createTestDefinition: (codeOrPayload: string | CreateTestDefinitionPayload, displayName?: string, sectionId?: number | null) => {
+  // Every write below that the change-control gate covers (CONF-227) takes a trailing optional
+  // changeControl: the approved change control number, sent as X-Change-Control on that one request.
+  createTestDefinition: (codeOrPayload: string | CreateTestDefinitionPayload, displayName?: string, sectionId?: number | null, changeControl?: string) => {
     const payload = typeof codeOrPayload === "string"
       ? { code: codeOrPayload, displayName: displayName ?? codeOrPayload, ...(sectionId != null ? { sectionId } : {}) }
       : codeOrPayload;
-    return apiClient.post("/masterdata/test-definitions", payload).then((r) => r.data.data);
+    return (changeControl
+      ? apiClient.post("/masterdata/test-definitions", payload, withChangeControl(undefined, changeControl))
+      : apiClient.post("/masterdata/test-definitions", payload)
+    ).then((r) => r.data.data);
   },
-  createTestWithSteps: (payload: SaveTestWithStepsPayload) =>
-    apiClient.post("/masterdata/test-definitions/with-steps", payload).then((r) => r.data.data),
-  updateTestDefinition: (id: number, codeOrPayload: string | UpdateTestDefinitionPayload, displayName?: string, sectionId?: number | null, version?: number, reason?: string) => {
+  createTestWithSteps: (payload: SaveTestWithStepsPayload, changeControl?: string) =>
+    (changeControl
+      ? apiClient.post("/masterdata/test-definitions/with-steps", payload, withChangeControl(undefined, changeControl))
+      : apiClient.post("/masterdata/test-definitions/with-steps", payload)
+    ).then((r) => r.data.data),
+  updateTestDefinition: (id: number, codeOrPayload: string | UpdateTestDefinitionPayload, displayName?: string, sectionId?: number | null, version?: number, reason?: string, changeControl?: string) => {
     const payload = typeof codeOrPayload === "string"
       ? { code: codeOrPayload, displayName: displayName ?? codeOrPayload, ...(sectionId != null ? { sectionId } : {}) }
       : codeOrPayload;
-    return apiClient.put(`/masterdata/test-definitions/${id}`, payload, withChangeReason(version, reason)).then((r) => r.data.data);
+    return apiClient.put(`/masterdata/test-definitions/${id}`, payload, withChangeControl(withChangeReason(version, reason), changeControl)).then((r) => r.data.data);
   },
-  freezeTestDefinition: (id: number, version?: number, reason?: string) =>
-    apiClient.put(`/masterdata/test-definitions/${id}/freeze`, undefined, withChangeReason(version, reason)).then((r) => r.data.data),
-  unfreezeTestDefinition: (id: number, version?: number, reason?: string) =>
-    apiClient.put(`/masterdata/test-definitions/${id}/unfreeze`, undefined, withChangeReason(version, reason)).then((r) => r.data.data),
+  freezeTestDefinition: (id: number, version?: number, reason?: string, changeControl?: string) =>
+    apiClient.put(`/masterdata/test-definitions/${id}/freeze`, undefined, withChangeControl(withChangeReason(version, reason), changeControl)).then((r) => r.data.data),
+  unfreezeTestDefinition: (id: number, version?: number, reason?: string, changeControl?: string) =>
+    apiClient.put(`/masterdata/test-definitions/${id}/unfreeze`, undefined, withChangeControl(withChangeReason(version, reason), changeControl)).then((r) => r.data.data),
   validateTestDefinition: (payload: CreateTestDefinitionPayload | UpdateTestDefinitionPayload, id?: number): Promise<FieldError[]> =>
     apiClient
       .post(id != null ? `/masterdata/test-definitions/validate?id=${id}` : "/masterdata/test-definitions/validate", payload)
       .then((r) => r.data.data ?? []),
-  updateWorkflowType: (testDefinitionId: number, workflowType: string, version?: number) =>
-    apiClient.put(`/masterdata/test-definitions/${testDefinitionId}/workflow-type`, { workflowType }, ifMatch(version)).then((r) => r.data.data),
+  updateWorkflowType: (testDefinitionId: number, workflowType: string, version?: number, changeControl?: string) =>
+    apiClient.put(`/masterdata/test-definitions/${testDefinitionId}/workflow-type`, { workflowType }, withChangeControl(ifMatch(version), changeControl)).then((r) => r.data.data),
   getTestWorkflowSteps: (testDefinitionId: number) =>
     apiClient.get(`/masterdata/test-definitions/${testDefinitionId}/steps`).then((r) => r.data.data),
   getTestDefinitionStageReplicates: (testDefinitionId: number): Promise<TestDefinitionStageReplicateDto[]> =>
     apiClient.get(`/masterdata/test-definitions/${testDefinitionId}/stage-replicates`).then((r) => r.data.data),
-  createTestDefinitionStageReplicate: (testDefinitionId: number, payload: CreateTestDefinitionStageReplicateRequest): Promise<TestDefinitionStageReplicateDto> =>
-    apiClient.post(`/masterdata/test-definitions/${testDefinitionId}/stage-replicates`, payload).then((r) => r.data.data),
-  updateTestDefinitionStageReplicate: (testDefinitionId: number, replicateId: number, payload: UpdateTestDefinitionStageReplicateRequest, version?: number): Promise<TestDefinitionStageReplicateDto> =>
-    apiClient.put(`/masterdata/test-definitions/${testDefinitionId}/stage-replicates/${replicateId}`, payload, ifMatch(version)).then((r) => r.data.data),
-  deleteTestDefinitionStageReplicate: (testDefinitionId: number, replicateId: number): Promise<{ message?: string; deleted?: boolean }> =>
-    apiClient.delete(`/masterdata/test-definitions/${testDefinitionId}/stage-replicates/${replicateId}`).then((r) => r.data.data),
+  createTestDefinitionStageReplicate: (testDefinitionId: number, payload: CreateTestDefinitionStageReplicateRequest, changeControl?: string): Promise<TestDefinitionStageReplicateDto> =>
+    (changeControl
+      ? apiClient.post(`/masterdata/test-definitions/${testDefinitionId}/stage-replicates`, payload, withChangeControl(undefined, changeControl))
+      : apiClient.post(`/masterdata/test-definitions/${testDefinitionId}/stage-replicates`, payload)
+    ).then((r) => r.data.data),
+  updateTestDefinitionStageReplicate: (testDefinitionId: number, replicateId: number, payload: UpdateTestDefinitionStageReplicateRequest, version?: number, changeControl?: string): Promise<TestDefinitionStageReplicateDto> =>
+    apiClient.put(`/masterdata/test-definitions/${testDefinitionId}/stage-replicates/${replicateId}`, payload, withChangeControl(ifMatch(version), changeControl)).then((r) => r.data.data),
+  deleteTestDefinitionStageReplicate: (testDefinitionId: number, replicateId: number, changeControl?: string): Promise<{ message?: string; deleted?: boolean }> =>
+    (changeControl
+      ? apiClient.delete(`/masterdata/test-definitions/${testDefinitionId}/stage-replicates/${replicateId}`, withChangeControl(undefined, changeControl))
+      : apiClient.delete(`/masterdata/test-definitions/${testDefinitionId}/stage-replicates/${replicateId}`)
+    ).then((r) => r.data.data),
   getMaterials: (type?: string) =>
     apiClient.get("/inventory/materials", { params: type ? { type } : {} }).then((r) => r.data.data),
-  createTestWorkflowStep: (testDefinitionId: number, payload: TestWorkflowStepPayload) =>
-    apiClient.post(`/masterdata/test-definitions/${testDefinitionId}/steps`, payload).then((r) => r.data.data),
-  updateTestWorkflowStep: (stepId: number, payload: TestWorkflowStepPayload, version?: number) =>
-    apiClient.put(`/masterdata/test-definitions/steps/${stepId}`, payload, ifMatch(version)).then((r) => r.data.data),
-  moveTestWorkflowStep: (stepId: number, direction: "up" | "down", version?: number) =>
-    apiClient.put(`/masterdata/test-definitions/steps/${stepId}/move`, { direction }, ifMatch(version)).then((r) => r.data.data),
-  deleteTestWorkflowStep: (stepId: number, version?: number) =>
-    apiClient.delete(`/masterdata/test-definitions/steps/${stepId}`, ifMatch(version))
+  createTestWorkflowStep: (testDefinitionId: number, payload: TestWorkflowStepPayload, changeControl?: string) =>
+    (changeControl
+      ? apiClient.post(`/masterdata/test-definitions/${testDefinitionId}/steps`, payload, withChangeControl(undefined, changeControl))
+      : apiClient.post(`/masterdata/test-definitions/${testDefinitionId}/steps`, payload)
+    ).then((r) => r.data.data),
+  updateTestWorkflowStep: (stepId: number, payload: TestWorkflowStepPayload, version?: number, changeControl?: string) =>
+    apiClient.put(`/masterdata/test-definitions/steps/${stepId}`, payload, withChangeControl(ifMatch(version), changeControl)).then((r) => r.data.data),
+  moveTestWorkflowStep: (stepId: number, direction: "up" | "down", version?: number, changeControl?: string) =>
+    apiClient.put(`/masterdata/test-definitions/steps/${stepId}/move`, { direction }, withChangeControl(ifMatch(version), changeControl)).then((r) => r.data.data),
+  deleteTestWorkflowStep: (stepId: number, version?: number, changeControl?: string) =>
+    apiClient.delete(`/masterdata/test-definitions/steps/${stepId}`, withChangeControl(ifMatch(version), changeControl))
 };
 
 // "18–24 h at 35–37 °C" - how an incubation condition is shown everywhere.

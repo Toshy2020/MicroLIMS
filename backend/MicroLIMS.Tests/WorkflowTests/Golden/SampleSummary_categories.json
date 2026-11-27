@@ -35,15 +35,19 @@
     "PreviousProductName": "Zinc Cream",
     "PreviousProductBatchNumber": "B-77",
     "Preparation": null,
+    "ItemId": null,
+    "LabTimeZoneId": "UTC",
     "TestOrders": [],
     "Timeline": [],
     "Signatures": [],
     "Sections": [],
     "AllSectionsVisible": true,
     "OverallStatus": "Approved",
+    "SopCaptureStartDateUtc": null,
     "CombinedCoaAvailable": false,
     "Certificate": {
       "Sample": {
+        "MethodDocuments": [],
         "Matrix": null,
         "Simple": null,
         "SupportingRows": [],
@@ -90,15 +94,19 @@
     "PreviousProductName": null,
     "PreviousProductBatchNumber": null,
     "Preparation": null,
+    "ItemId": null,
+    "LabTimeZoneId": "UTC",
     "TestOrders": [],
     "Timeline": [],
     "Signatures": [],
     "Sections": [],
     "AllSectionsVisible": true,
     "OverallStatus": "Approved",
+    "SopCaptureStartDateUtc": null,
     "CombinedCoaAvailable": true,
     "Certificate": {
       "Sample": {
+        "MethodDocuments": [],
         "Matrix": null,
         "Simple": null,
         "SupportingRows": [],
@@ -145,8 +153,13 @@
     "PreviousProductName": null,
     "PreviousProductBatchNumber": null,
     "Preparation": null,
+    "ItemId": null,
+    "LabTimeZoneId": "UTC",
     "TestOrders": [
       {
+        "SopCapture": null,
+        "NewerSopRevision": null,
+        "CompetencyOverrides": [],
         "TestOrderId": 11,
         "SectionId": 1,
         "SectionName": "Microbiology",
@@ -167,6 +180,9 @@
         "IsResultEntryAllowed": true,
         "ResultLockReason": null,
         "IsSuperseded": false,
+        "OosInvestigationNumber": null,
+        "IsOosInvalidated": false,
+        "ReportableRetest": null,
         "OutsourcedToLab": null,
         "CancelledAtStep": null,
         "CancelledAtStage": null,
@@ -219,9 +235,11 @@
     ],
     "AllSectionsVisible": true,
     "OverallStatus": "InProgress",
+    "SopCaptureStartDateUtc": null,
     "CombinedCoaAvailable": false,
     "Certificate": {
       "Sample": {
+        "MethodDocuments": [],
         "Matrix": {
           "Columns": [
             {
@@ -229,7 +247,9 @@
               "TestCode": "EM_TAMC",
               "TestDisplayName": "EM_TAMC",
               "IsQuantitative": false,
-              "Unit": null
+              "Unit": null,
+              "OosInvestigationNumber": null,
+              "ReportableRetest": null
             }
           ],
           "Rows": [
@@ -253,6 +273,7 @@
               "TestOrderId": 11,
               "TestCode": "EM_TAMC",
               "TestDisplayName": "EM_TAMC",
+              "OosInvestigationNumber": null,
               "Conforms": true,
               "FailingLocationNames": [],
               "UnconfiguredLocationNames": [],
@@ -275,6 +296,7 @@
           "SectionId": 1,
           "SectionName": "Microbiology",
           "Scope": {
+            "MethodDocuments": [],
             "Matrix": {
               "Columns": [
                 {
@@ -282,7 +304,9 @@
                   "TestCode": "EM_TAMC",
                   "TestDisplayName": "EM_TAMC",
                   "IsQuantitative": false,
-                  "Unit": null
+                  "Unit": null,
+                  "OosInvestigationNumber": null,
+                  "ReportableRetest": null
                 }
               ],
               "Rows": [
@@ -306,6 +330,7 @@
                   "TestOrderId": 11,
                   "TestCode": "EM_TAMC",
                   "TestDisplayName": "EM_TAMC",
+                  "OosInvestigationNumber": null,
                   "Conforms": true,
                   "FailingLocationNames": [],
                   "UnconfiguredLocationNames": [],
@@ -363,15 +388,19 @@
     "PreviousProductName": null,
     "PreviousProductBatchNumber": null,
     "Preparation": null,
+    "ItemId": null,
+    "LabTimeZoneId": "UTC",
     "TestOrders": [],
     "Timeline": [],
     "Signatures": [],
     "Sections": [],
     "AllSectionsVisible": true,
     "OverallStatus": "Approved",
+    "SopCaptureStartDateUtc": null,
     "CombinedCoaAvailable": false,
     "Certificate": {
       "Sample": {
+        "MethodDocuments": [],
         "Matrix": null,
         "Simple": null,
         "SupportingRows": [],
@@ -418,8 +447,13 @@
     "PreviousProductName": null,
     "PreviousProductBatchNumber": null,
     "Preparation": null,
+    "ItemId": 1,
+    "LabTimeZoneId": "UTC",
     "TestOrders": [
       {
+        "SopCapture": null,
+        "NewerSopRevision": null,
+        "CompetencyOverrides": [],
         "TestOrderId": 12,
         "SectionId": 1,
         "SectionName": "Microbiology",
@@ -440,6 +474,9 @@
         "IsResultEntryAllowed": false,
         "ResultLockReason": "Count incubation in progress. Available from: 23/03/2026 08:00",
         "IsSuperseded": false,
+        "OosInvestigationNumber": null,
+        "IsOosInvalidated": false,
+        "ReportableRetest": null,
         "OutsourcedToLab": null,
         "CancelledAtStep": null,
         "CancelledAtStage": null,
@@ -472,6 +509,9 @@
         "Locations": []
       },
       {
+        "SopCapture": null,
+        "NewerSopRevision": null,
+        "CompetencyOverrides": [],
         "TestOrderId": 13,
         "SectionId": 1,
         "SectionName": "Microbiology",
@@ -492,6 +532,9 @@
         "IsResultEntryAllowed": true,
         "ResultLockReason": null,
         "IsSuperseded": false,
+        "OosInvestigationNumber": null,
+        "IsOosInvalidated": false,
+        "ReportableRetest": null,
         "OutsourcedToLab": null,
         "CancelledAtStep": null,
         "CancelledAtStage": null,
@@ -524,6 +567,9 @@
         "Locations": []
       },
       {
+        "SopCapture": null,
+        "NewerSopRevision": null,
+        "CompetencyOverrides": [],
         "TestOrderId": 14,
         "SectionId": 1,
         "SectionName": "Microbiology",
@@ -544,6 +590,9 @@
         "IsResultEntryAllowed": false,
         "ResultLockReason": "TSB broth enrichment setup required",
         "IsSuperseded": false,
+        "OosInvestigationNumber": null,
+        "IsOosInvalidated": false,
+        "ReportableRetest": null,
         "OutsourcedToLab": null,
         "CancelledAtStep": null,
         "CancelledAtStage": null,
@@ -557,6 +606,9 @@
         "Locations": []
       },
       {
+        "SopCapture": null,
+        "NewerSopRevision": null,
+        "CompetencyOverrides": [],
         "TestOrderId": 15,
         "SectionId": 1,
         "SectionName": "Microbiology",
@@ -577,6 +629,9 @@
         "IsResultEntryAllowed": false,
         "ResultLockReason": "Locked until TSB incubation is complete",
         "IsSuperseded": false,
+        "OosInvestigationNumber": null,
+        "IsOosInvalidated": false,
+        "ReportableRetest": null,
         "OutsourcedToLab": null,
         "CancelledAtStep": null,
         "CancelledAtStage": null,
@@ -609,6 +664,9 @@
         "Locations": []
       },
       {
+        "SopCapture": null,
+        "NewerSopRevision": null,
+        "CompetencyOverrides": [],
         "TestOrderId": 16,
         "SectionId": 1,
         "SectionName": "Microbiology",
@@ -629,6 +687,9 @@
         "IsResultEntryAllowed": true,
         "ResultLockReason": null,
         "IsSuperseded": false,
+        "OosInvestigationNumber": null,
+        "IsOosInvalidated": false,
+        "ReportableRetest": null,
         "OutsourcedToLab": null,
         "CancelledAtStep": null,
         "CancelledAtStage": null,
@@ -661,6 +722,9 @@
         "Locations": []
       },
       {
+        "SopCapture": null,
+        "NewerSopRevision": null,
+        "CompetencyOverrides": [],
         "TestOrderId": 17,
         "SectionId": 1,
         "SectionName": "Microbiology",
@@ -681,6 +745,9 @@
         "IsResultEntryAllowed": false,
         "ResultLockReason": "The incubation window for step \"Yeast Count\" is not configured - set it on the medium in Test Master.",
         "IsSuperseded": false,
+        "OosInvestigationNumber": null,
+        "IsOosInvalidated": false,
+        "ReportableRetest": null,
         "OutsourcedToLab": null,
         "CancelledAtStep": null,
         "CancelledAtStage": null,
@@ -736,9 +803,11 @@
     ],
     "AllSectionsVisible": true,
     "OverallStatus": "InProgress",
+    "SopCaptureStartDateUtc": null,
     "CombinedCoaAvailable": false,
     "Certificate": {
       "Sample": {
+        "MethodDocuments": [],
         "Matrix": null,
         "Simple": {
           "Rows": [
@@ -749,6 +818,8 @@
               "TestCode": "TAMC",
               "TestDisplayName": "Total Aerobic Microbial Count",
               "Specification": "Bacteria: 100 CFU/g; Fungi: 10 – 50 CFU/g; Total: Conforms",
+              "OosInvestigationNumber": null,
+              "ReportableRetest": null,
               "Result": "—",
               "AnalystName": null,
               "AnalystAt": null,
@@ -763,6 +834,8 @@
               "TestCode": "TYMC",
               "TestDisplayName": "Total Yeast and Mold Count",
               "Specification": null,
+              "OosInvestigationNumber": null,
+              "ReportableRetest": null,
               "Result": "—",
               "AnalystName": null,
               "AnalystAt": null,
@@ -777,6 +850,8 @@
               "TestCode": "ECOLI",
               "TestDisplayName": "E. coli",
               "Specification": "Absent in 1 g",
+              "OosInvestigationNumber": null,
+              "ReportableRetest": null,
               "Result": "—",
               "AnalystName": null,
               "AnalystAt": null,
@@ -797,6 +872,7 @@
           "SectionId": 1,
           "SectionName": "Microbiology",
           "Scope": {
+            "MethodDocuments": [],
             "Matrix": null,
             "Simple": {
               "Rows": [
@@ -807,6 +883,8 @@
                   "TestCode": "TAMC",
                   "TestDisplayName": "Total Aerobic Microbial Count",
                   "Specification": "Bacteria: 100 CFU/g; Fungi: 10 – 50 CFU/g; Total: Conforms",
+                  "OosInvestigationNumber": null,
+                  "ReportableRetest": null,
                   "Result": "—",
                   "AnalystName": null,
                   "AnalystAt": null,
@@ -821,6 +899,8 @@
                   "TestCode": "TYMC",
                   "TestDisplayName": "Total Yeast and Mold Count",
                   "Specification": null,
+                  "OosInvestigationNumber": null,
+                  "ReportableRetest": null,
                   "Result": "—",
                   "AnalystName": null,
                   "AnalystAt": null,
@@ -835,6 +915,8 @@
                   "TestCode": "ECOLI",
                   "TestDisplayName": "E. coli",
                   "Specification": "Absent in 1 g",
+                  "OosInvestigationNumber": null,
+                  "ReportableRetest": null,
                   "Result": "—",
                   "AnalystName": null,
                   "AnalystAt": null,

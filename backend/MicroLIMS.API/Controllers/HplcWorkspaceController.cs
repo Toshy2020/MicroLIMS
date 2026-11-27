@@ -115,8 +115,8 @@ public class HplcWorkspaceController : ControllerBase
 
     [Authorize(Policy = PermissionConstants.HplcOperate)]
     [HttpPost("samples/{runSampleId:int}/submit")]
-    public async Task<IActionResult> Submit(int runSampleId, [FromBody] SubmitHplcSampleRequest r) =>
-        Ok(ApiResponse<object>.Ok(await _engine.SubmitHplcMethodAssayAsync(runSampleId, r.Password, r.Comment, CurrentUserId, ClientIpAddress)));
+    public async Task<IActionResult> Submit(int runSampleId, [FromBody] SubmitHplcSampleRequest r, CancellationToken cancellationToken = default) =>
+        Ok(ApiResponse<object>.Ok(await _engine.SubmitHplcMethodAssayAsync(runSampleId, r.Password, r.Comment, CurrentUserId, ClientIpAddress, cancellationToken)));
 
     // ---- Working standard qualifications ----
 

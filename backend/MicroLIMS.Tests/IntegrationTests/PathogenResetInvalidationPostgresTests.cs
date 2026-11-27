@@ -29,7 +29,7 @@ public class PathogenResetInvalidationPostgresTests
     }
 
     private static PathogenSessionService Service(MicroLimsDbContext db, DateTime nowUtc) =>
-        new(db, timeProvider: new FixedClock(nowUtc));
+        TestServiceFactory.PathogenSession(db, timeProvider: new FixedClock(nowUtc));
 
     private async Task<(int SampleId, int OrderId, int ResultId)> SeedAsync()
     {

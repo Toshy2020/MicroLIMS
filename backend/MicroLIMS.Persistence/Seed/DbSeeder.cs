@@ -18,6 +18,7 @@ namespace MicroLIMS.Persistence.Seed;
 public static class DbSeeder
 {
     private const string PeriodicRetestCause = "Periodic retest";
+    public const string ComplaintCause = "Complaint";
 
     // initialAdminPassword must be supplied out of band (configuration /
     // hosting secret). When it is absent no administrator is created - see
@@ -41,10 +42,9 @@ public static class DbSeeder
 
         SeedInitialAdministrator(db, initialAdminPassword);
 
-        // "Periodic retest" is also inserted by the AddPeriodicRetestSelection
-        // migration (which runs first), so the basic causes are seeded when
-        // that is the only one.
-        if (!db.CausesOfTesting.Any(c => c.Name != PeriodicRetestCause))
+        // "Periodic retest" and "Complaint" are also inserted by migrations
+        // (which run first), so the basic causes are seeded when only those exist.
+        if (!db.CausesOfTesting.Any(c => c.Name != PeriodicRetestCause && c.Name != ComplaintCause))
         {
             db.CausesOfTesting.AddRange(
                 new CauseOfTesting { Name = "Routine" },
@@ -54,6 +54,8 @@ public static class DbSeeder
         }
         if (!db.CausesOfTesting.Any(c => c.Name == PeriodicRetestCause))
             db.CausesOfTesting.Add(new CauseOfTesting { Name = PeriodicRetestCause, RequiresTestSelection = true });
+        if (!db.CausesOfTesting.Any(c => c.Name == ComplaintCause))
+            db.CausesOfTesting.Add(new CauseOfTesting { Name = ComplaintCause });
 
         if (!db.Neutralizers.Any())
         {
@@ -507,7 +509,13 @@ public static class DbSeeder
             (PermissionConstants.MediaRelease, "Release a prepared media lot for use."),
             (PermissionConstants.MaterialCategoriesManage, "Create and change material categories."),
             (PermissionConstants.MaterialsRelease, "Release a received stock lot for use."),
+            (PermissionConstants.CompetencyView, "View analyst qualifications."),
+            (PermissionConstants.CompetencyManage, "Sign and withdraw analyst qualifications."),
+            (PermissionConstants.CompetencyOverride, "Sign a competency override for a test order."),
             (PermissionConstants.OosManage, "Track out-of-specification groups and manage their investigation documents."),
+            (PermissionConstants.OosView, "View out-of-specification investigations."),
+            (PermissionConstants.OosContribute, "Contribute statements and checklist answers to out-of-specification investigations."),
+            (PermissionConstants.OosRequestDeviation, "Request a deviation on an out-of-specification investigation."),
             (PermissionConstants.TestWorkflowSupervise, "Supervisor interventions in a running test: override an incubation's minimum duration, reset a pathogen session."),
             (PermissionConstants.SamplesReceiveOwnLab, "Receive samples for the laboratories the user belongs to."),
             (PermissionConstants.SamplesCorrect, "Correct or void a sample record."),
@@ -536,6 +544,11 @@ public static class DbSeeder
             (PermissionConstants.TableViewsShare, "Share a saved table view with a laboratory section the user belongs to."),
             (PermissionConstants.DataExport, "Export a table to a CSV file (every export is logged)."),
             (PermissionConstants.NotificationsConfigure, "Mark notification types as mandatory and configure escalation rules and laboratory working hours for your section."),
+            (PermissionConstants.QualityView, "View quality records (deviations, CAPAs, change controls, complaints)."),
+            (PermissionConstants.QualityRaise, "Raise a deviation or propose a change control."),
+            (PermissionConstants.QualityInvestigate, "Investigate quality records, write CAPA plans and assess change impacts."),
+            (PermissionConstants.QualityLabConclude, "Sign laboratory conclusions and laboratory reports on deviations and complaints."),
+            (PermissionConstants.QualityApprove, "Approve, verify, check effectiveness, close and cancel quality records and decide due-date extensions."),
         };
 
         // Metadata (Description, IsEnforced) of rows that already exist is
@@ -578,6 +591,8 @@ public static class DbSeeder
                 (RoleType.SystemAdministrator, PermissionConstants.SystemAdministratorGrants.ToArray()),
                 (RoleType.SectionHead, new[]
                 {
+                    PermissionConstants.CompetencyView, PermissionConstants.CompetencyManage, PermissionConstants.CompetencyOverride,
+                    PermissionConstants.OosView, PermissionConstants.OosContribute,
                     PermissionConstants.AuditView, PermissionConstants.SamplesReview, PermissionConstants.SamplesApprove,
                     PermissionConstants.SamplesReceive, PermissionConstants.SamplesTrackAll,
                     PermissionConstants.SignaturesManage, PermissionConstants.TestWorkflowExecute, PermissionConstants.TestWorkflowBiochemicalDecision,
@@ -604,10 +619,12 @@ public static class DbSeeder
                     PermissionConstants.SamplesPrepare,
                     PermissionConstants.LabelsReprint, PermissionConstants.LabelsConfigure,
                     PermissionConstants.TableViewsShare, PermissionConstants.DataExport,
-                    PermissionConstants.NotificationsConfigure
+                    PermissionConstants.NotificationsConfigure,
+                    PermissionConstants.QualityView, PermissionConstants.QualityRaise, PermissionConstants.QualityInvestigate, PermissionConstants.QualityLabConclude
                 }),
                 (RoleType.Reviewer, new[]
                 {
+                    PermissionConstants.CompetencyView, PermissionConstants.OosView,
                     PermissionConstants.SamplesReview, PermissionConstants.TestWorkflowExecute,
                     PermissionConstants.TestWorkflowBiochemicalDecision, PermissionConstants.CryovialsManage,
                     PermissionConstants.DiscussionsView, PermissionConstants.DiscussionsCreate,
@@ -621,10 +638,12 @@ public static class DbSeeder
                     PermissionConstants.SolutionsRelease,
                     PermissionConstants.MonitoringPlanView, PermissionConstants.EquipmentWorkRecord, PermissionConstants.CalendarEventManage,
                     PermissionConstants.SamplesPrepare,
-                    PermissionConstants.DataExport
+                    PermissionConstants.DataExport,
+                    PermissionConstants.QualityView, PermissionConstants.QualityRaise
                 }),
                 (RoleType.Analyst, new[]
                 {
+                    PermissionConstants.CompetencyView, PermissionConstants.OosView, PermissionConstants.OosContribute,
                     PermissionConstants.TestWorkflowExecute, PermissionConstants.CryovialsManage,
                     PermissionConstants.MaterialsManage, PermissionConstants.EquipmentManage,
                     PermissionConstants.DiscussionsView, PermissionConstants.DiscussionsCreate,
@@ -640,16 +659,19 @@ public static class DbSeeder
                     PermissionConstants.MediaPrepare, PermissionConstants.SamplesReceiveOwnLab,
                     PermissionConstants.SolutionsPrepare, PermissionConstants.HplcOperate, PermissionConstants.WorkingStandardsQualify,
                     PermissionConstants.MonitoringPlanView, PermissionConstants.EquipmentWorkRecord,
-                    PermissionConstants.SamplesPrepare, PermissionConstants.TestsSelfAssign
+                    PermissionConstants.SamplesPrepare, PermissionConstants.TestsSelfAssign,
+                    PermissionConstants.QualityView, PermissionConstants.QualityRaise
                 })
             };
 
-            // QC Manager: final approval of a not-applicable test, plus only what Reviewer may view or read.
+            // QC Manager: final approval of not-applicable tests and signed qualifications,
+            // with the Reviewer's read access.
             var reviewerReadOnly = grants.First(g => g.Role == RoleType.Reviewer).Codes
                 .Where(c => c.EndsWith(".View", StringComparison.OrdinalIgnoreCase) || c.EndsWith(".Read", StringComparison.OrdinalIgnoreCase));
             grants = grants.Append((RoleType.QcManager, reviewerReadOnly.Append(PermissionConstants.NotApplicableTestsFinalApprove)
                 .Append(PermissionConstants.TableViewsShare).Append(PermissionConstants.DataExport)
-                .Append(PermissionConstants.NotificationsConfigure).ToArray())).ToArray();
+                .Append(PermissionConstants.NotificationsConfigure).Append(PermissionConstants.CompetencyManage)
+                .Append(PermissionConstants.QualityRaise).Append(PermissionConstants.QualityLabConclude).ToArray())).ToArray();
             grants = grants.Append((RoleType.Qa, PermissionConstants.QaGrants.ToArray())).ToArray();
 
             foreach (var (roleType, codes) in grants)

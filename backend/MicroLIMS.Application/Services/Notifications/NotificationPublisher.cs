@@ -31,11 +31,56 @@ public sealed class NotificationPublisher : INotificationPublisher
         _timeZoneId = clock?.LabTimeZone.Id ?? config?["Lab:TimeZoneId"] ?? "Africa/Cairo";
     }
 
+    public async Task PublishBatchAsync(IReadOnlyList<NotificationRequest> requests, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(requests);
+        if (requests.Count == 0) return;
+
+        var keys = requests
+            .Select(r => string.IsNullOrWhiteSpace(r.DedupeKey) ? null : r.DedupeKey)
+            .Where(k => k is not null)
+            .Distinct(StringComparer.Ordinal)
+            .ToArray();
+
+        var existing = new HashSet<(string Key, int UserId)>();
+        if (keys.Length > 0)
+        {
+            var rows = await _db.NotificationLogs.AsNoTracking()
+                .Where(n => n.DedupeKey != null && keys.Contains(n.DedupeKey) && n.ResolvedAt == null)
+                .Select(n => new { n.DedupeKey, n.UserId })
+                .ToListAsync(ct);
+            foreach (var row in rows)
+                existing.Add((row.DedupeKey!, row.UserId));
+
+            foreach (var local in _db.NotificationLogs.Local
+                .Where(n => n.DedupeKey != null && keys.Contains(n.DedupeKey) && n.ResolvedAt == null))
+            {
+                existing.Add((local.DedupeKey!, local.UserId));
+            }
+        }
+
+        foreach (var request in requests)
+        {
+            var dedupeKey = string.IsNullOrWhiteSpace(request.DedupeKey) ? null : request.DedupeKey;
+            if (dedupeKey is null)
+            {
+                await PublishAsync(request, ct);
+                continue;
+            }
+
+            var filteredUsers = request.UserIds.Where(id => id > 0 && !existing.Contains((dedupeKey, id))).Distinct().ToList();
+            if (filteredUsers.Count == 0) continue;
+
+            foreach (var uid in filteredUsers)
+                existing.Add((dedupeKey, uid));
+
+            await PublishCoreAsync(request with { UserIds = filteredUsers }, dedupeKey, ct);
+        }
+    }
+
     public async Task PublishAsync(NotificationRequest request, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(request);
-
-        var info = NotificationCatalog.Get(request.Type);
 
         var userIds = request.UserIds.Where(id => id > 0).Distinct().ToList();
         if (userIds.Count == 0)
@@ -60,6 +105,16 @@ public sealed class NotificationPublisher : INotificationPublisher
             if (userIds.Count == 0)
                 return;
         }
+
+        await PublishCoreAsync(request with { UserIds = userIds }, dedupeKey, ct);
+    }
+
+    private async Task PublishCoreAsync(NotificationRequest request, string? dedupeKey, CancellationToken ct)
+    {
+        var info = NotificationCatalog.Get(request.Type);
+        var userIds = request.UserIds.Where(id => id > 0).Distinct().ToList();
+        if (userIds.Count == 0)
+            return;
 
         Dictionary<int, string?> emailsByUser = new();
         if (info.EmailAllowed)

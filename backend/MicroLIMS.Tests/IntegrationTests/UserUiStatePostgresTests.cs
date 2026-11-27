@@ -268,10 +268,15 @@ public class UserUiStatePostgresTests
         Assert.Equal("other", remaining.Value);
     }
 
-    [Theory]
-    [InlineData(typeof(UserUiStateController))]
-    [InlineData(typeof(SystemVersionController))]
-    public void Unauthenticated_401(Type controller)
+    [PostgresFact]
+    public Task Unauthenticated_401() =>
+        PostgresCases.RunAsync(new[] { typeof(UserUiStateController), typeof(SystemVersionController) }, controller =>
+        {
+            AssertRequiresSignIn(controller);
+            return Task.CompletedTask;
+        });
+
+    private static void AssertRequiresSignIn(Type controller)
     {
         // The pipeline answers 401 when a controller carries [Authorize] and no
         // action opts out with [AllowAnonymous]; the authorization matrix pins the roles.
@@ -281,7 +286,7 @@ public class UserUiStatePostgresTests
             Assert.Null(action.GetCustomAttribute<AllowAnonymousAttribute>());
     }
 
-    [Fact]
+    [PostgresFact]
     public void Version_ReturnsAssemblyInformationalVersion()
     {
         var controller = new SystemVersionController(new StubEnvironment("Staging"));

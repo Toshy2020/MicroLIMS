@@ -73,13 +73,14 @@ Requires the *Sample Release Approval* permission (by default: Section Head, Sys
 
 #### Before you start
 - The laboratory section must be **Under approval**.
+- No OOS investigation covers this sample and section. When an OOS investigation is open or concluded for the section, direct **Retest Retained Sample** and **New Sample Required** options are hidden on the approval screen and retests must be planned and signed inside the OOS investigation's **Retest Plan** (see §20).
 - You must not be the section's reviewer ("You cannot approve a sample you reviewed.") and must not have performed any current test of the section ("You cannot approve a sample you tested."). No role is exempt, including System Administrator.
 - A cause of testing named "Retest" must exist. Otherwise: "The 'Retest' cause of testing is not configured."
 - At least one test must be selected.
 
-> **Note for reviewers:** When a retest sample reaches a final status, its outcome is copied to the original sample's section without a new electronic signature. The original section takes the outcome (Retest Retained Sample: the retest's outcome; New Sample Required: Approved only when both new samples are approved). Each original test is then marked Approved or Rejected from its own recorded result, so the test that triggered the retest stays **Rejected**. The original section records the Section Head who decided the retest as its approver; no new signature is applied to the original. This happens only when the retest sample covers one laboratory section. (GAP-018)
+> **Note:** For legacy retest chains (without a structured OOS investigation), when a retest sample reaches a final status, its outcome is copied to the original sample's section without a new electronic signature. When a structured OOS investigation exists, closing retest samples does **not** automatically approve or reject the original sample — an independent Section Head must sign the investigation conclusion first (§20).
 
-> **Note for reviewers:** The Investigation and OOS Investigation decisions in the design specifications are not available; only the four decisions in §19 exist. (GAP-017)
+> **Note for reviewers:** The `Investigation` and `OOSInvestigation` decisions are not offered on the approval screen; only `Approve`, `Not Conform` (`Reject`), `Retest Retained Sample`, and `New Sample Required` are available.
 
 #### What you see
 - **Sample Summary** dialog, card **Approval & Electronic Signatures**, form **Submit Release Decision**:
@@ -147,7 +148,7 @@ Requires the *Sample Release Approval* permission (by default: Section Head, Sys
 
 > **Note for reviewers:** For New Sample Required, the screen says neither analyst may be anyone who tested the original sample, but the system checks only the assigned analyst of the selected tests. (GAP-302)
 
-> **Note for reviewers:** New Sample Required and the retest decisions are signed with the meanings Rejected and Retest requested; the signature trail and the certificate show a rejection for New Sample Required. (GAP-308)
+> **Note for reviewers:** New Sample Required is signed with the meaning *New sample requested* (`NewSampleRequested`), and Retest Retained Sample with the meaning *Retest requested* (`RetestRequested`). (GAP-308)
 
 #### What you see
 - On the card **Approval & Electronic Signatures**:
@@ -172,7 +173,7 @@ Requires the *Sample Release Approval* permission (by default: Section Head, Sys
 
 #### System behavior
 - The system checks the reviewer and tester rules, the selected tests, that both analysts are given, different, active, not locked and of the Analyst role type, and that neither is the assigned analyst of a selected test.
-- One electronic signature is recorded with the meaning *Rejected*, and a Workflow History event records the decision.
+- One electronic signature is recorded with the meaning *New sample requested*, and a Workflow History event records the decision.
 - The section becomes **Retest requested**, and the original sample receives an OOS group number if it has none.
 - The selected original tests are marked superseded, with the history note "New sample requested by {name}".
 - TWO new samples are created one after the other, each with its own reference number, the details of the original sample, a link to it, the shared OOS group, and copies of the selected tests assigned to its own chosen analyst.

@@ -21,6 +21,11 @@ import { TestOrderSummary, SampleCard as WorkspaceSampleCard } from "../types/wo
 import { useTestStepQuickAction } from "../hooks/useTestStepQuickAction";
 import { useTranslation } from "../../../i18n";
 import { clickable } from "../../../utils/clickable";
+import { useOptionalAuth } from "../../../contexts/AuthContext";
+import { PERMISSIONS } from "../../../routes/routes";
+import { OverrideDialog } from "../../competency/OverrideDialog";
+import { RaiseDeviationButton } from "../../quality/components/RaiseDeviationButton";
+import { QualityRecordsPanel } from "../../quality/components/QualityRecordsPanel";
 
 interface AssignedTestCardProps {
   test: TestOrderSummary;
@@ -47,6 +52,10 @@ export function AssignedTestCard({
 }: AssignedTestCardProps) {
   const { t } = useTranslation("testingWorkspace");
   const theme = useTheme();
+  const auth = useOptionalAuth();
+  const canOverride = auth?.permissions.includes(PERMISSIONS.COMPETENCY_OVERRIDE) ?? false;
+  const [overrideOpen, setOverrideOpen] = useState(false);
+  const [qualityRefreshKey, setQualityRefreshKey] = useState(0);
 
   const formatDuration = (seconds: number): string => {
     if (seconds <= 0) return t("assignedCard.readyToRead");
@@ -88,6 +97,7 @@ export function AssignedTestCard({
     test.workflowState === "APPROVED" || test.status === "Approved" ||
     test.workflowState === "REVIEWED" || test.status === "Reviewed" ||
     test.workflowState === "RESULTS_RECORDED" || test.status === "UnderReview";
+  const canOfferOverride = canOverride && test.assignedAnalystId != null && !stepDataUnused;
 
   const {
     loading,
@@ -535,6 +545,21 @@ export function AssignedTestCard({
             </span>
           </Tooltip>
 
+          {canOfferOverride && (
+            <Button
+              size="small"
+              variant="outlined"
+              data-no-row-click="true"
+              aria-label={t("assignedCard.grantOverrideAria", { testCode: test.testCode })}
+              onClick={(e) => {
+                e.stopPropagation();
+                setOverrideOpen(true);
+              }}
+              sx={{ fontSize: 12, textTransform: "none", py: 0.25, px: 1 }}
+            >
+              {t("assignedCard.grantOverride")}
+            </Button>
+          )}
           {/* Chevron button: 24x24px. Shown when step requires media lot + incubator setup */}
           {!effectiveIsIncubating && test.status !== "Approved" && requiresMediaSetup && !awaitingPreparation && (
             <Tooltip title={expanded ? t("assignedCard.closeQuickSetup") : t("assignedCard.openQuickSetup")}>
@@ -699,8 +724,51 @@ export function AssignedTestCard({
               </Button>
             </Box>
           )}
+
+          <Box
+            data-no-row-click="true"
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => e.stopPropagation()}
+            sx={{ mt: 1.5, display: "flex", flexDirection: "column", gap: 1 }}
+          >
+            <Box>
+              <RaiseDeviationButton
+                targetType="TestOrder"
+                targetId={test.testOrderId}
+                sectionId={sample.labSectionId ?? null}
+                onRaised={() => setQualityRefreshKey((k) => k + 1)}
+              />
+            </Box>
+            <QualityRecordsPanel
+              targetType="TestOrder"
+              targetId={test.testOrderId}
+              refreshKey={qualityRefreshKey}
+              compact
+            />
+          </Box>
         </Box>
       </Collapse>
+      {canOfferOverride && overrideOpen && test.assignedAnalystId != null && (
+        <Box data-no-row-click="true" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
+          <OverrideDialog
+            open
+            testOrderId={test.testOrderId}
+            testLabel={test.testCode}
+            candidates={[
+              {
+                userId: test.assignedAnalystId,
+                fullName: test.assignedAnalystName ?? String(test.assignedAnalystId)
+              }
+            ]}
+            defaultAnalystUserId={test.assignedAnalystId}
+            onClose={() => setOverrideOpen(false)}
+            onGranted={() => {
+              setOverrideOpen(false);
+              onActionComplete();
+            }}
+          />
+        </Box>
+      )}
     </Paper>
   );
 }

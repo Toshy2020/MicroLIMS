@@ -17,6 +17,10 @@ public class SegregationOfDutiesGuard
         _db = db;
     }
 
+    public Task<bool> DidUserOverrideCompetencyAsync(int userId, int sampleId, CancellationToken ct = default) =>
+        _db.CompetencyOverrides.AsNoTracking()
+            .AnyAsync(row => row.GrantedByUserId == userId && row.SampleId == sampleId, ct);
+
     // "Performed" = assigned as the analyst, prepared the sample, or
     // entered/observed any raw result for this test order - Result,
     // CountTestReading, PathogenObservation, WorkflowStepResult,
@@ -25,57 +29,43 @@ public class SegregationOfDutiesGuard
     public async Task<bool> DidUserPerformTestAsync(int testOrderId, int userId, CancellationToken ct = default) =>
         (await GetTestOrderIdsPerformedByAsync(userId, new[] { testOrderId }, ct)).Contains(testOrderId);
 
-    // The single source of the eight "performed" conditions, set-based: which of the given test orders did the
-    // user perform? One query per condition however many orders are asked about; ids that do not exist are
-    // simply absent. DidUserPerformTestAsync is this method with one id, so the two cannot drift.
     public async Task<IReadOnlySet<int>> GetTestOrderIdsPerformedByAsync(
         int userId, IReadOnlyCollection<int> testOrderIds, CancellationToken ct = default)
     {
-        var performed = new HashSet<int>();
-        if (testOrderIds.Count == 0) return performed;
-        var ids = testOrderIds.Distinct().ToArray();
+        if (testOrderIds.Count == 0) return new HashSet<int>();
 
-        // 1. Assigned as the analyst.
-        performed.UnionWith(await _db.TestOrders.AsNoTracking()
-            .Where(t => ids.Contains(t.Id) && t.AssignedAnalystId == userId)
-            .Select(t => t.Id).ToListAsync(ct));
+        var performed = await PerformanceEvidence(testOrderIds.Distinct().ToArray())
+            .Where(e => e.UserId == userId)
+            .Select(e => e.OrderId)
+            .Distinct()
+            .ToListAsync(ct);
+        return performed.ToHashSet();
+    }
 
-        // 2. Prepared the sample the test belongs to.
-        performed.UnionWith(await _db.TestOrders.AsNoTracking()
-            .Where(t => ids.Contains(t.Id)
-                && _db.SamplePreparations.Any(p => p.SampleId == t.SampleId && p.PreparedByUserId == userId))
-            .Select(t => t.Id).ToListAsync(ct));
+    internal IQueryable<int> PerformerIds(int[] orderIds) => PerformanceEvidence(orderIds).Select(e => e.UserId);
 
-        // 3-6. Entered or observed a raw result.
-        performed.UnionWith(await _db.Results.AsNoTracking()
-            .Where(r => ids.Contains(r.TestOrderId) && r.EnteredByUserId == userId)
-            .Select(r => r.TestOrderId).ToListAsync(ct));
-        performed.UnionWith(await _db.CountTestReadings.AsNoTracking()
-            .Where(r => ids.Contains(r.TestOrderId) && r.EnteredByUserId == userId)
-            .Select(r => r.TestOrderId).ToListAsync(ct));
-        performed.UnionWith(await _db.PathogenObservations.AsNoTracking()
-            .Where(p => ids.Contains(p.TestOrderId) && p.ObservedByUserId == userId)
-            .Select(p => p.TestOrderId).ToListAsync(ct));
-        performed.UnionWith(await _db.WorkflowStepResults.AsNoTracking()
-            .Where(r => ids.Contains(r.TestOrderId) && r.SubmittedByUserId == userId)
-            .Select(r => r.TestOrderId).ToListAsync(ct));
+    private sealed class Performance
+    {
+        public int OrderId { get; init; }
+        public int UserId { get; init; }
+    }
 
-        // 7. Physicochemical workspaces (HPLC, dissolution, titration...) record here.
-        performed.UnionWith(await _db.TestAnalyses.AsNoTracking()
-            .Where(a => ids.Contains(a.TestOrderId) && a.EnteredByUserId == userId)
-            .Select(a => a.TestOrderId).ToListAsync(ct));
-
-        // 8. Confirmatory plate readings are APPENDED to a result row that
-        // whoever ran the setup submitted, so the WorkflowStepResult
-        // check above never sees the second analyst who actually read the
-        // plates - without this they could review and approve their own
-        // reading. Joined through the parent row, since the observation
-        // carries no TestOrderId of its own.
-        performed.UnionWith(await _db.ConfirmatoryPlateObservations.AsNoTracking()
-            .Where(o => o.RecordedByUserId == userId && ids.Contains(o.WorkflowStepResult!.TestOrderId))
-            .Select(o => o.WorkflowStepResult!.TestOrderId).ToListAsync(ct));
-
-        return performed;
+    // One set of evidence sources for both the signer guard and the recipient lookup.
+    private IQueryable<Performance> PerformanceEvidence(int[] orderIds)
+    {
+        var orders = _db.TestOrders.AsNoTracking().Where(o => orderIds.Contains(o.Id));
+        return orders.Where(o => o.AssignedAnalystId.HasValue).Select(o => new Performance { OrderId = o.Id, UserId = o.AssignedAnalystId!.Value })
+            .Concat(from order in orders
+                    join prep in _db.SamplePreparations on order.SampleId equals prep.SampleId
+                    select new Performance { OrderId = order.Id, UserId = prep.PreparedByUserId })
+            .Concat(_db.Results.Where(r => orderIds.Contains(r.TestOrderId)).Select(r => new Performance { OrderId = r.TestOrderId, UserId = r.EnteredByUserId }))
+            .Concat(_db.CountTestReadings.Where(r => orderIds.Contains(r.TestOrderId)).Select(r => new Performance { OrderId = r.TestOrderId, UserId = r.EnteredByUserId }))
+            .Concat(_db.PathogenObservations.Where(o => orderIds.Contains(o.TestOrderId)).Select(o => new Performance { OrderId = o.TestOrderId, UserId = o.ObservedByUserId }))
+            .Concat(_db.WorkflowStepResults.Where(r => orderIds.Contains(r.TestOrderId)).Select(r => new Performance { OrderId = r.TestOrderId, UserId = r.SubmittedByUserId }))
+            .Concat(_db.TestAnalyses.Where(a => orderIds.Contains(a.TestOrderId)).Select(a => new Performance { OrderId = a.TestOrderId, UserId = a.EnteredByUserId }))
+            // Confirmatory plate readings can have a different performer from the parent result.
+            .Concat(_db.ConfirmatoryPlateObservations.Where(o => orderIds.Contains(o.WorkflowStepResult!.TestOrderId))
+                .Select(o => new Performance { OrderId = o.WorkflowStepResult!.TestOrderId, UserId = o.RecordedByUserId }));
     }
 
     // "Performed" for a Media lot = prepared it, or read any challenge

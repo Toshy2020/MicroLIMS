@@ -67,6 +67,7 @@ export const HELP_MAP: Record<string, HelpTarget> = {
   "/laboratory-configuration/after-cleaning": { chapterId: "25-after-cleaning" },
   "/laboratory-configuration/working-hours": { chapterId: "32-laboratory-configuration" },
   "/laboratory-configuration/escalation-rules": { chapterId: "32-laboratory-configuration" },
+  "/laboratory-configuration/oos-templates": { chapterId: "20-oos-tracking" },
 
   // Quality and compliance
   "/sections/document-control": { chapterId: "38-document-control" },
@@ -78,9 +79,13 @@ export const HELP_MAP: Record<string, HelpTarget> = {
   "/document-control/audit": { chapterId: "38-document-control" },
   "/document-control/reassignments": { chapterId: "38-document-control" },
   "/document-control/configuration": { chapterId: "38-document-control" },
+  "/competency/matrix": { chapterId: "38-document-control", heading: "38.16 Qualification Matrix" },
+  "/competency/my": { chapterId: "38-document-control", heading: "38.17 My Qualifications" },
   "/reports": { chapterId: "34-reports-kpis" },
   "/monitoring-plan": { chapterId: "23-environmental-monitoring" },
   "/oos-tracking": { chapterId: "20-oos-tracking" },
+  "/quality": { chapterId: "46-quality-events" },
+  "/quality/config": { chapterId: "46-quality-events" },
 
   // Administration
   "/admin/users": { chapterId: "39-users-roles-administration" },
@@ -107,6 +112,7 @@ export const HELP_MAP: Record<string, HelpTarget> = {
 
 // Parent sections for locations no key owns.
 const SECTION_FALLBACKS: [string, string][] = [
+  ["/oos-tracking", "20-oos-tracking"],
   ["/laboratory-configuration", "32-laboratory-configuration"],
   ["/sections", "07-navigation"],
   ["/admin", "39-users-roles-administration"],

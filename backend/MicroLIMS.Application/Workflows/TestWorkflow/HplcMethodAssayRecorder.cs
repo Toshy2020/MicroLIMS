@@ -18,13 +18,15 @@ public sealed class HplcMethodAssayRecorder : TestWorkflowSupport
 
     public HplcMethodAssayRecorder(TestWorkflowDependencies deps) : base(deps) { }
 
-    public Task<TestWorkflowResult> SubmitAsync(int runSampleId, string password, string? comment, int userId, string? ipAddress = null) =>
-        UnitOfWork.RunAsync(_db, () => SubmitCoreAsync(runSampleId, password, comment, userId, ipAddress));
+    public Task<TestWorkflowResult> SubmitAsync(int runSampleId, string password, string? comment, int userId, string? ipAddress = null, CancellationToken cancellationToken = default) =>
+        UnitOfWork.RunAsync(_db, () => SubmitCoreAsync(runSampleId, password, comment, userId, ipAddress, cancellationToken));
 
-    private async Task<TestWorkflowResult> SubmitCoreAsync(int runSampleId, string password, string? comment, int userId, string? ipAddress)
+    private async Task<TestWorkflowResult> SubmitCoreAsync(int runSampleId, string password, string? comment, int userId, string? ipAddress, CancellationToken cancellationToken)
     {
         var c = await HplcSampleEntryContext.LoadAsync(_db, runSampleId);
         await _sectionScope.EnsureTestOrderAccessAsync(userId, c.Order.Id);
+        using var recording = await RequireCompetentAsync(userId, c.Order.Id, cancellationToken);
+        await CaptureSopRevisionAsync(c.Order, cancellationToken);
 
         var problem = c.SubmitProblem();
         if (problem != null)

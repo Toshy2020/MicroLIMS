@@ -45,7 +45,7 @@ One class `backend/MicroLIMS.Application/Helpers/AdvisoryLockKeys.cs`, created i
 | `FieldError`, `FieldValidationException` | C4 Task 3 | C7, later forms |
 | My Work endpoint and page | C1 | C5 Task 8, C6 Task 6 (tours), F4 (`PartialOutageBanner`) |
 | Notification publisher, live signals | C5 (after C1) | D1, D2, D4, F5 and later |
-| Excursion review API (`OpenManualExcursionAsync`, `OpenExcursionForReadingsAsync`) | D1 Task 9 | F1 |
+| Excursion review API (`OpenManualExcursionAsync`, `OpenExcursionForReadingsAsync`) | D1 Task 9 | F1. **Note (user decision 2026-11-26):** `OpenExcursionForReadingsAsync` was NOT built in R3. It must be built at the start of F1, together with its first caller. `OpenManualExcursionAsync` is built. |
 | `OosCauseCategory` (shared cause list) | D1 | D2 |
 | `ICompetencyGuard`, `ItemSopResolver`, `RecordingPointCoverageTests` | D4 | D5, E4, F2, E1 |
 | `EquipmentCalibration.IsCurrent(Equipment, DateTime nowUtc)` | D3 Task 5 or E1, whichever first | both |

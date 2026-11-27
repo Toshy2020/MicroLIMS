@@ -1,0 +1,22 @@
+{
+  "prompt": {
+    "title": "Change control needed",
+    "beforeSave": "This laboratory requires an approved change control for this change. Choose the change control that covers it before saving.",
+    "field": "Approved change control",
+    "fieldHelp": "Search by number or title, or type the number.",
+    "loading": "Loading approved change controls...",
+    "empty": "No change control is approved for implementation for this laboratory. If you know the number, type it.",
+    "loadFailed": "The list of approved change controls could not be loaded. Type the change control number instead.",
+    "invalidNumber": "Use capital letters, digits and hyphens only, up to 20 characters.",
+    "noMatch": "No change control matches your search.",
+    "saveWith": "Save with this change control",
+    "retryWith": "Retry with this change control",
+    "cancel": "Cancel",
+    "cancelled": "Not saved: no change control was chosen.",
+    "refusalHeading": "The server refused the change"
+  },
+  "workbook": {
+    "title": "Change control number (optional)",
+    "hint": "If the laboratory requires a change control, enter its number in the change control field and import the remaining rows again."
+  }
+}

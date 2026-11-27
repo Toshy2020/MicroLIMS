@@ -80,6 +80,8 @@ export function routeForTarget(t: MyWorkTarget, lab?: string): string | null {
       return "/document-control/my-reading-list";
     case "equipment-task":
       return "/inventory/equipment";
+    case "competency-qualification":
+      return "/competency/my";
     default:
       return null;
   }
@@ -112,6 +114,8 @@ export function routeForGroup(groupKey: string, lab?: string): string {
       return "/inventory/equipment";
     case "materials":
       return "/laboratory-configuration/media";
+    case "competency":
+      return "/competency/my";
     default:
       return "/receiving-testing";
   }

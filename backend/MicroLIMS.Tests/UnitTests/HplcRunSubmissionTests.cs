@@ -345,3 +345,14 @@ public partial class HplcRunServiceTests
         Assert.Equal(SampleStatus.Approved, (await db.Samples.SingleAsync(x => x.Id == sample.Id)).Status);
     }
 }
+
+public partial class HplcRunServiceTests
+{
+    internal sealed record SopCaptureSubmittable(TestOrder Order, int RunSampleId, int UserId, ILabClock Clock);
+
+    internal static async Task<SopCaptureSubmittable> ArrangeSubmittableForSopCaptureAsync(MicroLimsDbContext db)
+    {
+        var t = await ArrangeSubmittableAsync(db);
+        return new SopCaptureSubmittable(t.Order, t.RunSampleId, t.Scenario.UserId, t.Clock);
+    }
+}

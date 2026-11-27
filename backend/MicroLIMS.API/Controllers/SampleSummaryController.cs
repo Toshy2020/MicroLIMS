@@ -28,33 +28,33 @@ public class SampleSummaryController : ControllerBase
     private int CurrentUserId => int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value);
 
     [HttpGet("{id}/summary")]
-    public async Task<IActionResult> GetSummary(int id, [FromQuery] bool forCertificate = false)
+    public async Task<IActionResult> GetSummary(int id, [FromQuery] bool forCertificate = false, CancellationToken ct = default)
     {
-        await _scopeService.EnsureSampleAccessAsync(CurrentUserId, id, access: SectionAccess.Read);
-        var scope = await _scopeService.GetReadableSectionIdsAsync(CurrentUserId);
+        await _scopeService.EnsureSampleAccessAsync(CurrentUserId, id, ct, SectionAccess.Read);
+        var scope = await _scopeService.GetReadableSectionIdsAsync(CurrentUserId, ct);
         // The CoA page asks forCertificate: a final sample's combined
         // certificate is printable by any of its labs' members.
         var summary = forCertificate
-            ? await _summaryService.GetCertificateSummaryAsync(id, scope)
-            : await _summaryService.GetSummaryAsync(id, scope);
+            ? await _summaryService.GetCertificateSummaryAsync(id, scope, ct)
+            : await _summaryService.GetSummaryAsync(id, scope, ct);
         if (summary is null) return NotFound(ApiResponse<object>.Fail($"Sample {id} not found."));
         return Ok(ApiResponse<object>.Ok(summary));
     }
 
     [HttpGet("{id}/summary/pdf")]
-    public async Task<IActionResult> GetSummaryPdf(int id)
+    public async Task<IActionResult> GetSummaryPdf(int id, CancellationToken ct = default)
     {
-        await _scopeService.EnsureSampleAccessAsync(CurrentUserId, id, access: SectionAccess.Read);
-        var result = await _summaryService.GenerateSummaryPdfAsync(id, await _scopeService.GetReadableSectionIdsAsync(CurrentUserId));
+        await _scopeService.EnsureSampleAccessAsync(CurrentUserId, id, ct, SectionAccess.Read);
+        var result = await _summaryService.GenerateSummaryPdfAsync(id, await _scopeService.GetReadableSectionIdsAsync(CurrentUserId, ct), ct);
         if (result is null) return NotFound(ApiResponse<object>.Fail($"Sample {id} not found."));
         return File(result.Value.bytes, "application/pdf", $"{result.Value.fileNameStem}.pdf");
     }
 
     [HttpGet("{id}/summary/word")]
-    public async Task<IActionResult> GetSummaryWord(int id)
+    public async Task<IActionResult> GetSummaryWord(int id, CancellationToken ct = default)
     {
-        await _scopeService.EnsureSampleAccessAsync(CurrentUserId, id, access: SectionAccess.Read);
-        var result = await _summaryService.GenerateSummaryWordAsync(id, await _scopeService.GetReadableSectionIdsAsync(CurrentUserId));
+        await _scopeService.EnsureSampleAccessAsync(CurrentUserId, id, ct, SectionAccess.Read);
+        var result = await _summaryService.GenerateSummaryWordAsync(id, await _scopeService.GetReadableSectionIdsAsync(CurrentUserId, ct), ct);
         if (result is null) return NotFound(ApiResponse<object>.Fail($"Sample {id} not found."));
         return File(result.Value.bytes, "application/vnd.openxmlformats-officedocument.wordprocessingml.document", $"{result.Value.fileNameStem}.docx");
     }

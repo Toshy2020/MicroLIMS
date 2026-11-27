@@ -7,6 +7,7 @@ public static partial class MessageCodes
     public const string PathogenBiochemicalNeedsConformingResult = "Pathogen.BiochemicalNeedsConformingResult";
     public const string PathogenConfirmatoryObservationCountMismatch = "Pathogen.ConfirmatoryObservationCountMismatch";
     public const string PathogenConfirmatoryPlatingNotCompleted = "Pathogen.ConfirmatoryPlatingNotCompleted";
+    public const string PathogenConfirmatoryPrimaryObservationNotFound = "Pathogen.ConfirmatoryPrimaryObservationNotFound";
     public const string PathogenIncubationAlreadyStarted = "Pathogen.IncubationAlreadyStarted";
     public const string PathogenIncubatorNotFound = "Pathogen.IncubatorNotFound";
     public const string PathogenMediaLotNotReleased = "Pathogen.MediaLotNotReleased";
@@ -39,6 +40,7 @@ public static partial class MessageCodes
         [PathogenBiochemicalNeedsConformingResult] = ["step"],
         [PathogenConfirmatoryObservationCountMismatch] = ["expected", "received"],
         [PathogenConfirmatoryPlatingNotCompleted] = [],
+        [PathogenConfirmatoryPrimaryObservationNotFound] = [],
         [PathogenIncubationAlreadyStarted] = ["step"],
         [PathogenIncubatorNotFound] = ["incubatorId"],
         [PathogenMediaLotNotReleased] = ["lot"],

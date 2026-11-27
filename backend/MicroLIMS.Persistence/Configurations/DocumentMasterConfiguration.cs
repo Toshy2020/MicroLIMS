@@ -88,9 +88,10 @@ public class DocumentMasterConfiguration : IEntityTypeConfiguration<DocumentMast
         builder.HasIndex(m => m.MicroLimsDocumentId)
             .IsUnique();
 
-        builder.HasIndex(m => m.CompanyDocumentCode)
-            .IsUnique()
-            .HasFilter("\"RecordStatus\" = 1");
+        // Case-insensitive uniqueness across all DocumentMasters (any RecordStatus) is enforced
+        // by the PostgreSQL expression index IX_DocumentMasters_CompanyDocumentCode_Lower on
+        // lower("CompanyDocumentCode") created in migration EnforceCaseInsensitiveDocumentCodes.
+        // Excluded from the EF model so `has-pending-model-changes` stays clean.
 
         builder.HasIndex(m => m.DocumentTypeId);
         builder.HasIndex(m => m.DepartmentId);

@@ -13,6 +13,7 @@ import {
   Chip,
   CircularProgress,
   Divider,
+  ListItemText,
   Stack,
   useTheme
 } from "@mui/material";
@@ -23,9 +24,13 @@ import { CategoryBadge } from "../../../components/StatusBadge";
 import { FloatingDialog } from "../../../components/FloatingDialog";
 import { Ltr } from "../../../components/Ltr";
 import { useTranslation } from "../../../i18n";
+import { translateServerDetail } from "../../../i18n/serverMessages";
 import { assignedAnalystNames } from "../utils/assignedAnalysts";
 import axios from "axios";
 import { getErrorMessage } from "../../../utils/errorMessage";
+import { useOptionalAuth } from "../../../contexts/AuthContext";
+import { PERMISSIONS } from "../../../routes/routes";
+import { OverrideDialog, type OverrideCandidate } from "../../competency/OverrideDialog";
 
 interface AssignAnalystDialogProps {
   open: boolean;
@@ -108,6 +113,13 @@ export function AssignAnalystDialog({
 }: AssignAnalystDialogProps) {
   const theme = useTheme();
   const { t } = useTranslation("receiving");
+  const auth = useOptionalAuth();
+  const canOverride = auth?.permissions.includes(PERMISSIONS.COMPETENCY_OVERRIDE) ?? false;
+  const [overrideTarget, setOverrideTarget] = useState<{
+    testOrderId: number;
+    testLabel: string;
+    candidates: OverrideCandidate[];
+  } | null>(null);
   const [options, setOptions] = useState<SampleAssignmentOptions | null>(null);
   const [selections, setSelections] = useState<Record<number, string>>({});
   const [allTestsValue, setAllTestsValue] = useState<string>("");
@@ -162,7 +174,11 @@ export function AssignAnalystDialog({
     setSelections((prev) => {
       const next = { ...prev };
       for (const t of assignableTests) {
-        if (value === UNASSIGNED || t.eligibleUserIds.includes(Number(value))) {
+        const userId = Number(value);
+        const refused =
+          value !== UNASSIGNED &&
+          (t.competencyRefusals ?? []).some((r) => r.userId === userId);
+        if (value === UNASSIGNED || (t.eligibleUserIds.includes(userId) && !refused)) {
           next[t.testOrderId] = value;
         }
       }
@@ -208,15 +224,29 @@ export function AssignAnalystDialog({
 
   const renderTestRow = (test: AssignableTest) => {
     const value = selections[test.testOrderId] ?? valueOf(test.assignedAnalystId);
-    const eligible = test.eligibleUserIds.map((id) => usersById.get(id)).filter((u): u is AssignableUser => !!u);
+    const refusalByUserId = new Map<number, string>();
+    for (const r of test.competencyRefusals ?? []) {
+      const text = translateServerDetail({ code: r.code, params: r.params, message: r.reason });
+      const prev = refusalByUserId.get(r.userId);
+      refusalByUserId.set(r.userId, prev ? `${prev} ${text}` : text);
+    }
+    const eligible = test.eligibleUserIds
+      .map((id) => usersById.get(id))
+      .filter((u): u is AssignableUser => !!u)
+      .sort((a, b) => Number(refusalByUserId.has(a.id)) - Number(refusalByUserId.has(b.id)));
     // Whoever is on the test now stays visible even when the signed-in user
     // could not pick them (e.g. another Section Head).
     const keepsCurrent = test.assignedAnalystId != null && !test.eligibleUserIds.includes(test.assignedAnalystId);
+    const overrideCandidates: OverrideCandidate[] = Array.from(refusalByUserId.entries()).map(([userId, reasonText]) => ({
+      userId,
+      fullName: usersById.get(userId)?.fullName ?? String(userId),
+      reason: reasonText
+    }));
 
     return (
       <Box
         key={test.testOrderId}
-        sx={{ display: "flex", alignItems: "center", gap: 1.5, py: 1 }}
+        sx={{ display: "flex", alignItems: "center", gap: 1.5, py: 1, flexWrap: "wrap" }}
         data-testid={`assign-row-${test.testCode}`}
       >
         <Box sx={{ width: 150, flexShrink: 0 }}>
@@ -240,11 +270,22 @@ export function AssignAnalystDialog({
                   {test.assignedAnalystName}
                 </MenuItem>
               )}
-              {eligible.map((u) => (
-                <MenuItem key={u.id} value={String(u.id)}>
-                  {userLabel(u)}
-                </MenuItem>
-              ))}
+              {eligible.map((u) => {
+                const refusal = refusalByUserId.get(u.id);
+                return (
+                  <MenuItem key={u.id} value={String(u.id)} disabled={Boolean(refusal)}>
+                    {refusal ? (
+                      <ListItemText
+                        primary={userLabel(u)}
+                        secondary={refusal}
+                        slotProps={{ secondary: { variant: "caption", color: "error" } }}
+                      />
+                    ) : (
+                      userLabel(u)
+                    )}
+                  </MenuItem>
+                );
+              })}
             </Select>
           </FormControl>
         ) : (
@@ -254,6 +295,22 @@ export function AssignAnalystDialog({
             </Typography>
             <Chip size="small" label={LOCKED_STATUSES.includes(test.status) ? test.status : t("assignAnalyst.notYourLab")} />
           </Box>
+        )}
+        {test.canAssign && canOverride && overrideCandidates.length > 0 && (
+          <Button
+            size="small"
+            variant="outlined"
+            aria-label={t("assignAnalyst.grantOverrideAria", { testCode: test.testCode })}
+            onClick={() =>
+              setOverrideTarget({
+                testOrderId: test.testOrderId,
+                testLabel: test.testCode,
+                candidates: overrideCandidates
+              })
+            }
+          >
+            {t("assignAnalyst.grantOverride")}
+          </Button>
         )}
       </Box>
     );
@@ -389,6 +446,20 @@ export function AssignAnalystDialog({
             rows={2}
           />
         </Box>
+
+        {canOverride && overrideTarget !== null && (
+          <OverrideDialog
+            open
+            testOrderId={overrideTarget.testOrderId}
+            testLabel={overrideTarget.testLabel}
+            candidates={overrideTarget.candidates}
+            onClose={() => setOverrideTarget(null)}
+            onGranted={() => {
+              setOverrideTarget(null);
+              void loadOptions();
+            }}
+          />
+        )}
     </FloatingDialog>
   );
 }

@@ -37,14 +37,11 @@ public class WaterService
         return TestingWorkspaceService.ToDto(sample);
     }
 
-    public async Task<SampleDto> PrepareAsync(int sampleId, List<int> waterSamplingPointIds, int userId, string? storageCondition = null, int? storageTimeHours = null, IReadOnlyList<int>? monitoringOccurrenceIds = null)
+    public async Task<SampleDto> PrepareAsync(int sampleId, List<int> waterSamplingPointIds, int userId, string? storageCondition = null, int? storageTimeHours = null, IReadOnlyList<int>? monitoringOccurrenceIds = null, CancellationToken ct = default)
     {
-        var sample = await _workflow.PrepareAsync(sampleId, waterSamplingPointIds, userId, storageCondition, storageTimeHours, monitoringOccurrenceIds);
+        var sample = await _workflow.PrepareAsync(sampleId, waterSamplingPointIds, userId, storageCondition, storageTimeHours, monitoringOccurrenceIds, ct);
         return TestingWorkspaceService.ToDto(sample);
     }
-
-    public Task<WaterComparisonResult> CalculateAsync(int testOrderId, List<decimal> readings) =>
-        _workflow.CalculateAndCompareAsync(testOrderId, readings);
 
     public Task<List<WaterComparisonResult>> GetDailyAggregateAsync(DateTime date, IReadOnlyCollection<int>? sectionIds = null) =>
         _workflow.GetDailyAggregateAsync(date, sectionIds);

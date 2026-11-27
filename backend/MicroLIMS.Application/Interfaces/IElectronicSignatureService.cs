@@ -21,5 +21,5 @@ public interface IElectronicSignatureService
     // verification fails; queues the new signature on the shared
     // DbContext without saving, so the caller can commit it atomically
     // alongside its own state change in one SaveChangesAsync.
-    Task<ElectronicSignature> SignAsync(int userId, string password, SignatureMeaning meaning, string entityType, int entityId, string? comment, string? ipAddress);
+    Task<ElectronicSignature> SignAsync(int userId, string password, SignatureMeaning meaning, string entityType, int entityId, string? comment, string? ipAddress, CancellationToken ct = default);
 }

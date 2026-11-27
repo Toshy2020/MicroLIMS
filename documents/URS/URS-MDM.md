@@ -4,8 +4,8 @@
 |---|---|
 | Document number | URS-MDM |
 | Title | Master data user requirements |
-| Version | 0.5 |
-| Status | Draft |
+| Version | 0.6 |
+| Status | Draft — pending approval |
 | Author | Claude (AI agent), draft from code |
 | Reviewer | To be assigned by QA |
 | Approver | To be assigned by QA |
@@ -20,6 +20,7 @@
 | 0.3 | 2026-11-14 | AI coding agent, draft from code | Added configuration spreadsheet paste with preview and all-or-nothing batch save (URS-MDM-025). |
 | 0.4 | 2026-11-16 | AI coding agent, draft from code | Added step-by-step configuration screens, where-used summary, change reasons, specification retirement, copy and new-from-existing, and analyst preview requirements (URS-MDM-026 to URS-MDM-031). |
 | 0.5 | 2026-11-17 | AI coding agent, draft from code | Added items-using-a-test and open-SOP requirements (URS-MDM-032, URS-MDM-033). |
+| 0.6 | 2026-11-25 | AI coding agent, draft from code | Added test-order SOP revision capture and workflow/review display requirement (URS-MDM-034; Draft — pending approval). |
 
 ## Requirements
 
@@ -223,4 +224,11 @@ Each requirement below is a need that the code as built serves. Gaps found in th
 **Requirement:** The system shall let a user open the SOP of an item from a test's workflow dialog and from the item list of the Test Master when the SOP is in Document Control, and shall state in words why it cannot be opened when no SOP number is set, the SOP is not in Document Control, the SOP has no effective revision, or the user may not read it.
 **GxP:** No
 **Serves:** Not applicable
+**Status:** Active
+
+### URS-MDM-034
+*(Draft — pending approval)*
+**Requirement:** The system shall capture the item's effective SOP revision once on each test order at the first recorded step, prevent modification once captured, and display the captured SOP revision (or the reason it was not recorded) and any newer effective revision notice on the test workflow dialog and review screen.
+**GxP:** Yes
+**Serves:** 21 CFR 11.10(e), 211.188; EU GMP Annex 11 clause 4, ALCOA+ original and enduring (to be confirmed by QA)
 **Status:** Active

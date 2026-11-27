@@ -22,6 +22,8 @@
     "complianceDashboard": "Compliance Dashboard",
     "documentLibrary": "Document Library",
     "needsReassignment": "Needs Reassignment",
+    "qualificationMatrix": "Qualification Matrix",
+    "myQualifications": "My Qualifications",
     "configuration": "Configuration",
     "microbiologyLaboratory": "Microbiology Laboratory",
     "workspace": "Workspace",
@@ -59,13 +61,16 @@
     "afterCleaning": "After Cleaning",
     "workingHours": "Working Hours",
     "escalationRules": "Escalation Rules",
+    "oosTemplates": "OOS Templates",
     "myProfile": "My Profile",
     "changePassword": "Change Password",
     "chooseSigningPassword": "Choose Signing Password",
     "messages": "Messages",
     "discussions": "Discussions",
     "notifications": "Notifications",
-    "receivingTestingWorkspace": "Receiving & Testing Workspace"
+    "receivingTestingWorkspace": "Receiving & Testing Workspace",
+    "qualityEvents": "Quality Events",
+    "qualityConfiguration": "Quality Configuration"
   },
   "group": {
     "overview": "OVERVIEW",

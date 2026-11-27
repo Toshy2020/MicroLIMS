@@ -24,16 +24,16 @@ namespace MicroLIMS.Application.Helpers;
 //   a caller that handles the failure can keep using the same context.
 public static class UnitOfWork
 {
-    public static async Task RunAsync(IMicroLimsDbContext db, Func<Task> command)
+    public static async Task RunAsync(IMicroLimsDbContext db, Func<Task> command, CancellationToken ct = default)
     {
         await RunAsync(db, async () =>
         {
             await command();
             return true;
-        });
+        }, ct);
     }
 
-    public static async Task<T> RunAsync<T>(IMicroLimsDbContext db, Func<Task<T>> command)
+    public static async Task<T> RunAsync<T>(IMicroLimsDbContext db, Func<Task<T>> command, CancellationToken ct = default)
     {
         if (!db.Database.IsRelational() || db.Database.CurrentTransaction is not null)
             return await command();
@@ -41,11 +41,11 @@ public static class UnitOfWork
         var before = db.ChangeTracker.Entries()
             .ToDictionary(e => e.Entity, e => (e.State, Values: e.CurrentValues.Clone()), ReferenceEqualityComparer.Instance);
 
-        await using var tx = await db.Database.BeginTransactionAsync();
+        await using var tx = await db.Database.BeginTransactionAsync(ct);
         try
         {
             var result = await command();
-            await tx.CommitAsync();
+            await tx.CommitAsync(ct);
             await db.FlushSignalsAsync();
             return result;
         }

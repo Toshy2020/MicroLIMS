@@ -19,7 +19,7 @@
 
 ## Scope and reading notes
 
-- This document covers `WaterController` (route `api/water`), `WaterService` and `WaterWorkflowEngine`: receipt, preparation, the single-point calculation and the daily report. The plate-count recording for water (endpoint `water-batch-readings`) is in `IncubationStepRecorder` and is described in FS-MIC-008 and FS-MIC-006; the entry FS-WAT-005 here only adds what is specific to water.
+- This document covers `WaterController` (route `api/water`), `WaterService` and `WaterWorkflowEngine`: receipt, preparation, the daily report (the single-point calculation was removed, CONF-216). The plate-count recording for water (endpoint `water-batch-readings`) is in `IncubationStepRecorder` and is described in FS-MIC-008 and FS-MIC-006; the entry FS-WAT-005 here only adds what is specific to water.
 - Every statement was written from the code files named in each entry. Nothing was run. Pharmacopoeia chapters are pointers only (to be confirmed by QA).
 - Sampling points, their test assignments, the alert, action and specification limit texts and the unit are configured by the Section Head (sampling configuration). No limit is in the code.
 - No method in this document calls `RecordVersion.EnsureCurrent` (no stale-form version check). `WaterService` is a thin wrapper: it calls the engine and maps the result.
@@ -61,14 +61,6 @@
 **Calculations:** CALC-006
 **Verified by:** reading (not run)
 **Conflicts:** CONF-010, CONF-011
-
-### FS-WAT-006
-**Satisfies:** URS-WAT-007
-**Function:** Single-point calculation (`POST api/water/calculate`). The endpoint needs only a logged-in user (no permission policy), then calls `EnsureTestOrderAccessAsync` (write scope). Inputs: test order ID, a list of decimal readings. `WaterWorkflowEngine.CalculateAndCompareAsync` refuses an empty list. It refuses if the test order has any sample location, which is the case for every order created by FS-WAT-003. For an order without locations it reads the sampling configuration for the order's test code and the sample's `WaterSamplingPointId`; in Application and API code no place was found that sets `Sample.WaterSamplingPointId`, and `ReceiveAsync` (FS-WAT-001) does not. With no point, the limits are all empty and the status is LimitsNotConfigured. The average is the arithmetic mean of the readings, not rounded. A `Result` row is added with the readings joined by commas and the text "average (status)" where the average is formatted with at most two decimals (`0.##`, using the current culture of the process); the entered-by user is not set on the row. The order is moved to Ready by `WorkflowStateMachine.TransitionAsync` for the order's assigned analyst (or user 0 when none). The method does not check the order's current step, so any step except a closed or superseded one is moved to Ready. `AutoSubmitForReviewIfReadyAsync` is not called. No explicit transaction is used; the result is added and saved by the state machine call. Readings are not checked for being whole numbers or non-negative.
-**Code:** `backend/MicroLIMS.Application/Workflows/WaterWorkflowEngine.cs` — `CalculateAndCompareAsync`
-**Calculations:** CALC-011
-**Verified by:** reading (not run)
-**Conflicts:** CONF-064
 
 ### FS-WAT-007
 **Satisfies:** URS-WAT-008

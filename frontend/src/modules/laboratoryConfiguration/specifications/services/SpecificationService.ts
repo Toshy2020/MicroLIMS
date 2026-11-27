@@ -1,4 +1,4 @@
-import { apiClient, withChangeReason } from "../../../../services/apiClient";
+import { apiClient, withChangeControl, withChangeReason } from "../../../../services/apiClient";
 import type { FieldError } from "../../../../services/apiTypes";
 
 export type LimitType =
@@ -171,22 +171,30 @@ export const SpecificationService = {
   // stage's rows, else the every-stage rows) - for result entry.
   getForTestOrder: (testOrderId: number): Promise<SpecificationDto[]> =>
     apiClient.get(`/masterdata/specifications/for-test-order/${testOrderId}`).then((r) => r.data.data),
-  create: (payload: CreateSpecificationPayload): Promise<SpecificationDto> =>
-    apiClient.post("/masterdata/specifications", payload).then((r) => r.data.data),
-  createSpecificationsBatch: (payload: CreateSpecificationPayload[]): Promise<SpecificationDto[]> =>
-    apiClient.post("/masterdata/specifications/batch", payload).then((r) => r.data.data),
-  update: (id: number, payload: UpdateSpecificationPayload, version?: number, reason?: string): Promise<SpecificationDto> =>
-    apiClient.put(`/masterdata/specifications/${id}`, payload, withChangeReason(version, reason)).then((r) => r.data.data),
-  remove: async (id: number, reason?: string): Promise<SpecificationDeleteOutcome> => {
-    const res = await apiClient.delete(`/masterdata/specifications/${id}`, withChangeReason(undefined, reason));
+  // The trailing changeControl is the approved change control number for a laboratory whose
+  // change-control gate is on; it travels in the X-Change-Control header of this one request.
+  create: (payload: CreateSpecificationPayload, changeControl?: string): Promise<SpecificationDto> =>
+    (changeControl
+      ? apiClient.post("/masterdata/specifications", payload, withChangeControl(undefined, changeControl))
+      : apiClient.post("/masterdata/specifications", payload)
+    ).then((r) => r.data.data),
+  createSpecificationsBatch: (payload: CreateSpecificationPayload[], changeControl?: string): Promise<SpecificationDto[]> =>
+    (changeControl
+      ? apiClient.post("/masterdata/specifications/batch", payload, withChangeControl(undefined, changeControl))
+      : apiClient.post("/masterdata/specifications/batch", payload)
+    ).then((r) => r.data.data),
+  update: (id: number, payload: UpdateSpecificationPayload, version?: number, reason?: string, changeControl?: string): Promise<SpecificationDto> =>
+    apiClient.put(`/masterdata/specifications/${id}`, payload, withChangeControl(withChangeReason(version, reason), changeControl)).then((r) => r.data.data),
+  remove: async (id: number, reason?: string, changeControl?: string): Promise<SpecificationDeleteOutcome> => {
+    const res = await apiClient.delete(`/masterdata/specifications/${id}`, withChangeControl(withChangeReason(undefined, reason), changeControl));
     return (res?.data?.data ?? { outcome: "deleted", id }) as SpecificationDeleteOutcome;
   },
-  delete: async (id: number, reason?: string): Promise<SpecificationDeleteOutcome> => {
-    const res = await apiClient.delete(`/masterdata/specifications/${id}`, withChangeReason(undefined, reason));
+  delete: async (id: number, reason?: string, changeControl?: string): Promise<SpecificationDeleteOutcome> => {
+    const res = await apiClient.delete(`/masterdata/specifications/${id}`, withChangeControl(withChangeReason(undefined, reason), changeControl));
     return (res?.data?.data ?? { outcome: "deleted", id }) as SpecificationDeleteOutcome;
   },
-  reinstate: (id: number, reason: string): Promise<SpecificationDto> =>
-    apiClient.post(`/masterdata/specifications/${id}/reinstate`, undefined, withChangeReason(undefined, reason)).then((r) => r.data.data),
+  reinstate: (id: number, reason: string, changeControl?: string): Promise<SpecificationDto> =>
+    apiClient.post(`/masterdata/specifications/${id}/reinstate`, undefined, withChangeControl(withChangeReason(undefined, reason), changeControl)).then((r) => r.data.data),
   validate: (
     payload: (CreateSpecificationPayload | (UpdateSpecificationPayload & { itemId?: number })) & { id?: number },
     id?: number
@@ -196,7 +204,10 @@ export const SpecificationService = {
       .then((r) => r.data.data ?? []),
   previewCopy: (request: CopySpecificationsRequest): Promise<CopySpecificationsPreviewRow[]> =>
     apiClient.post("/masterdata/specifications/copy/preview", request).then((r) => r.data.data ?? []),
-  copySpecifications: (request: CopySpecificationsRequest): Promise<number> =>
-    apiClient.post("/masterdata/specifications/copy", request).then((r) => r.data.data)
+  copySpecifications: (request: CopySpecificationsRequest, changeControl?: string): Promise<number> =>
+    (changeControl
+      ? apiClient.post("/masterdata/specifications/copy", request, withChangeControl(undefined, changeControl))
+      : apiClient.post("/masterdata/specifications/copy", request)
+    ).then((r) => r.data.data)
 };
 

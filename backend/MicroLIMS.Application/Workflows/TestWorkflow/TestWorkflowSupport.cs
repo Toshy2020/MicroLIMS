@@ -9,6 +9,7 @@ using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.Services.Notifications;
+using MicroLIMS.Application.Services.Competency;
 using MicroLIMS.Shared.Constants;
 using MicroLIMS.Shared.Messages;
 
@@ -30,6 +31,8 @@ public class TestWorkflowSupport
     protected readonly IElectronicSignatureService _signatureService;
     protected readonly IUserSectionScopeService _sectionScope;
     protected readonly ILabClock _clock;
+    protected readonly ICompetencyGuard _competency;
+    protected readonly ISopRevisionCapture _sopCapture;
     protected readonly INotificationPublisher _publisher;
 
     public TestWorkflowSupport(TestWorkflowDependencies deps)
@@ -44,14 +47,43 @@ public class TestWorkflowSupport
         _signatureService = deps.SignatureService;
         _sectionScope = deps.SectionScope;
         _clock = deps.Clock;
+        _competency = deps.Competency;
+        _sopCapture = deps.SopCapture;
         _publisher = deps.Publisher ?? new NotificationPublisher(deps.Db, deps.TimeProvider);
+    }
+
+    protected async Task<IDisposable> RequireCompetentAsync(int userId, int testOrderId, CancellationToken ct)
+    {
+        var decision = await _competency.EvaluateAsync(userId, testOrderId, ct);
+        decision.ToActionCheck().ThrowIfRefused();
+        return AuditReasonScope.Append(_db, decision.RecordingAuditReason);
+    }
+
+    // The first recorded step of a test order stores the SOP revision in force (Rule 3.1). Called at every recording
+    // point right after the competency guard and before the step's first write, on the tracked order the recorder
+    // loaded, so the values land in the same SaveChanges and transaction as the step. It never refuses a recording:
+    // an SOP that cannot be resolved is stored as a status.
+    protected Task CaptureSopRevisionAsync(TestOrder order, CancellationToken ct) =>
+        _sopCapture.CaptureIfNeededAsync(order, ct);
+
+    // The same for a recorder that has only the order id; the order is the tracked instance when already loaded.
+    protected async Task CaptureSopRevisionAsync(int testOrderId, CancellationToken ct)
+    {
+        var order = await _db.TestOrders.FirstOrDefaultAsync(o => o.Id == testOrderId, ct);
+        if (order is not null)
+            await _sopCapture.CaptureIfNeededAsync(order, ct);
     }
 
     protected async Task<(TestOrder order, TestDefinition definition)> LoadWithTemplateAsync(int testOrderId)
     {
         var order = await WorkflowStateMachine.LoadOrThrowAsync(_db, testOrderId);
-        var definition = await TemplatesWithSteps().FirstOrDefaultAsync(t => t.Code == order.TestCode);
-        return (order, RequireTemplate(order, definition));
+        return (order, await LoadTemplateAsync(order));
+    }
+
+    protected async Task<TestDefinition> LoadTemplateAsync(TestOrder order, CancellationToken cancellationToken = default)
+    {
+        var definition = await TemplatesWithSteps().FirstOrDefaultAsync(t => t.Code == order.TestCode, cancellationToken);
+        return RequireTemplate(order, definition);
     }
 
     protected IQueryable<TestDefinition> TemplatesWithSteps() => _db.TestDefinitions
@@ -409,6 +441,8 @@ public class TestWorkflowSupport
 
         var siblings = await FindSharedTsbSiblingsAsync(sourceOrder, incubation.Media, ct);
         if (siblings.Count == 0) return;
+        var competency = await _competency.FilterAsync(userId, siblings.Select(s => s.Order).ToList(), ct);
+        using var recording = AuditReasonScope.Append(_db, competency.RecordingAuditReason);
 
         var brothStepName = "Broth Enrichment";
         var mediaLotNumber = incubation.Media.LotNumber;
@@ -417,6 +451,8 @@ public class TestWorkflowSupport
 
         foreach (var sibling in siblings)
         {
+            if (!competency.Allowed.Contains(sibling.Order.Id)) continue;
+
             var targetStepName = sibling.Step.StepName;
             // Each test keeps its own window from its own TSB medium - the
             // shared TSB only lends the lot, incubator and start.
@@ -431,6 +467,8 @@ public class TestWorkflowSupport
                 if (window is null || incubation.IncubatorEquipmentId is not int incubatorId
                     || !await _incubatorEligibility.IsWithinRangeAsync(sibling.Medium.Id, incubatorId, ct))
                     continue;
+
+                await CaptureSopRevisionAsync(sibling.Order, ct);
 
                 var newInc = new Incubation
                 {
@@ -458,6 +496,7 @@ public class TestWorkflowSupport
             {
                 // A test that started its own TSB on another lot is not part of this one.
                 if (sibling.ExistingIncubation.MediaId != incubation.MediaId) continue;
+                await CaptureSopRevisionAsync(sibling.Order, ct);
                 if (window is not null)
                     CopyCompletionOnceOwnMinimumElapsed(incubation, sibling.ExistingIncubation, window);
                 siblingIncId = sibling.ExistingIncubation.Id;
@@ -952,5 +991,7 @@ public sealed record TestWorkflowDependencies(
     IElectronicSignatureService SignatureService,
     IUserSectionScopeService SectionScope,
     ILabClock Clock,
+    ICompetencyGuard Competency,
+    ISopRevisionCapture SopCapture,
     INotificationPublisher? Publisher = null,
     TimeProvider? TimeProvider = null);

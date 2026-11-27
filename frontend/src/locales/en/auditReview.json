@@ -118,6 +118,8 @@
     "closeFinding": "Close finding",
     "closeTitle": "Close finding #{{id}}",
     "closingComment": "Closing comment",
-    "signatureMeaning": "I have reviewed the audit trail entries in scope and attest to the conclusion below."
+    "signatureMeaning": "I have reviewed the audit trail entries in scope and attest to the conclusion below.",
+    "raiseDeviationTitle": "Deviation for audit finding {{id}}",
+    "raiseDeviationAria": "Raise deviation from finding {{id}}"
   }
 }

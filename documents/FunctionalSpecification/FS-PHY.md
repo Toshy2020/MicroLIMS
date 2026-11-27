@@ -4,7 +4,7 @@
 |---|---|
 | Document number | FS-PHY |
 | Title | Physicochemical testing functional specification |
-| Version | 0.1 |
+| Version | 0.2 |
 | Status | Draft |
 | Author | Claude (AI agent), draft from code |
 | Reviewer | To be assigned by QA |
@@ -16,6 +16,7 @@
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1 | 2026-11-12 | Claude (AI agent), draft from code | First draft, written from the code as built. |
+| 0.2 | 2026-11-25 | AI coding agent, draft from code | Added competency gate enforcement at physicochemical assignment and recording points (FS-PHY-017). Draft — pending approval. |
 
 ## Scope and reading notes
 
@@ -145,3 +146,11 @@
 **Function:** Results of a test order (`GET api/results?testOrderId=`). The controller needs a signed-in user, calls `EnsureTestOrderAccessAsync` with read access (all sections for `Sections.ViewAll`, otherwise member sections), and returns every `Result` row of the test order (ID, test order ID, raw value, interpreted value, entered-at time). The rows are loaded without `AsNoTracking`. The method returns the stored text only; it does not show the signer, the signature meaning or the time zone of the entered-at time. If the test order does not exist the scope check returns without error and an empty list is returned.
 **Code:** `backend/MicroLIMS.API/Controllers/ResultController.cs` — `GetForTestOrder`; `backend/MicroLIMS.Application/Services/ResultService.cs` — `GetResultsForTestOrderAsync`
 **Verified by:** reading (not run)
+
+### FS-PHY-017
+*(Draft — pending approval)*
+**Satisfies:** URS-PHY-016
+**Function:** Competency gate enforcement at physicochemical assignment and recording points. When the laboratory's competency gate is enabled, `CompetencyGuard` evaluates qualification (latest non-withdrawn `AnalystQualification` not expired by `LabToday`), active `CompetencyOverride`, and item SOP acknowledgement (via `ItemSopResolver`: `Effective` requires `DocumentTrainingAssignment` in `Acknowledged`/`CompletedPassed` or an open `Assigned`/`Reading`/`KafPending` assignment for the current revision with `DueDateUtc >= nowUtc` after acknowledging the immediately superseded revision). If the SOP status is `NoSopNumber`, `NotFound`, `NoEffectiveRevision`, or `Ambiguous` (CONF-212), recording is allowed and the `SopNotChecked` text is included in the audit entry's reason field. Assignment: `AnalystAssignmentRules.EnsureAssignableAsync` refuses unqualified assignees (all-or-nothing on whole-sample assignment; failed rows on bulk assignment; no override allowed on planned OOS retests; unqualified carried-over analysts on sample correction or retained-sample retest are left unassigned), and `TestSelfAssignmentService` refuses unqualified self-assignment ("Take"). Recording: `TestWorkflowSupport`, `DissolutionRecorder`, `DisintegrationRecorder`, `WeightVariationRecorder`, `OutsourcedRecorder`, `HplcMethodAssayRecorder`, `IcpMethodAssayRecorder`, and `SamplePreparationService` call `ICompetencyGuard` alongside write-access checks; `RecordingPointCoverageTests` enforces coverage across all public recording methods.
+**Code:** `backend/MicroLIMS.Application/Services/Competency/CompetencyGuard.cs`; `backend/MicroLIMS.Application/Services/AnalystAssignmentRules.cs`; `backend/MicroLIMS.Application/Workflows/TestWorkflow/TestWorkflowSupport.cs`; `backend/MicroLIMS.Application/Workflows/TestWorkflow/DissolutionRecorder.cs`; `backend/MicroLIMS.Application/Workflows/TestWorkflow/DisintegrationRecorder.cs`; `backend/MicroLIMS.Application/Workflows/TestWorkflow/WeightVariationRecorder.cs`; `backend/MicroLIMS.Application/Workflows/TestWorkflow/OutsourcedRecorder.cs`; `backend/MicroLIMS.Tests/ArchitectureTests/RecordingPointCoverageTests.cs`
+**Verified by:** reading (not run); covered by D4 integration and architecture tests (`CompetencyRecordingPostgresTests`, `CompetencyAssignmentPostgresTests`, `RecordingPointCoverageTests`)
+**Conflicts:** CONF-212

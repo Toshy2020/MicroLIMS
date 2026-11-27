@@ -7,7 +7,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const AREAS = new Set(
-  "RCV MIC PAT WAT ENV ACL PHY INS MED SOL CRY WST INV EQP OOS MON REV SIG AUD RPT MDM NTF ADM SEC".split(" "),
+  "RCV MIC PAT WAT ENV ACL PHY INS MED SOL CRY WST INV EQP OOS MON REV SIG AUD RPT MDM NTF ADM SEC QLT".split(" "),
 );
 const SKIPPED_DIRS = new Set(["DocumentControl", "_templates"]);
 const ID_PATTERNS = {

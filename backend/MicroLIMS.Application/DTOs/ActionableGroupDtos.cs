@@ -70,7 +70,8 @@ public record BatchActionSuccessItem(
 public record BatchActionSkippedItem(
     int TestOrderId,
     string SampleReference,
-    string Reason
+    string Reason,
+    string? Code = null
 );
 
 public record BatchSelectMediaResponse(

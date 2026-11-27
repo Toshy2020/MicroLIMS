@@ -15,4 +15,5 @@ public static class AdvisoryLockKeys
     public const long Isolate = 7_300_000_008L;
     public const long RetainedSample = 7_300_000_009L;
     public const long DisposalRequest = 7_300_000_010L;
+    public const long QualityOverdueWorker = 7_300_000_011L;
 }

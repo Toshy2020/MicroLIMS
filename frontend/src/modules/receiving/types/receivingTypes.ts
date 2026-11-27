@@ -41,6 +41,12 @@ export interface AssignableTest {
   assignedAnalystName: string | null;
   canAssign: boolean;
   eligibleUserIds: number[];
+  competencyRefusals?: {
+    userId: number;
+    code: string;
+    params: Record<string, string>;
+    reason: string;
+  }[];
 }
 
 export interface SampleAssignmentOptions {
@@ -65,6 +71,8 @@ export interface BulkAssignRowResult {
   referenceNumber: string;
   assigned: boolean;
   refusedReason: string | null;
+  refusedCode?: string;
+  errorDetails?: { code: string; params?: Record<string, string>; message: string }[];
 }
 
 export interface BulkAssignResult {

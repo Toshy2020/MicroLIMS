@@ -1,0 +1,662 @@
+{
+  "types": {
+    "Deviation": "Deviation",
+    "Capa": "CAPA",
+    "ChangeControl": "Change control",
+    "Complaint": "Complaint"
+  },
+  "typeTabs": {
+    "all": "All",
+    "Deviation": "Deviations",
+    "Capa": "CAPAs",
+    "ChangeControl": "Change controls",
+    "Complaint": "Complaints"
+  },
+  "actionKinds": {
+    "Corrective": "Corrective",
+    "Preventive": "Preventive",
+    "ChangeTask": "Change task"
+  },
+  "register": {
+    "title": "Quality Events",
+    "subtitle": "Deviations, CAPAs, change controls and complaints with their approval path.",
+    "tabsLabel": "Record type",
+    "filtersLabel": "Filters",
+    "filters": {
+      "status": "Status",
+      "allStatuses": "All statuses",
+      "classification": "Classification",
+      "allClassifications": "All classifications",
+      "section": "Section",
+      "allSections": "All sections",
+      "ownedByMe": "Owned by me",
+      "overdueOnly": "Overdue only",
+      "from": "Raised from",
+      "to": "Raised to",
+      "clear": "Clear filters"
+    },
+    "columns": {
+      "number": "Number",
+      "type": "Type",
+      "title": "Title",
+      "status": "Status",
+      "classification": "Classification",
+      "section": "Section",
+      "owner": "Owner",
+      "dueDate": "Due date",
+      "raised": "Raised",
+      "actions": "Actions"
+    },
+    "overdueBadge": "Overdue",
+    "openDetail": "Open",
+    "openDetailAria": "Open {{number}}",
+    "emptyTitle": "No quality records found",
+    "emptyDescription": "No record matches the selected tab and filters.",
+    "loadError": "Failed to load quality records.",
+    "noActiveQa": "No active QA user is currently configured. Records can be raised and investigated, but approval and closure are unavailable.",
+    "shown": "Showing {{shown}} of {{total}} records.",
+    "outageSources": {
+      "classifications": "classifications",
+      "sections": "sections"
+    }
+  },
+  "record": {
+    "backToRegister": "Back to Quality Events",
+    "loadError": "Failed to load the quality record.",
+    "downloadPdf": "Export PDF",
+    "pdfError": "Failed to export the record PDF.",
+    "readOnlyNotice": "Read-only view: your role can see this record but not change it (Quality.View permission).",
+    "overdue": "Overdue",
+    "cancelledNotice": "This record was cancelled. Reason: {{reason}}",
+    "header": {
+      "section": "Section",
+      "raisedBy": "Raised by",
+      "owner": "Owner",
+      "dueDate": "Due date",
+      "none": "Not set",
+      "systemProcess": "System process",
+      "raisedLine": "{{name}} · {{date}}"
+    },
+    "description": "Description",
+    "outageSources": {
+      "links": "links",
+      "comments": "comments",
+      "extensions": "extension requests"
+    },
+    "timelineEmpty": "Nobody has signed this record yet.",
+    "typeActionsLabel": "Actions for this record",
+    "loading": "Loading the quality record",
+    "summaryLabel": "Record summary"
+  },
+  "path": {
+    "title": "Record path",
+    "currentStep": "Current step: {{label}} (step {{index}} of {{count}})",
+    "allDone": "All steps of the path are completed.",
+    "stateCompleted": "completed",
+    "stateCurrent": "current step",
+    "stateNotStarted": "not started",
+    "completedBy": "{{name}} · {{date}}"
+  },
+  "details": {
+    "title": "Details",
+    "notRecorded": "Not recorded yet",
+    "yes": "Yes",
+    "no": "No",
+    "deviation": {
+      "occurredAt": "Occurred",
+      "location": "Location",
+      "immediateAction": "Immediate action",
+      "impactAssessment": "Impact assessment",
+      "rootCause": "Root cause category",
+      "rootCauseDescription": "Root cause description",
+      "proposedActions": "Proposed actions",
+      "capaRequired": "CAPA required",
+      "rejectionReason": "Rejection reason"
+    },
+    "capa": {
+      "source": "Source record",
+      "effectivenessCriteria": "Effectiveness criteria",
+      "effectivenessMethod": "Effectiveness method",
+      "effectivenessPlannedDate": "Effectiveness check planned for",
+      "effectivenessResult": "Effectiveness result",
+      "effectivenessFindings": "Effectiveness findings",
+      "successor": "Successor CAPA"
+    },
+    "changeControl": {
+      "reason": "Reason for the change",
+      "impactSummary": "Impact summary",
+      "rejectionReason": "Rejection reason",
+      "postChangeReview": "Post-change review",
+      "unchangedJustification": "Justification for leaving unchanged"
+    },
+    "complaint": {
+      "source": "Source",
+      "receivedOn": "Received on",
+      "externalReference": "External reference",
+      "item": "Item",
+      "lot": "Lot as stated",
+      "complaintText": "Complaint",
+      "whatToTest": "What to test",
+      "findings": "Findings",
+      "outcome": "Outcome",
+      "conclusionSummary": "Conclusion"
+    },
+    "effectiveness": {
+      "Effective": "Effective",
+      "NotEffective": "Not effective"
+    },
+    "outcome": {
+      "Justified": "Justified",
+      "NotJustified": "Not justified",
+      "Inconclusive": "Inconclusive"
+    }
+  },
+  "links": {
+    "title": "Linked records",
+    "empty": "No records are linked yet.",
+    "unavailable": "Links could not be loaded.",
+    "restricted": "Restricted",
+    "restrictedHelp": "You may not open this record, so only its number is shown.",
+    "add": "Add link",
+    "searchLabel": "Search for a record to link",
+    "searchHint": "Type at least 2 characters. You can link samples, tests, equipment, media lots, documents and items.",
+    "searching": "Searching...",
+    "noResults": "No linkable record found.",
+    "searchError": "The search failed. Try again.",
+    "resultsCount": "{{count}} linkable records found.",
+    "linkThis": "Link {{title}}",
+    "remove": "Remove link {{number}}",
+    "close": "Close search",
+    "moreAvailable": "Showing {{shown}} of {{total}} ({{more}} more)",
+    "targetTypes": {
+      "Sample": "Sample",
+      "TestOrder": "Test",
+      "OosInvestigation": "OOS investigation",
+      "MonitoringDeviation": "Monitoring deviation",
+      "Equipment": "Equipment",
+      "MediaLot": "Media lot",
+      "StockLot": "Stock lot",
+      "Item": "Item",
+      "Specification": "Specification",
+      "TestDefinition": "Test definition",
+      "DocumentMaster": "Document",
+      "DocumentRevision": "Document revision",
+      "AuditTrailReviewFinding": "Audit trail review finding",
+      "QualityRecord": "Quality record"
+    },
+    "changeFailed": "The link could not be changed."
+  },
+  "actions": {
+    "title": "Actions",
+    "empty": "This record has no actions.",
+    "responsible": "Responsible",
+    "dueDate": "Due {{date}}",
+    "completedLine": "Completed by {{name}} · {{date}}",
+    "complete": "Complete",
+    "completeAria": "Complete action: {{description}}",
+    "requestExtension": "Request extension",
+    "requestExtensionAria": "Request an extension for action: {{description}}",
+    "dialogTitle": "Complete action",
+    "dialogIntro": "Describe what was done. Your evidence is kept with the action.",
+    "evidenceLabel": "Evidence",
+    "evidenceLinkLabel": "Evidence link (optional)",
+    "noEvidenceLink": "No link",
+    "submit": "Complete action",
+    "pending": "Open",
+    "done": "Completed",
+    "overdue": "Overdue",
+    "completeFailed": "The action could not be completed."
+  },
+  "attachments": {
+    "title": "Attachments",
+    "empty": "No attachments yet.",
+    "uploadedLine": "{{size}} · uploaded by {{name}} · {{date}}",
+    "upload": "Upload",
+    "uploading": "Uploading...",
+    "formats": "PDF, images, Office files, TXT or CSV; up to 10 MB each",
+    "note": "Uploads and voids are kept in the audit trail.",
+    "uploadFailed": "The file could not be uploaded.",
+    "download": "Download",
+    "downloadAria": "Download {{name}}",
+    "downloadFailed": "The file could not be downloaded.",
+    "void": "Void",
+    "voidAria": "Void {{name}}",
+    "voidTitle": "Void attachment",
+    "voidIntro": "A voided attachment stays on the record and in the audit trail; it is marked as voided.",
+    "voidReason": "Reason for voiding",
+    "voidSubmit": "Void attachment",
+    "voided": "Voided",
+    "voidedLine": "Voided {{date}}: {{reason}}",
+    "voidedLineWithName": "Voided by {{name}} · {{date}}: {{reason}}",
+    "voidFailed": "The attachment could not be voided."
+  },
+  "comments": {
+    "title": "Comments",
+    "empty": "No comments yet.",
+    "unavailable": "Comments could not be loaded.",
+    "label": "Add a comment",
+    "helper": "{{count}} of 2000 characters",
+    "post": "Post comment",
+    "posting": "Posting...",
+    "you": "You",
+    "author": "User {{id}}",
+    "line": "{{author}} · {{date}}",
+    "postFailed": "The comment could not be posted."
+  },
+  "extensions": {
+    "title": "Due-date extensions",
+    "empty": "No extension requests.",
+    "unavailable": "Extension requests could not be loaded.",
+    "request": "Request extension",
+    "forRecord": "For the record",
+    "forAction": "For action: {{description}}",
+    "forActionId": "For action {{id}}",
+    "requestedFor": "New due date requested: {{date}}",
+    "requestedAt": "Requested by {{name}} · {{date}}",
+    "pending": "Pending decision",
+    "Approved": "Approved",
+    "Refused": "Refused",
+    "decidedLine": "{{decision}} by {{name}} · {{date}}",
+    "decidedLineNoName": "{{decision}} · {{date}}",
+    "decide": "Decide",
+    "decideAria": "Decide the extension request to {{date}}",
+    "selfDecision": "You cannot decide your own extension request."
+  },
+  "addendum": {
+    "badge": "Added after closure"
+  },
+  "extensionDialog": {
+    "requestTitle": "Request a due-date extension",
+    "decideTitle": "Decide the extension request",
+    "currentDue": "Current due date: {{date}}",
+    "noCurrentDue": "No current due date is set.",
+    "forAction": "For action: {{description}}",
+    "newDate": "New due date",
+    "reason": "Reason",
+    "submitRequest": "Send request",
+    "requestedBy": "Requested by: {{name}}",
+    "requestedDate": "Requested due date: {{date}}",
+    "requestedReason": "Reason given: {{reason}}",
+    "decision": "Decision",
+    "approve": "Approve the extension",
+    "refuse": "Refuse the extension",
+    "comment": "Comment (optional)",
+    "signAndDecide": "Sign and decide",
+    "signatureStatement": "Due-date extension decided",
+    "requestFailed": "The extension request could not be sent."
+  },
+  "signatureMeanings": {
+    "DeviationAssessed": "Deviation assessed",
+    "DeviationRejected": "Deviation rejected",
+    "QualityLabConclusion": "Laboratory conclusion signed",
+    "QualityApproved": "Quality record approved",
+    "QualityClosed": "Quality record closed",
+    "QualityCancelled": "Quality record cancelled",
+    "CapaPlanApproved": "CAPA plan approved",
+    "CapaCompletionVerified": "CAPA completion verified",
+    "CapaEffectivenessChecked": "CAPA effectiveness checked",
+    "ChangeImpactAssessed": "Change impact assessed",
+    "ChangeApproved": "Change control approved",
+    "ChangeRejected": "Change control rejected",
+    "ComplaintConcluded": "Complaint concluded"
+  },
+  "steps": {
+    "common": {
+      "title": "Steps for this record",
+      "noFurtherSteps": "No further steps are open on this record.",
+      "choose": "Select",
+      "lookupFailed": "The choices could not be loaded. Reload the page and try again.",
+      "lookupLoading": "Loading choices...",
+      "raiserOrOwner": "You raised or own this record, so you cannot approve or close it.",
+      "cancelRecord": "Cancel record",
+      "cancelConfirmTitle": "Cancel this record?",
+      "cancelConfirmMessage": "{{number}} stays visible as cancelled. This cannot be undone.",
+      "cancelReason": "Reason for cancelling"
+    },
+    "deviation": {
+      "assess": {
+        "title": "Assess the deviation",
+        "intro": "Accept the deviation with a classification and an owner, or reject it as not a deviation.",
+        "waitingForQa": "Waiting for QA to assess this deviation.",
+        "classification": "Classification",
+        "owner": "Owner",
+        "dueDate": "Due date",
+        "dueDateHelp": "Leave empty to use the due time set for the classification.",
+        "accept": "Accept and sign",
+        "needsFields": "Choose a classification and an owner first.",
+        "reject": "Reject as not a deviation",
+        "rejectConfirmTitle": "Reject this deviation?",
+        "rejectConfirmMessage": "{{number}} will be rejected as not a deviation. This cannot be undone.",
+        "rejectReason": "Reason for rejecting"
+      },
+      "investigation": {
+        "title": "Investigation",
+        "impact": "Impact assessment",
+        "impactHelp": "Which samples, results, lots and equipment are affected.",
+        "category": "Root cause category",
+        "cause": "Root cause",
+        "proposed": "Proposed actions",
+        "save": "Save investigation",
+        "needsFields": "Fill in every field to save the investigation.",
+        "saveFailed": "The investigation could not be saved.",
+        "sign": "Sign laboratory conclusion",
+        "ownerCannotConclude": "The owner cannot sign the laboratory conclusion.",
+        "saveFirst": "Save the complete investigation before signing the laboratory conclusion.",
+        "withOwner": "The investigation is with the owner."
+      },
+      "decision": {
+        "title": "QA approval",
+        "waitingForQa": "Waiting for QA to approve or return the laboratory conclusion.",
+        "capaRequired": "A CAPA is required",
+        "comment": "Comment",
+        "commentHelp": "Required to return the conclusion; optional when approving.",
+        "approve": "Approve and sign",
+        "return": "Return to investigation",
+        "returnNeedsComment": "Write a comment to return the conclusion.",
+        "returnFailed": "The conclusion could not be returned."
+      },
+      "close": {
+        "title": "Closure",
+        "waitingForQa": "Waiting for QA to close this deviation.",
+        "capaRequired": "A CAPA is required. Its plan must be approved before this deviation can be closed.",
+        "noCapa": "No CAPA is required.",
+        "createCapa": "Create CAPA",
+        "close": "Close and sign"
+      }
+    },
+    "capa": {
+      "create": {
+        "title": "Create CAPA",
+        "from": "Raised from {{number}}.",
+        "titleField": "Title",
+        "description": "Description",
+        "owner": "Owner",
+        "submit": "Create CAPA",
+        "failed": "The CAPA could not be created."
+      },
+      "plan": {
+        "title": "CAPA plan",
+        "save": "Save plan",
+        "needsFields": "Fill in every action and the effectiveness check to save the plan.",
+        "saveFailed": "The plan could not be saved.",
+        "withOwner": "The plan is written by the owner of this CAPA.",
+        "criteria": "What will be checked",
+        "criteriaHelp": "The effectiveness criteria QA will judge the CAPA by.",
+        "method": "How it will be checked",
+        "plannedDate": "Planned date of the effectiveness check",
+        "plannedDateHelp": "Must be after the due date of the last action."
+      },
+      "decision": {
+        "title": "Plan approval",
+        "intro": "Approve the saved plan, or return it to the owner with a comment.",
+        "approve": "Approve plan and sign",
+        "return": "Return plan to owner",
+        "planNotSaved": "The owner has not saved a complete plan yet.",
+        "returnNeedsComment": "Write a comment to return the plan.",
+        "returnFailed": "The plan could not be returned.",
+        "comment": "Comment",
+        "commentHelp": "Required to return the plan."
+      },
+      "verify": {
+        "title": "Completion verification",
+        "intro": "Confirm that every action is done and its evidence is acceptable. Responsible people complete their actions in the actions list.",
+        "verify": "Verify completion and sign",
+        "unfinished": "Complete every action first. Unfinished: {{description}}"
+      },
+      "implementation": {
+        "title": "Implementation",
+        "text": "The responsible people are carrying out the actions. Each one completes theirs in the actions list below."
+      },
+      "effectiveness": {
+        "title": "Effectiveness check",
+        "waitingForQa": "Waiting for QA to check the effectiveness.",
+        "criteria": "To be checked: {{criteria}}",
+        "planned": "Planned date: {{date}}",
+        "noDate": "not set",
+        "early": "The effectiveness check cannot be signed before its planned date ({{date}}).",
+        "result": "Result",
+        "effective": "Effective",
+        "notEffective": "Not effective",
+        "findings": "Findings",
+        "createSuccessor": "Create successor CAPA",
+        "successor": "Successor CAPA: {{number}}",
+        "sign": "Sign effectiveness check",
+        "chooseResult": "Choose whether the CAPA was effective.",
+        "needsFindings": "Write the findings first.",
+        "needsSuccessor": "A not-effective CAPA needs a new CAPA created from this one. Create it first."
+      }
+    },
+    "rows": {
+      "actionLabel": "Action {{number}}",
+      "taskLabel": "Task {{number}}",
+      "remove": "Remove {{label}}",
+      "kind": "Kind",
+      "description": "Description",
+      "responsible": "Responsible person",
+      "dueDate": "Due date",
+      "add_action": "Add action",
+      "add_task": "Add task"
+    },
+    "picker": {
+      "hint": "Type at least 2 characters.",
+      "searching": "Searching...",
+      "noResults": "No matching record found.",
+      "resultsCount": "{{count}} matching records.",
+      "error": "The search failed. Try again.",
+      "choose": "Choose {{title}}"
+    },
+    "changeControl": {
+      "propose": {
+        "title": "Propose change control",
+        "titleField": "Title",
+        "description": "What changes",
+        "descriptionHelp": "Describe the change and what it replaces.",
+        "reason": "Why",
+        "section": "Laboratory section",
+        "sectionHelp": "Leave empty for a change that concerns the whole site.",
+        "wholeSite": "Whole site",
+        "owner": "Owner",
+        "ownerHelp": "The owner must be a Section Head or QC Manager of the section. Leave empty to own it yourself.",
+        "affectedTitle": "Affected records",
+        "removeAffected": "Remove {{label}}",
+        "submit": "Propose",
+        "failed": "The change control could not be proposed."
+      },
+      "affected": {
+        "title": "Affected records",
+        "intro": "Add the items, equipment and documents this change affects while it is proposed. The list is fixed once the impact assessment is signed.",
+        "mode": "Record",
+        "existing": "Existing record",
+        "new": "New record",
+        "kind": "Kind of record",
+        "search": "Search for the record",
+        "kinds": {
+          "Item": "Item",
+          "Equipment": "Equipment",
+          "DocumentMaster": "Controlled document",
+          "TestDefinition": "Test definition",
+          "Specification": "Specification"
+        },
+        "newKind": "Kind of new record",
+        "code": "Planned code or name",
+        "codeHelp": "How the new record will be called.",
+        "addNew": "Add new record",
+        "addFailed": "The affected record could not be added."
+      },
+      "assessment": {
+        "title": "Impact assessment",
+        "withSectionHead": "The Section Head records and signs the impact assessment.",
+        "summary": "Impact summary",
+        "save": "Save assessment",
+        "needsFields": "Write the impact summary and complete every task to save.",
+        "saveFailed": "The assessment could not be saved.",
+        "sign": "Sign impact assessment",
+        "saveFirst": "Save the impact assessment before signing.",
+        "unsaved": "Save your changes before signing.",
+        "unanswered": "Answer every checklist item first ({{left}} left).",
+        "checklist": "Checklist",
+        "checklistLoading": "Loading checklist...",
+        "checklistFailed": "The checklist could not be loaded.",
+        "noChecklist": "No checklist is configured for this section.",
+        "answers": {
+          "Yes": "Yes",
+          "No": "No",
+          "NotApplicable": "Not applicable"
+        },
+        "itemComment": "Comment",
+        "itemCommentFor": "Comment for: {{item}}",
+        "tasks": "Implementation tasks"
+      },
+      "decision": {
+        "title": "Approval",
+        "intro": "Approve the signed impact assessment for implementation, or reject the change.",
+        "approve": "Approve and sign",
+        "reject": "Reject",
+        "rejectTitle": "Reject the change",
+        "rejectConfirmTitle": "Reject this change control?",
+        "rejectConfirmMessage": "{{number}} will be rejected. This cannot be undone.",
+        "rejectReason": "Reason for rejecting",
+        "waitingForQa": "Waiting for QA to approve or reject the change."
+      },
+      "implementation": {
+        "title": "Implementation",
+        "text": "The task owners are carrying out the tasks. Each one completes theirs in the actions list below."
+      },
+      "close": {
+        "title": "Closure",
+        "intro": "Close the change control once every task is done.",
+        "review": "Post-change review",
+        "justification": "Why affected specifications or tests were not changed",
+        "justificationHelp": "Required when a specification or test listed as affected was not changed.",
+        "unchangedTitle": "These affected specifications or tests were not changed. Give the reason.",
+        "unchangedList": "Affected records not changed",
+        "restricted": "Restricted",
+        "needsJustification": "Explain why the unchanged specifications or tests were not changed first.",
+        "close": "Close and sign",
+        "unfinished": "Complete every task first. Unfinished: {{description}}",
+        "needsReview": "Write the post-change review first."
+      }
+    },
+    "complaint": {
+      "receive": {
+        "title": "Receive complaint",
+        "titleField": "Title",
+        "source": "Source",
+        "sourceHelp": "Who raised the complaint, for example a customer or a regulator.",
+        "receivedOn": "Date received",
+        "externalReference": "External reference",
+        "product": "Product",
+        "itemSearch": "Search for the product",
+        "itemChosen": "Product: {{name}}",
+        "itemClear": "Remove product",
+        "lot": "Lot",
+        "lotHelp": "Lot as written in the complaint.",
+        "text": "Complaint text",
+        "section": "Laboratory section",
+        "wholeSite": "Whole site",
+        "submit": "Receive",
+        "failed": "The complaint could not be recorded."
+      },
+      "request": {
+        "title": "Request laboratory investigation",
+        "intro": "Classify the complaint, name the owner and say what the laboratory should test.",
+        "waitingForQa": "Waiting for QA to request the laboratory investigation.",
+        "classification": "Classification",
+        "owner": "Owner",
+        "dueDate": "Due date",
+        "dueDateHelp": "Leave empty to use the due time set for the classification.",
+        "whatToTest": "What to test",
+        "whatToTestHelp": "For example the retained sample.",
+        "submit": "Request investigation",
+        "needsFields": "Choose a classification and an owner, and say what to test.",
+        "failed": "The investigation could not be requested."
+      },
+      "investigation": {
+        "title": "Laboratory investigation",
+        "whatToTest": "To test: {{text}}",
+        "findings": "Findings",
+        "samples": "Samples linked to the complaint",
+        "samplesHelp": "Choose the complaint samples received through the normal receiving process.",
+        "sampleSearch": "Search for a sample",
+        "removeSample": "Remove {{title}}",
+        "save": "Save investigation",
+        "needsFindings": "Write the findings to save.",
+        "saveFailed": "The investigation could not be saved.",
+        "sign": "Sign laboratory report",
+        "ownerCannotSign": "The owner cannot sign the laboratory conclusion.",
+        "saveFirst": "Save the findings before signing the laboratory report.",
+        "withOwner": "The investigation is with the owner."
+      },
+      "conclude": {
+        "title": "Conclusion",
+        "waitingForQa": "Waiting for QA to conclude the complaint.",
+        "outcome": "Outcome",
+        "outcomes": {
+          "Justified": "Justified",
+          "NotJustified": "Not justified",
+          "Inconclusive": "Inconclusive"
+        },
+        "summary": "Summary of the conclusion",
+        "followUp": "Follow-up deviation or CAPA",
+        "followUpOptional": "Follow-up deviation or CAPA (optional)",
+        "followUpNone": "None",
+        "needsFollowUp": "A justified complaint needs a linked deviation or CAPA.",
+        "sign": "Conclude and sign",
+        "needsFields": "Choose an outcome and write the summary."
+      },
+      "close": {
+        "title": "Closure",
+        "intro": "Close the complaint once the conclusion is recorded and every action is done.",
+        "close": "Close and sign",
+        "waitingForQa": "Waiting for QA to close the complaint."
+      }
+    },
+    "create": {
+      "proposeChange": "Propose change control",
+      "receiveComplaint": "Receive complaint"
+    }
+  },
+  "trends": {
+    "title": "Quality Event Trends",
+    "subtitle": "Deviations, CAPAs, change controls and complaints grouped by record type, classification, cause category, section, item or source, with time to close, on-time rate, CAPA effectiveness and repeat causes.",
+    "openTrends": "Trends",
+    "back": "Back to Quality Events",
+    "loadError": "Failed to load the trend report.",
+    "retry": "Retry",
+    "empty": "No quality records match these filters.",
+    "period": "Period: {{from}} to {{to}}",
+    "filters": {
+      "groupBy": "Group by",
+      "repeatWindow": "Repeat window (days)"
+    },
+    "groupBy": {
+      "type": "Record type",
+      "classification": "Classification",
+      "cause": "Cause category",
+      "section": "Section",
+      "item": "Item",
+      "source": "Source"
+    },
+    "columns": {
+      "total": "Total",
+      "open": "Open",
+      "closed": "Closed",
+      "cancelled": "Cancelled",
+      "rejected": "Rejected",
+      "averageDaysToClose": "Average days to close",
+      "onTimeRate": "On-time rate",
+      "capaEffectiveness": "CAPA effectiveness rate"
+    },
+    "repeat": {
+      "title": "Repeat causes",
+      "intro": "The same cause category recurring on the same product or equipment within {{days}} days.",
+      "empty": "No repeat causes in the selected window.",
+      "cause": "Cause category",
+      "target": "Product or equipment",
+      "occurrences": "Occurrences",
+      "first": "First raised",
+      "last": "Last raised",
+      "records": "Records"
+    }
+  }
+}

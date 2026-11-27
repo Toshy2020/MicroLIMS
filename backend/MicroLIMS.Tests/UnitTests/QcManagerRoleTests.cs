@@ -8,8 +8,8 @@ using Xunit;
 
 namespace MicroLIMS.Tests.UnitTests;
 
-// QC Manager signs the final approval of a "not applicable" test and otherwise
-// only looks: it holds Reviewer's view/read permissions and nothing that acts.
+// QC Manager can sign not-applicable final approvals and manage analyst
+// qualifications. Its other laboratory-record permissions are read-only.
 public class QcManagerRoleTests
 {
     private static MicroLimsDbContext Seeded()
@@ -30,17 +30,24 @@ public class QcManagerRoleTests
         c.EndsWith(".view", StringComparison.OrdinalIgnoreCase) || c.EndsWith(".read", StringComparison.OrdinalIgnoreCase);
 
     [Fact]
-    public async Task QcManager_HoldsFinalApproveAndReadOnly()
+    public async Task QcManager_HoldsFinalApprove_CompetencyManage_AndReadOnlyLaboratoryAccess()
     {
         var db = Seeded();
         var codes = await CodesOf(db, RoleType.QcManager);
 
         Assert.Contains(PermissionConstants.NotApplicableTestsFinalApprove, codes);
+        Assert.Contains(PermissionConstants.CompetencyManage, codes);
+        Assert.Contains(PermissionConstants.OosView, codes);
+        Assert.DoesNotContain(PermissionConstants.OosContribute, codes);
+        Assert.DoesNotContain(PermissionConstants.OosRequestDeviation, codes);
+        Assert.DoesNotContain(PermissionConstants.CompetencyOverride, codes);
+        Assert.DoesNotContain(PermissionConstants.MasterDataManage, codes);
         // Sharing saved table views, exporting a table to CSV (audited), and configuring section notifications act on no laboratory record.
         Assert.Contains(PermissionConstants.TableViewsShare, codes);
         Assert.Contains(PermissionConstants.DataExport, codes);
         Assert.Contains(PermissionConstants.NotificationsConfigure, codes);
         var acting = codes.Where(c => c != PermissionConstants.NotApplicableTestsFinalApprove
+            && c != PermissionConstants.CompetencyManage
             && new[] { ".manage", ".record", ".sign", ".approve" }.Any(s => c.EndsWith(s, StringComparison.OrdinalIgnoreCase)));
         Assert.Empty(acting);
 
@@ -48,7 +55,13 @@ public class QcManagerRoleTests
         var reviewerViews = (await CodesOf(db, RoleType.Reviewer)).Where(IsViewOrRead).OrderBy(c => c).ToList();
         Assert.Equal(reviewerViews, codes.Where(c => c != PermissionConstants.NotApplicableTestsFinalApprove
             && c != PermissionConstants.TableViewsShare && c != PermissionConstants.DataExport
-            && c != PermissionConstants.NotificationsConfigure).OrderBy(c => c));
+            && c != PermissionConstants.NotificationsConfigure && c != PermissionConstants.CompetencyManage
+            // Quality events plan (D2 Task 1): QC Manager raises quality records and concludes them for the laboratory.
+            && c != PermissionConstants.QualityRaise && c != PermissionConstants.QualityLabConclude).OrderBy(c => c));
+        Assert.Contains(PermissionConstants.QualityRaise, codes);
+        Assert.Contains(PermissionConstants.QualityLabConclude, codes);
+        Assert.DoesNotContain(PermissionConstants.QualityInvestigate, codes);
+        Assert.DoesNotContain(PermissionConstants.QualityApprove, codes);
     }
 
     [Fact]

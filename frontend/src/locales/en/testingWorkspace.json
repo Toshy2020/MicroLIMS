@@ -1,4 +1,20 @@
 {
+  "sopCapture": {
+    "method": "Method: {{code}} rev. {{revision}}",
+    "effective": "Effective {{date}}",
+    "notRecorded": "SOP not recorded",
+    "notRecordedBefore": "Not recorded (before {{date}})",
+    "unresolved": "SOP not recorded: {{reason}}",
+    "newer": "A newer revision (rev. {{revision}}) became effective on {{date}} while this test was running.",
+    "newerForTests": "A newer revision (rev. {{revision}}) became effective on {{date}} while this test was running. Applies to: {{tests}}.",
+    "reportableRetestLine": "Reportable retest {{referenceNumber}} (retest {{retestNumber}}, plan revision {{planRevision}}) · {{meaningText}} by {{signerFullName}} · {{signedAt}}",
+    "reasons": {
+      "NoSopNumber": "No SOP number on this item",
+      "NotFound": "SOP not found in Document Control",
+      "NoEffectiveRevision": "No effective revision",
+      "Ambiguous": "Multiple documents match the SOP number"
+    }
+  },
   "qualitative": {
     "chooseEveryRow": "Choose Complies or Does not comply for every row.",
     "noSpecsConfigured": "No specifications configured for test {{testCode}}.",
@@ -124,6 +140,10 @@
       "worstStatus": "Worst status:"
     },
     "testResults": {
+      "competencyOverride": "Competency override",
+      "overrideAnalyst": "Analyst: {{analyst}}",
+      "overrideSignedBy": "Signed by {{signer}}",
+      "overrideEnded": "Ended",
       "title": "Test Results",
       "overallStatus": "Overall Status:",
       "returnToAnalyst": "Return to Analyst",
@@ -536,6 +556,7 @@
     }
   },
   "testWorkflow": {
+    "competencyOverrideHint": "A Section Head can grant a competency override for this test.",
     "countStepHelp": "Plate the sample on the permitted medium and start incubation. Once the minimum incubation has passed, count the colonies on each plate; the result is the average count multiplied by the dilution factor.",
     "invalidReading": "Enter a whole number using digits only, or TNTC or Uncountable.",
     "bothFlagsError": "A reading set cannot contain both TNTC and Uncountable. Choose one.",
@@ -743,6 +764,8 @@
     "countHelper": "{{count}}/500 characters (minimum 10)"
   },
   "assignedCard": {
+    "grantOverride": "Grant Override",
+    "grantOverrideAria": "Grant competency override for {{testCode}}",
     "readyToRead": "Ready to read",
     "remainingHours": "{{hours}}h {{minutes}}m remaining",
     "remainingMinutes": "{{minutes}}m {{seconds}}s remaining",
@@ -901,6 +924,7 @@
     "tryAgain": "Try saving again"
   },
   "measurement": {
+    "competencyOverrideHint": "A Section Head can grant a competency override for this test.",
     "noSpecsConfigured": "No specifications configured for test {{testCode}}.",
     "loadConfigFailed": "Could not load measurement test configuration or specifications.",
     "parameterFallback": "Parameter",
@@ -1755,5 +1779,8 @@
     "startPlatingIncubation": "Start Plating Incubation",
     "selectMediaAndIncubator": "Please select both a media lot and an incubator.",
     "startFailed": "Failed to start incubation."
+  },
+  "coa": {
+    "loadFailed": "Failed to load the certificate of analysis."
   }
 }

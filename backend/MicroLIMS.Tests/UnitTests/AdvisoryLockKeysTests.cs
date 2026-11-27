@@ -15,7 +15,7 @@ public class AdvisoryLockKeysTests
             .Select(f => (long)f.GetRawConstantValue()!)
             .ToArray();
 
-        Assert.Equal(10, values.Length);
+        Assert.Equal(11, values.Length);
         Assert.Equal(values.Length, values.Distinct().Count());
     }
 }

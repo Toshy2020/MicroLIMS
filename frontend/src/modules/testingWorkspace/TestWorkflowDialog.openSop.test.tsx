@@ -32,13 +32,14 @@ const stm = (over: Partial<ItemStmDto>): ItemStmDto => ({
   ...over
 });
 
-function renderDialog(itemId?: number | null) {
+function renderDialog(itemId?: number | null, sopCapture?: React.ComponentProps<typeof TestWorkflowDialog>["sopCapture"],
+  newerSopRevision?: React.ComponentProps<typeof TestWorkflowDialog>["newerSopRevision"]) {
   return render(
     <PinnedLightTheme>
       {/* The dialog keeps bench drafts per signed-in user and route, so it needs both providers. */}
       <AuthProvider>
         <MemoryRouter>
-          <TestWorkflowDialog testOrderId={9} testCode="T1" category="FinishedProduct" displayName="Assay" itemId={itemId} />
+          <TestWorkflowDialog testOrderId={9} testCode="T1" category="FinishedProduct" displayName="Assay" itemId={itemId} sopCapture={sopCapture} newerSopRevision={newerSopRevision} />
         </MemoryRouter>
       </AuthProvider>
     </PinnedLightTheme>
@@ -56,6 +57,44 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   openSpy.mockRestore();
+});
+
+describe("captured SOP", () => {
+  it("shows the stored revision and the server notice", () => {
+    renderDialog(12, {
+      status: "Captured", documentMasterId: 77, documentCode: "SOP-QC-014", title: "Assay",
+      revisionId: 4, revisionNumber: "03", effectiveDateUtc: "2026-10-01T00:00:00Z", capturedAtUtc: "2026-10-02T00:00:00Z"
+    }, { revisionNumber: "04", effectiveDateUtc: "2026-10-03T00:00:00Z" });
+    expect(screen.getByText(/SOP-QC-014 rev\. 03/)).toBeTruthy();
+    expect(screen.getByText(/A newer revision \(rev\. 04\) became effective/)).toBeTruthy();
+  });
+
+  it("replaces the workspace snapshot when the current step returns a newly captured SOP", async () => {
+    workflow.getCurrentStep.mockResolvedValue({
+      testOrderId: 9, allStepsComplete: true, workflowType: "CountTest", step: null, completedSteps: [],
+      sopCapture: {
+        status: "Captured", documentMasterId: 77, documentCode: "SOP-QC-014", title: "Assay",
+        revisionId: 4, revisionNumber: "03", effectiveDateUtc: "2026-10-01T00:00:00Z", capturedAtUtc: "2026-10-02T00:00:00Z"
+      }
+    });
+    renderDialog(12);
+
+    expect(await screen.findByText(/SOP-QC-014 rev\. 03/)).toBeTruthy();
+    expect(screen.queryByText("SOP not recorded")).toBeNull();
+  });
+
+  it("shows that old tests have no capture", () => {
+    renderDialog(12);
+    expect(screen.getByText("SOP not recorded")).toBeTruthy();
+  });
+
+  it("shows the unresolved reason", () => {
+    renderDialog(12, {
+      status: "Ambiguous", documentMasterId: null, documentCode: null, title: null,
+      revisionId: null, revisionNumber: null, effectiveDateUtc: null, capturedAtUtc: "2026-10-02T00:00:00Z"
+    });
+    expect(screen.getByText(/SOP not recorded:.*multiple/i)).toBeTruthy();
+  });
 });
 
 describe('TestWorkflowDialog "Open SOP"', () => {

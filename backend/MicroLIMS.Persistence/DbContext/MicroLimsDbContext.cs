@@ -5,6 +5,7 @@ using MicroLIMS.Application.Abstractions.Live;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Domain.Attributes;
 using MicroLIMS.Domain.Entities;
+using MicroLIMS.Domain.Entities.Quality;
 using MicroLIMS.Persistence.Helpers;
 using System.Collections.Concurrent;
 using System.Reflection;
@@ -29,6 +30,9 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
     public string? CurrentSystemProcessName { get; set; }
     public uint? ExpectedVersion { get; set; }
     public string? CurrentReason { get; set; }
+    private readonly Dictionary<object, string> _nextAuditReasons = new(ReferenceEqualityComparer.Instance);
+
+    public void SetNextAuditReason(object entity, string reason) => _nextAuditReasons[entity] = reason;
 
     // Set by DraftContextMiddleware; copied to AuditLog.SourceContext for the
     // rows the automatic capture builds. Never changes the audit timestamp.
@@ -246,8 +250,40 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
     public DbSet<ItemDocument> ItemDocuments => Set<ItemDocument>();
     public DbSet<ItemDocumentAccessLog> ItemDocumentAccessLogs => Set<ItemDocumentAccessLog>();
     public DbSet<OosInvestigationDocument> OosInvestigationDocuments => Set<OosInvestigationDocument>();
+    public DbSet<OosInvestigation> OosInvestigations => Set<OosInvestigation>();
+    public DbSet<OosInvestigationResult> OosInvestigationResults => Set<OosInvestigationResult>();
+    public DbSet<OosInvestigationEntry> OosInvestigationEntrys => Set<OosInvestigationEntry>();
+    public DbSet<OosRetestPlan> OosRetestPlans => Set<OosRetestPlan>();
+    public DbSet<OosRetestPlanSample> OosRetestPlanSamples => Set<OosRetestPlanSample>();
+    public DbSet<OosDeviationRequest> OosDeviationRequests => Set<OosDeviationRequest>();
+    public DbSet<OosInvestigationReopening> OosInvestigationReopenings => Set<OosInvestigationReopening>();
+    public DbSet<OosInvestigationTemplate> OosInvestigationTemplates => Set<OosInvestigationTemplate>();
+    public DbSet<OosChecklistItem> OosChecklistItems => Set<OosChecklistItem>();
+    public DbSet<OosCauseCategory> OosCauseCategories => Set<OosCauseCategory>();
+
+    // Quality Events (D2)
+    public DbSet<QualityRecord> QualityRecords => Set<QualityRecord>();
+    public DbSet<DeviationDetail> DeviationDetails => Set<DeviationDetail>();
+    public DbSet<CapaDetail> CapaDetails => Set<CapaDetail>();
+    public DbSet<ChangeControlDetail> ChangeControlDetails => Set<ChangeControlDetail>();
+    public DbSet<ComplaintDetail> ComplaintDetails => Set<ComplaintDetail>();
+    public DbSet<QualityRecordStep> QualityRecordSteps => Set<QualityRecordStep>();
+    public DbSet<QualityAction> QualityActions => Set<QualityAction>();
+    public DbSet<QualityRecordLink> QualityRecordLinks => Set<QualityRecordLink>();
+    public DbSet<QualityAttachment> QualityAttachments => Set<QualityAttachment>();
+    public DbSet<QualityComment> QualityComments => Set<QualityComment>();
+    public DbSet<QualityExtensionRequest> QualityExtensionRequests => Set<QualityExtensionRequest>();
+    public DbSet<QualityChecklistAnswer> QualityChecklistAnswers => Set<QualityChecklistAnswer>();
+    public DbSet<QualityChecklistTemplate> QualityChecklistTemplates => Set<QualityChecklistTemplate>();
+    public DbSet<QualityChecklistItem> QualityChecklistItems => Set<QualityChecklistItem>();
+    public DbSet<QualityClassification> QualityClassifications => Set<QualityClassification>();
+    public DbSet<QualityDueRule> QualityDueRules => Set<QualityDueRule>();
+    public DbSet<QualitySectionSetting> QualitySectionSettings => Set<QualitySectionSetting>();
 
     // Test Master
+    public DbSet<CompetencyOverride> CompetencyOverrides => Set<CompetencyOverride>();
+    public DbSet<AnalystQualification> AnalystQualifications => Set<AnalystQualification>();
+    public DbSet<QualificationAttachment> QualificationAttachments => Set<QualificationAttachment>();
     public DbSet<TestDefinition> TestDefinitions => Set<TestDefinition>();
     public DbSet<TestWorkflowStep> TestWorkflowSteps => Set<TestWorkflowStep>();
     public DbSet<TestWorkflowStepMedia> TestWorkflowStepMedias => Set<TestWorkflowStepMedia>();
@@ -278,6 +314,7 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
     public DbSet<DocumentDepartment> DocumentDepartments => Set<DocumentDepartment>();
     public DbSet<DocumentSection> DocumentSections => Set<DocumentSection>();
     public DbSet<SectionSelfAssignmentSetting> SectionSelfAssignmentSettings => Set<SectionSelfAssignmentSetting>();
+    public DbSet<CompetencySectionSetting> CompetencySectionSettings => Set<CompetencySectionSetting>();
     public DbSet<UserOrgMembership> UserOrgMemberships => Set<UserOrgMembership>();
     public DbSet<DocumentNumberingConfiguration> DocumentNumberingConfigurations => Set<DocumentNumberingConfiguration>();
     public DbSet<ConfigurationSetting> ConfigurationSettings => Set<ConfigurationSetting>();
@@ -798,6 +835,7 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
         Microsoft.EntityFrameworkCore.ChangeTracking.EntityEntry Entry,
         string Action,
         string? PreviousValue,
+        string? Reason,
         AuditLog? Completed);
 
     // Entity types the automatic capture skips. Public so the redaction
@@ -841,19 +879,20 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
         var pending = new List<PendingAuditEntry>(entries.Count);
         foreach (var entry in entries)
         {
+            _nextAuditReasons.Remove(entry.Entity, out var reason);
             switch (entry.State)
             {
                 case EntityState.Added:
-                    pending.Add(new PendingAuditEntry(entry, "Create", null, null));
+                    pending.Add(new PendingAuditEntry(entry, "Create", null, reason, null));
                     break;
                 case EntityState.Modified:
-                    pending.Add(new PendingAuditEntry(entry, "Update", SerializeValues(entry.OriginalValues), null));
+                    pending.Add(new PendingAuditEntry(entry, "Update", SerializeValues(entry.OriginalValues), reason, null));
                     break;
                 case EntityState.Deleted:
                     // A deleted row already has its real key, and after the
                     // save the tracker lets go of it - finish it now.
                     var previousValue = SerializeValues(entry.OriginalValues);
-                    pending.Add(new PendingAuditEntry(entry, "Delete", previousValue, BuildAuditLog(entry, "Delete", previousValue, null)));
+                    pending.Add(new PendingAuditEntry(entry, "Delete", previousValue, reason, BuildAuditLog(entry, "Delete", previousValue, null, reason)));
                     break;
             }
         }
@@ -864,7 +903,7 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
     {
         foreach (var p in pending)
         {
-            AuditLogs.Add(p.Completed ?? BuildAuditLog(p.Entry, p.Action, p.PreviousValue, SerializeValues(p.Entry.CurrentValues)));
+            AuditLogs.Add(p.Completed ?? BuildAuditLog(p.Entry, p.Action, p.PreviousValue, SerializeValues(p.Entry.CurrentValues), p.Reason));
         }
     }
 
@@ -882,8 +921,9 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
             p => p.Name,
             p => IsAuditRedacted(p) ? AuditRedactedAttribute.RedactedValue : values[p]));
 
-    private AuditLog BuildAuditLog(Microsoft.EntityFrameworkCore.ChangeTracking.EntityEntry entry, string action, string? previousValue, string? newValue)
+    private AuditLog BuildAuditLog(Microsoft.EntityFrameworkCore.ChangeTracking.EntityEntry entry, string action, string? previousValue, string? newValue, string? reasonOverride)
     {
+        var auditReason = reasonOverride ?? CurrentReason;
         var idProperty = entry.Properties.FirstOrDefault(p => p.Metadata.Name == "Id");
         var entityId = idProperty?.CurrentValue?.ToString();
         if (entityId is null && entry.Metadata.FindPrimaryKey() is { Properties: { Count: > 0 } pk })
@@ -899,7 +939,7 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
         var byProcess = CurrentUserId is null && !byAgent && !string.IsNullOrEmpty(CurrentSystemProcessName);
         var bySystem = byAgent || byProcess;
 
-        return new AuditLog
+        var audit = new AuditLog
         {
             EntityName = entry.Entity.GetType().Name,
             EntityId = entityId ?? "unknown",
@@ -910,7 +950,7 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
             ActorType = bySystem ? Domain.Enums.ActorType.System : null,
             SystemProcessName = byAgent ? $"InstrumentAgent:{CurrentAgentCode}" : byProcess ? CurrentSystemProcessName : null,
             Timestamp = _clock.GetUtcNow().UtcDateTime,
-            Reason = CurrentReason,
+            Reason = auditReason is { Length: > 2000 } ? "See the Reason audit detail." : auditReason,
             SourceContext = CurrentSourceContext,
             BatchNumber = GetPropertyAsString(entry, "BatchNumber"),
             ControlNumber = GetPropertyAsString(entry, "ControlNumber"),
@@ -921,6 +961,9 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
             SampleId = GetPropertyAsInt(entry, "SampleId") ?? (entry.Entity is Sample ? int.TryParse(idProperty?.CurrentValue?.ToString(), out var sid) ? sid : null : null),
             TestOrderId = GetPropertyAsInt(entry, "TestOrderId") ?? (entry.Entity is TestOrder ? int.TryParse(idProperty?.CurrentValue?.ToString(), out var tid) ? tid : null : null)
         };
+        if (auditReason is { Length: > 2000 } reason)
+            audit.Changes.Add(new AuditEventChange { FieldName = nameof(AuditLog.Reason), NewValue = reason });
+        return audit;
     }
 
     // Reads a named property off the entity's current values, if it

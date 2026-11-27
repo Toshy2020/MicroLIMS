@@ -1,4 +1,4 @@
-import { TestOrderSummaryDetail } from "./types/sampleSummaryTypes";
+import { ReportableRetest, TestOrderSummaryDetail } from "./types/sampleSummaryTypes";
 
 // The Certificate of Analysis is decided on the server
 // (CertificateOfAnalysisBuilder) and arrives on the summary as
@@ -30,6 +30,8 @@ export interface CoaColumn {
   testDisplayName: string;
   isQuantitative: boolean;
   unit: string | null;
+  oosInvestigationNumber?: string | null;
+  reportableRetest?: ReportableRetest | null;
 }
 
 export interface CoaRow {
@@ -65,6 +67,8 @@ export interface CoaSimpleRow {
   testCode: string;
   testDisplayName: string;
   specification: string | null;
+  oosInvestigationNumber?: string | null;
+  reportableRetest?: ReportableRetest | null;
   result: string;
   analystName: string | null;
   analystAt: string | null;
@@ -79,6 +83,7 @@ export interface CoaSimpleResult {
 }
 
 export interface CoaScope {
+  methodDocuments?: { documentCode: string; title: string; revisionNumber: string; effectiveDateUtc: string | null; preCaptureStartDateUtc?: string | null }[];
   matrix: CoaMatrix | null;
   simple: CoaSimpleResult | null;
   supportingRows: CoaSimpleRow[];

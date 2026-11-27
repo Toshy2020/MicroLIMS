@@ -49,7 +49,7 @@ Requires the *Sample Technical Review* permission (by default: Reviewer, Section
   - **Sections:** followed by one chip per laboratory section (for example "Section A: Under review", "Section B: In testing").
   - Header buttons: **Open Pathogen Workflow** (only if a test uses a shared TSB), **Printable Report**, **View COA** (only when certificate results exist and a certificate is available), **Export PDF**.
   - The **Workflow History** strip (empty text: "No lifecycle events yet.").
-  - The test results of the sample.
+  - The test results of the sample. Expanding a test order shows its captured SOP method and revision (or `SOP not recorded: {reason}` / `Not recorded (before {date})` for pre-capture records), together with any notice that a newer SOP revision became effective while the test was running. *(Draft — pending approval)*
   - Card **Approval & Electronic Signatures**, showing "Awaiting technical review by authorized reviewer." and the form **Submit Technical Review**:
     - **Laboratory Section** (shown only when more than one section is reviewable).
     - The alert "By submitting, I confirm I have reviewed all test results for {section}." (or "... for this sample.").

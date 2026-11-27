@@ -1,9 +1,11 @@
+using MicroLIMS.Shared.Responses;
 using System.Globalization;
 using MicroLIMS.Shared.Exceptions;
 using MicroLIMS.Shared.Messages;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.Interfaces;
+using MicroLIMS.Application.Services.Competency;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 
@@ -34,11 +36,45 @@ public static class AnalystAssignmentRules
     // in these sections when the acting user is the one assigning them.
     public static async Task<User> EnsureAssignableAsync(
         IMicroLimsDbContext db, IUserSectionScopeService scope,
-        int assigneeId, int actingUserId, IEnumerable<int> sectionIds, DateTime nowUtc)
+        int assigneeId, int actingUserId, IEnumerable<int> sectionIds, DateTime nowUtc,
+        IReadOnlyCollection<int>? testOrderIds = null, ICompetencyGuard? competency = null, CancellationToken ct = default, bool allowOrderOverride = false)
     {
-        var (check, user) = await CheckAssignableAsync(db, scope, assigneeId, actingUserId, sectionIds, nowUtc);
+        var (check, user) = await CheckAssignableAsync(db, scope, assigneeId, actingUserId, sectionIds, nowUtc, ct);
         check.ThrowIfRefused();
+        if (competency is not null && testOrderIds is { Count: > 0 })
+        {
+            // An existing order's override cannot transfer to a retest created from it.
+            if (!allowOrderOverride)
+            {
+                var subjects = await db.TestOrders.AsNoTracking().Where(o => testOrderIds.Contains(o.Id))
+                    .Select(o => new { o.Id, Subject = new CompetencySubject(o.TestCode, o.SectionId, o.Sample == null ? null : o.Sample.ItemId) })
+                    .ToListAsync(ct);
+                var subjectDecisions = await competency.EvaluateSubjectsAsync(assigneeId,
+                    subjects.Select(o => o.Subject).ToArray(), assigneeWording: true, ct);
+                ThrowIfCompetencyRefused(subjects.Select(o => (o.Id, subjectDecisions[o.Subject])));
+                return user;
+            }
+
+            var decisions = await competency.EvaluateAssigneeAsync(assigneeId, testOrderIds, ct);
+            ThrowIfCompetencyRefused(decisions.Select(pair => (pair.Key, pair.Value)));
+        }
         return user;
+    }
+
+    internal static async Task<ActionCheck> CheckCompetencyAsync(
+        ICompetencyGuard competency, int userId, int testOrderId, CancellationToken ct = default) =>
+        (await competency.EvaluateAsync(userId, testOrderId, ct)).ToActionCheck();
+
+    internal static void ThrowIfCompetencyRefused(IEnumerable<(int OrderId, CompetencyDecision Decision)> decisions)
+    {
+        var refusals = decisions.Where(entry => !entry.Decision.Allowed).ToList();
+        var errors = refusals.SelectMany(entry => entry.Decision.Reasons.Select(reason =>
+            new ApiError(reason.Code, new Dictionary<string, string>(reason.Params)
+            {
+                ["testOrderId"] = entry.OrderId.ToString(CultureInfo.InvariantCulture)
+            }, reason.Text))).ToList();
+        var message = string.Join(" ", refusals.Select(entry => $"Test #{entry.OrderId}: {string.Join(" ", entry.Decision.ReasonTexts)}"));
+        CompetencyBatch.ThrowIfRefused(MessageCodes.CompetencyAssignmentRefused, errors, message);
     }
 
     // EnsureAssignableAsync without the throw: the first reason the assignee cannot take tests in these sections,

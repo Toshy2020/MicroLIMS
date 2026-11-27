@@ -46,20 +46,20 @@ public class SampleApprovalController : ControllerBase
     private int CurrentUserId => int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value);
 
     [HttpPost("decide")]
-    public async Task<IActionResult> Decide(int id, DecideSampleApprovalRequest request)
+    public async Task<IActionResult> Decide(int id, DecideSampleApprovalRequest request, CancellationToken ct = default)
     {
         var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
         await _approvalService.DecideAsync(id, CurrentUserId, request.Password, request.Decision, request.Comment, ip,
             request.CertificateRemarks, request.SelectedTestOrderIds, request.NewSampleAnalystOneId, request.NewSampleAnalystTwoId,
-            request.SectionId);
+            request.SectionId, ct);
         return Ok(ApiResponse<object>.Ok(new { }));
     }
 
     [HttpPost("sections/{sectionId:int}/close")]
-    public async Task<IActionResult> CloseTesting(int id, int sectionId, CloseSectionTestingRequest request)
+    public async Task<IActionResult> CloseTesting(int id, int sectionId, CloseSectionTestingRequest request, CancellationToken ct = default)
     {
         await _closureService.CloseTestingAsync(id, sectionId, CurrentUserId, request.Password, request.Reason,
-            HttpContext.Connection.RemoteIpAddress?.ToString());
+            HttpContext.Connection.RemoteIpAddress?.ToString(), ct);
         return Ok(ApiResponse<object>.Ok(new { }));
     }
 }

@@ -7,6 +7,7 @@ import FactCheckOutlinedIcon from "@mui/icons-material/FactCheckOutlined";
 import TableViewOutlinedIcon from "@mui/icons-material/TableViewOutlined";
 import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 import ReportProblemOutlinedIcon from "@mui/icons-material/ReportProblemOutlined";
+import AssignmentOutlinedIcon from "@mui/icons-material/AssignmentOutlined";
 import CalendarMonthOutlinedIcon from "@mui/icons-material/CalendarMonthOutlined";
 import BugReportOutlinedIcon from "@mui/icons-material/BugReportOutlined";
 import ManageSearchOutlinedIcon from "@mui/icons-material/ManageSearchOutlined";
@@ -92,8 +93,12 @@ const myWorkItem: MenuItem = { label: "My Work", path: "/my-work", description: 
 const dashboardItem: MenuItem = { label: "Dashboard", path: "/dashboard", description: "Your work and the laboratory's queues at a glance.", icon: SpaceDashboardOutlinedIcon, group: "OVERVIEW" };
 const QUALITY_COMPLIANCE_GROUP = "QUALITY & COMPLIANCE";
 const reportsItem: MenuItem = { label: "Reports", path: "/reports", description: "Laboratory KPIs, trends and exportable reports.", icon: DescriptionOutlinedIcon, group: QUALITY_COMPLIANCE_GROUP };
-const oosTrackingItem: MenuItem = { label: "OOS Tracking", path: "/oos-tracking", description: "Out-of-specification investigations and their status.", icon: ReportProblemOutlinedIcon, group: QUALITY_COMPLIANCE_GROUP, permission: PERMISSIONS.OOS_MANAGE };
+const oosTrackingItem: MenuItem = { label: "OOS Tracking", path: "/oos-tracking", description: "Out-of-specification investigations and their status.", icon: ReportProblemOutlinedIcon, group: QUALITY_COMPLIANCE_GROUP, permission: PERMISSIONS.OOS_VIEW };
+const qualityEventsItem: MenuItem = { label: "Quality Events", path: "/quality", description: "Deviations, CAPAs, change controls and complaints with their approval path.", icon: AssignmentOutlinedIcon, group: QUALITY_COMPLIANCE_GROUP, permission: PERMISSIONS.QUALITY_VIEW };
+const qualityConfigItem: MenuItem = { label: "Quality Configuration", path: "/quality/config", description: "Checklist templates, classifications, due rules, and section change-control gates.", icon: TuneOutlinedIcon, group: QUALITY_COMPLIANCE_GROUP, permission: [PERMISSIONS.QUALITY_APPROVE, PERMISSIONS.QUALITY_INVESTIGATE] };
 const monitoringPlanItem: MenuItem = { label: "Monitoring Plan", path: "/monitoring-plan", description: "Annual plan of water, environmental and after-cleaning monitoring.", icon: CalendarMonthOutlinedIcon, group: QUALITY_COMPLIANCE_GROUP, permission: PERMISSIONS.MONITORING_PLAN_VIEW };
+const qualificationMatrixItem: MenuItem = { label: "Qualification Matrix", path: "/competency/matrix", description: "Analyst qualifications per test and laboratory competency gate.", icon: SchoolOutlinedIcon, group: QUALITY_COMPLIANCE_GROUP, permission: PERMISSIONS.COMPETENCY_VIEW };
+const myQualificationsItem: MenuItem = { label: "My Qualifications", path: "/competency/my", description: "Your test qualifications, expiry dates and SOPs to read.", icon: WorkspacePremiumOutlinedIcon, group: QUALITY_COMPLIANCE_GROUP, permission: PERMISSIONS.COMPETENCY_VIEW };
 
 // Receiving area: the main receiving desk and the cross-lab tracking board,
 // gated on privileges rather than role or lab membership - any lab may
@@ -254,6 +259,7 @@ const waterItem: MenuItem = { label: "Water", path: "/laboratory-configuration/w
 const afterCleaningItem: MenuItem = { label: "After Cleaning", path: "/laboratory-configuration/after-cleaning", description: "Machines, parts and each lab's after-cleaning tests and limits.", icon: CleaningServicesOutlinedIcon, group: "GENERAL LABORATORY CONFIGURATION", permission: PERMISSIONS.MASTER_DATA_MANAGE };
 const workingHoursItem: MenuItem = { label: "Working Hours", path: "/laboratory-configuration/working-hours", description: "Weekly working days and hours used to count escalation thresholds.", icon: ScheduleOutlinedIcon, group: "GENERAL LABORATORY CONFIGURATION", permission: PERMISSIONS.NOTIFICATIONS_CONFIGURE };
 const escalationRulesItem: MenuItem = { label: "Escalation Rules", path: "/laboratory-configuration/escalation-rules", description: "Per-section working-hours rules for overdue reviews, tests, and documents.", icon: NotificationsActiveOutlinedIcon, group: "GENERAL LABORATORY CONFIGURATION", permission: PERMISSIONS.NOTIFICATIONS_CONFIGURE };
+const oosTemplatesItem: MenuItem = { label: "OOS Templates", path: "/laboratory-configuration/oos-templates", description: "Per-section OOS and excursion checklist templates and cause categories.", icon: ReportProblemOutlinedIcon, group: "GENERAL LABORATORY CONFIGURATION", permission: PERMISSIONS.OOS_MANAGE };
 
 // Drops every item whose permission the user lacks, then any parent left
 // with no children.
@@ -302,8 +308,8 @@ export function getGroupedMenu({ role, permissions, labCodes, physchemAreas }: M
     items.push(buildPhyschemArea(areas), physchemConfigArea);
   }
   items.push(
-    itemsItem, masterTestingMaterialsItem, receivingConfigItem, masterDataWorkbookItem, waterItem, afterCleaningItem, workingHoursItem, escalationRulesItem,
-    documentControlItem(role, permissions), reportsItem, monitoringPlanItem, oosTrackingItem,
+    itemsItem, masterTestingMaterialsItem, receivingConfigItem, masterDataWorkbookItem, waterItem, afterCleaningItem, workingHoursItem, escalationRulesItem, oosTemplatesItem,
+    documentControlItem(role, permissions), qualificationMatrixItem, myQualificationsItem, reportsItem, monitoringPlanItem, oosTrackingItem, qualityEventsItem, qualityConfigItem,
     ...adminItems
   );
   return groupItems(visibleItems(items, permissions));

@@ -51,8 +51,13 @@
     "PreparedByName": "Bob Reviewer",
     "PreparedAt": "2026-03-02T10:00:00Z"
   },
+  "ItemId": 1,
+  "LabTimeZoneId": "UTC",
   "TestOrders": [
     {
+      "SopCapture": null,
+      "NewerSopRevision": null,
+      "CompetencyOverrides": [],
       "TestOrderId": 1,
       "SectionId": 1,
       "SectionName": "Microbiology",
@@ -73,6 +78,9 @@
       "IsResultEntryAllowed": false,
       "ResultLockReason": null,
       "IsSuperseded": false,
+      "OosInvestigationNumber": null,
+      "IsOosInvalidated": false,
+      "ReportableRetest": null,
       "OutsourcedToLab": null,
       "CancelledAtStep": null,
       "CancelledAtStage": null,
@@ -212,6 +220,9 @@
       "Locations": []
     },
     {
+      "SopCapture": null,
+      "NewerSopRevision": null,
+      "CompetencyOverrides": [],
       "TestOrderId": 2,
       "SectionId": 1,
       "SectionName": "Microbiology",
@@ -232,6 +243,9 @@
       "IsResultEntryAllowed": false,
       "ResultLockReason": null,
       "IsSuperseded": false,
+      "OosInvestigationNumber": null,
+      "IsOosInvalidated": false,
+      "ReportableRetest": null,
       "OutsourcedToLab": null,
       "CancelledAtStep": null,
       "CancelledAtStage": null,
@@ -423,6 +437,9 @@
       ]
     },
     {
+      "SopCapture": null,
+      "NewerSopRevision": null,
+      "CompetencyOverrides": [],
       "TestOrderId": 3,
       "SectionId": 2,
       "SectionName": "Physicochemical",
@@ -443,6 +460,9 @@
       "IsResultEntryAllowed": false,
       "ResultLockReason": null,
       "IsSuperseded": false,
+      "OosInvestigationNumber": null,
+      "IsOosInvalidated": false,
+      "ReportableRetest": null,
       "OutsourcedToLab": null,
       "CancelledAtStep": null,
       "CancelledAtStage": null,
@@ -543,6 +563,9 @@
       "Locations": []
     },
     {
+      "SopCapture": null,
+      "NewerSopRevision": null,
+      "CompetencyOverrides": [],
       "TestOrderId": 4,
       "SectionId": 1,
       "SectionName": "Microbiology",
@@ -563,6 +586,9 @@
       "IsResultEntryAllowed": false,
       "ResultLockReason": null,
       "IsSuperseded": false,
+      "OosInvestigationNumber": null,
+      "IsOosInvalidated": false,
+      "ReportableRetest": null,
       "OutsourcedToLab": null,
       "CancelledAtStep": null,
       "CancelledAtStage": null,
@@ -648,6 +674,9 @@
       "Locations": []
     },
     {
+      "SopCapture": null,
+      "NewerSopRevision": null,
+      "CompetencyOverrides": [],
       "TestOrderId": 5,
       "SectionId": 1,
       "SectionName": "Microbiology",
@@ -668,6 +697,9 @@
       "IsResultEntryAllowed": false,
       "ResultLockReason": null,
       "IsSuperseded": false,
+      "OosInvestigationNumber": null,
+      "IsOosInvalidated": false,
+      "ReportableRetest": null,
       "OutsourcedToLab": null,
       "CancelledAtStep": null,
       "CancelledAtStage": null,
@@ -715,6 +747,9 @@
       "Locations": []
     },
     {
+      "SopCapture": null,
+      "NewerSopRevision": null,
+      "CompetencyOverrides": [],
       "TestOrderId": 6,
       "SectionId": 2,
       "SectionName": "Physicochemical",
@@ -735,6 +770,9 @@
       "IsResultEntryAllowed": false,
       "ResultLockReason": null,
       "IsSuperseded": false,
+      "OosInvestigationNumber": null,
+      "IsOosInvalidated": false,
+      "ReportableRetest": null,
       "OutsourcedToLab": null,
       "CancelledAtStep": null,
       "CancelledAtStage": null,
@@ -785,6 +823,9 @@
       "Locations": []
     },
     {
+      "SopCapture": null,
+      "NewerSopRevision": null,
+      "CompetencyOverrides": [],
       "TestOrderId": 7,
       "SectionId": 1,
       "SectionName": "Microbiology",
@@ -805,6 +846,9 @@
       "IsResultEntryAllowed": false,
       "ResultLockReason": null,
       "IsSuperseded": true,
+      "OosInvestigationNumber": null,
+      "IsOosInvalidated": false,
+      "ReportableRetest": null,
       "OutsourcedToLab": null,
       "CancelledAtStep": "Incubating",
       "CancelledAtStage": 1,
@@ -837,6 +881,9 @@
       "Locations": []
     },
     {
+      "SopCapture": null,
+      "NewerSopRevision": null,
+      "CompetencyOverrides": [],
       "TestOrderId": 8,
       "SectionId": 1,
       "SectionName": "Microbiology",
@@ -857,6 +904,9 @@
       "IsResultEntryAllowed": false,
       "ResultLockReason": null,
       "IsSuperseded": true,
+      "OosInvestigationNumber": null,
+      "IsOosInvalidated": false,
+      "ReportableRetest": null,
       "OutsourcedToLab": null,
       "CancelledAtStep": null,
       "CancelledAtStage": null,
@@ -907,6 +957,9 @@
       "Locations": []
     },
     {
+      "SopCapture": null,
+      "NewerSopRevision": null,
+      "CompetencyOverrides": [],
       "TestOrderId": 9,
       "SectionId": 1,
       "SectionName": "Microbiology",
@@ -927,6 +980,9 @@
       "IsResultEntryAllowed": true,
       "ResultLockReason": null,
       "IsSuperseded": false,
+      "OosInvestigationNumber": null,
+      "IsOosInvalidated": false,
+      "ReportableRetest": null,
       "OutsourcedToLab": null,
       "CancelledAtStep": null,
       "CancelledAtStage": null,
@@ -1058,9 +1114,11 @@
   ],
   "AllSectionsVisible": true,
   "OverallStatus": "Approved",
+  "SopCaptureStartDateUtc": null,
   "CombinedCoaAvailable": true,
   "Certificate": {
     "Sample": {
+      "MethodDocuments": [],
       "Matrix": {
         "Columns": [
           {
@@ -1068,7 +1126,9 @@
             "TestCode": "ECOLI",
             "TestDisplayName": "E. coli",
             "IsQuantitative": false,
-            "Unit": null
+            "Unit": null,
+            "OosInvestigationNumber": null,
+            "ReportableRetest": null
           }
         ],
         "Rows": [
@@ -1204,6 +1264,7 @@
             "TestOrderId": 2,
             "TestCode": "ECOLI",
             "TestDisplayName": "E. coli",
+            "OosInvestigationNumber": null,
             "Conforms": false,
             "FailingLocationNames": [
               "Room 101",
@@ -1232,6 +1293,7 @@
         "SectionId": 1,
         "SectionName": "Microbiology",
         "Scope": {
+          "MethodDocuments": [],
           "Matrix": {
             "Columns": [
               {
@@ -1239,7 +1301,9 @@
                 "TestCode": "ECOLI",
                 "TestDisplayName": "E. coli",
                 "IsQuantitative": false,
-                "Unit": null
+                "Unit": null,
+                "OosInvestigationNumber": null,
+                "ReportableRetest": null
               }
             ],
             "Rows": [
@@ -1375,6 +1439,7 @@
                 "TestOrderId": 2,
                 "TestCode": "ECOLI",
                 "TestDisplayName": "E. coli",
+                "OosInvestigationNumber": null,
                 "Conforms": false,
                 "FailingLocationNames": [
                   "Room 101",
@@ -1403,6 +1468,7 @@
         "SectionId": 2,
         "SectionName": "Physicochemical",
         "Scope": {
+          "MethodDocuments": [],
           "Matrix": null,
           "Simple": {
             "Rows": [
@@ -1413,6 +1479,8 @@
                 "TestCode": "PH:pH",
                 "TestDisplayName": "pH",
                 "Specification": "5.0-7.0 pH",
+                "OosInvestigationNumber": null,
+                "ReportableRetest": null,
                 "Result": "6.2",
                 "AnalystName": "Alice Analyst",
                 "AnalystAt": "2026-03-05T10:00:00Z",
@@ -1427,6 +1495,8 @@
                 "TestCode": "BCC",
                 "TestDisplayName": "BCC",
                 "Specification": null,
+                "OosInvestigationNumber": null,
+                "ReportableRetest": null,
                 "Result": "—",
                 "AnalystName": null,
                 "AnalystAt": null,

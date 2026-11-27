@@ -35,7 +35,7 @@ public class SectionCountersServiceTests
         }
 
         public Task<MicroLIMS.Shared.Responses.PagedResult<SampleDto>> GetActiveSamplesAsync(TestingWorkspaceFilterDto filter, int? currentUserId = null, CancellationToken cancellationToken = default) => throw new NotSupportedException();
-        public Task<SampleDto?> GetSampleAsync(int id, int? currentUserId = null, int? labSectionId = null, string? area = null) => throw new NotSupportedException();
+        public Task<SampleDto?> GetSampleAsync(int id, int? currentUserId = null, int? labSectionId = null, string? area = null, CancellationToken cancellationToken = default) => throw new NotSupportedException();
     }
 
     private sealed record Fixture(

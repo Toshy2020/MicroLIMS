@@ -64,6 +64,7 @@ export const APP_ROUTES = {
   LABEL_FORMATS: "/laboratory-configuration/label-formats",
   WORKING_HOURS: "/laboratory-configuration/working-hours",
   ESCALATION_RULES: "/laboratory-configuration/escalation-rules",
+  OOS_TEMPLATES: "/laboratory-configuration/oos-templates",
 
   // Inventory & Stock
   INVENTORY_MATERIALS: "/inventory/materials",
@@ -80,12 +81,19 @@ export const APP_ROUTES = {
   DOCUMENT_CONTROL_CONFIGURATION: "/document-control/configuration",
   DOCUMENT_CONTROL_REASSIGNMENTS: "/document-control/reassignments",
 
+  // Competency Gate (D4)
+  COMPETENCY_MATRIX: "/competency/matrix",
+  MY_QUALIFICATIONS: "/competency/my",
+
   // Audit
   AUDIT_SEARCH: "/admin/audit",
   AUDIT_TRAIL_REVIEWS: "/audit-trail-reviews",
   AUDIT_TRAIL_REVIEW_DETAIL: (id: number | string) => `/audit-trail-reviews/${id}`,
   ERROR_MONITORING: "/admin/error-log",
   OOS_TRACKING: "/oos-tracking",
+  QUALITY: "/quality",
+  QUALITY_CONFIG: "/quality/config",
+  QUALITY_DETAIL: (id: number | string) => `/quality/${id}`,
 
   // Administration
   ADMIN: "/admin",
@@ -271,7 +279,15 @@ export const PERMISSIONS = {
   KPI_CONFIGURE_PROFILES: "Kpi.ConfigureProfiles",
   MEDIA_PREPARE: "Media.Prepare",
   MEDIA_RELEASE: "Media.Release",
+  OOS_VIEW: "Oos.View",
+  OOS_CONTRIBUTE: "Oos.Contribute",
   OOS_MANAGE: "Oos.Manage",
+  OOS_REQUEST_DEVIATION: "Oos.RequestDeviation",
+  QUALITY_VIEW: "Quality.View",
+  QUALITY_RAISE: "Quality.Raise",
+  QUALITY_INVESTIGATE: "Quality.Investigate",
+  QUALITY_LAB_CONCLUDE: "Quality.LabConclude",
+  QUALITY_APPROVE: "Quality.Approve",
   SOLUTIONS_PREPARE: "Solutions.Prepare",
   SOLUTIONS_RELEASE: "Solutions.Release",
   WORKING_STANDARDS_QUALIFY: "WorkingStandards.Qualify",
@@ -289,7 +305,10 @@ export const PERMISSIONS = {
   LABELS_CONFIGURE: "Labels.Configure",
   TABLE_VIEWS_SHARE: "TableViews.Share",
   DATA_EXPORT: "Data.Export",
-  NOTIFICATIONS_CONFIGURE: "Notifications.Configure"
+  NOTIFICATIONS_CONFIGURE: "Notifications.Configure",
+  COMPETENCY_VIEW: "Competency.View",
+  COMPETENCY_MANAGE: "Competency.Manage",
+  COMPETENCY_OVERRIDE: "Competency.Override"
 } as const;
 
 export type PermissionCode = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];

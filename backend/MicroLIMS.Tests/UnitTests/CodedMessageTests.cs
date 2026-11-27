@@ -3,6 +3,7 @@ using System.Text.RegularExpressions;
 using MicroLIMS.API.Middleware;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Services;
+using MicroLIMS.Application.Services.Competency;
 using MicroLIMS.Shared.Exceptions;
 using MicroLIMS.Shared.Messages;
 using MicroLIMS.Shared.Responses;
@@ -44,6 +45,41 @@ public class CodedMessageTests
         Assert.Equal("Test.AlreadyTaken", detail.GetProperty("code").GetString());
         Assert.Equal("Dana Lee", detail.GetProperty("params").GetProperty("name").GetString());
         Assert.Equal("Already taken by Dana Lee.", detail.GetProperty("message").GetString());
+    }
+
+    [Fact]
+    public async Task Aggregate_refusal_returns_one_coded_detail_per_reason()
+    {
+        var (status, body) = await RunAsync(new BusinessRuleException(MessageCodes.CompetencyRecordingRefused, "A. B.")
+        {
+            ErrorDetails =
+            [
+                new ApiError(MessageCodes.CompetencyNotQualified, new Dictionary<string, string> { ["test"] = "A" }, "A."),
+                new ApiError(MessageCodes.CompetencySopNotAcknowledged,
+                    new Dictionary<string, string> { ["documentCode"] = "SOP-1", ["revision"] = "2" }, "B."),
+            ],
+        });
+
+        Assert.Equal(400, status);
+        Assert.Equal("A. B.", body.GetProperty("message").GetString());
+        var details = body.GetProperty("errorDetails").EnumerateArray().ToList();
+        Assert.Equal(new[] { "Competency.NotQualified", "Competency.SopNotAcknowledged" },
+            details.Select(d => d.GetProperty("code").GetString()));
+        Assert.Equal("A", details[0].GetProperty("params").GetProperty("test").GetString());
+        Assert.Equal("SOP-1", details[1].GetProperty("params").GetProperty("documentCode").GetString());
+    }
+
+    [Fact]
+    public void Competency_skip_carries_every_reason_and_the_first_code()
+    {
+        var skip = new CompetencySkipDto(7, "T", [
+            new CompetencyRefusalReasonDto("Competency.NotQualified", new Dictionary<string, string> { ["test"] = "T" }, "One."),
+            new CompetencyRefusalReasonDto("Competency.SopNotAcknowledged", new Dictionary<string, string>(), "Two."),
+        ]);
+
+        Assert.Equal("Competency.NotQualified", skip.Code);
+        Assert.Equal("One. Two.", skip.Reason);
+        Assert.Equal(2, skip.Reasons.Count);
     }
 
     [Fact]

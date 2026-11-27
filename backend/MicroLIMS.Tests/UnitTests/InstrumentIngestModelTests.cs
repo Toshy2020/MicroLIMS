@@ -19,7 +19,7 @@ public class InstrumentIngestModelTests
 
     public InstrumentIngestModelTests(PostgresTestFixture fixture) => _fixture = fixture;
 
-    [Fact]
+    [PostgresFact]
     public void InstrumentIngestStatus_names_and_values_never_change()
     {
         Assert.Equal(new[] { "Adopted", "Dismissed", "PendingReview", "Quarantined", "Superseded" },

@@ -54,6 +54,8 @@ public class SampleSummaryDto
     public string? PreviousProductBatchNumber { get; set; }
 
     public SamplePreparationSummaryDto? Preparation { get; set; }
+    public int? ItemId { get; set; }
+    public string LabTimeZoneId { get; set; } = "UTC";
     public List<TestOrderSummaryDetailDto> TestOrders { get; set; } = new();
     public List<SampleWorkflowEventDto> Timeline { get; set; } = new();
     public List<SignatureDto> Signatures { get; set; } = new();
@@ -70,6 +72,7 @@ public class SampleSummaryDto
     // reads as across every laboratory (a rejection by any lab wins at
     // once), distinct from Status which only follows the labs still open.
     public string OverallStatus { get; set; } = string.Empty;
+    public DateTime? SopCaptureStartDateUtc { get; set; }
 
     // True once no lab is still open (Sample.Status is Approved or
     // Rejected) - a Certificate of Analysis can be generated/downloaded.
@@ -125,8 +128,17 @@ public class SamplePreparationSummaryDto
     public DateTime PreparedAt { get; set; }
 }
 
+public sealed record CompetencyOverrideDto(string AnalystName, string GrantedByFullName, DateTime GrantedAtUtc,
+    string Meaning, string Reason, DateTime? EndedAtUtc);
+
+public sealed record ReportableRetestDto(string ReferenceNumber, int PlanRevision, int RetestNumber,
+    string SignerFullName, DateTime SignedAtUtc, string MeaningText);
+
 public class TestOrderSummaryDetailDto
 {
+    public SopCaptureDto? SopCapture { get; set; }
+    public NewerSopRevisionDto? NewerSopRevision { get; set; }
+    public IReadOnlyList<CompetencyOverrideDto> CompetencyOverrides { get; init; } = [];
     public int TestOrderId { get; set; }
     public int SectionId { get; set; }
     public string SectionName { get; set; } = string.Empty;
@@ -158,6 +170,9 @@ public class TestOrderSummaryDetailDto
     public bool IsResultEntryAllowed { get; set; }
     public string? ResultLockReason { get; set; }
     public bool IsSuperseded { get; set; }
+    public string? OosInvestigationNumber { get; set; }
+    public bool IsOosInvalidated { get; set; }
+    public ReportableRetestDto? ReportableRetest { get; set; }
     public string? OutsourcedToLab { get; set; }
 
     // Set only when this section closed testing after another lab

@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Services;
+using MicroLIMS.Application.Services.Oos;
 using MicroLIMS.Shared.Constants;
 using MicroLIMS.Shared.Responses;
 
@@ -23,19 +24,32 @@ public class SampleReviewController : ControllerBase
     private readonly SampleReviewService _reviewService;
     private readonly IUserSectionScopeService _scopeService;
 
-    public SampleReviewController(SampleReviewService reviewService, IUserSectionScopeService scopeService)
+    private readonly IOosNotifier _oosNotifier;
+    private readonly ILogger<SampleReviewController> _logger;
+
+    public SampleReviewController(SampleReviewService reviewService, IUserSectionScopeService scopeService,
+        IOosNotifier oosNotifier, ILogger<SampleReviewController> logger)
     {
         _reviewService = reviewService;
         _scopeService = scopeService;
+        _oosNotifier = oosNotifier;
+        _logger = logger;
     }
 
     private int CurrentUserId => int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value);
 
     [HttpPost("complete")]
-    public async Task<IActionResult> Complete(int id, CompleteSampleReviewRequest request)
+    public async Task<IActionResult> Complete(int id, CompleteSampleReviewRequest request, CancellationToken ct = default)
     {
         var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
-        await _reviewService.CompleteReviewAsync(id, CurrentUserId, request.Password, request.Comment, ip, request.SectionId, request.RetentionQuantity, request.RetentionQuantityUnit);
+        var oos = await _reviewService.CompleteReviewAsync(id, CurrentUserId, request.Password, request.Comment, ip,
+            request.SectionId, request.RetentionQuantity, request.RetentionQuantityUnit, ct);
+        if (oos is { Opened: true } opened)
+            await OosPostCommitNotification.SendAsync(_oosNotifier.OpenedAsync, opened.InvestigationId, _logger, ct);
+        else if (oos is { PhaseTwoStarted: true } phaseTwo)
+            await OosPostCommitNotification.SendAsync(_oosNotifier.PhaseTwoStartedAsync, phaseTwo.InvestigationId, _logger, ct);
+        if (oos is { ExcursionOpened: true, ExcursionId: int excursionId })
+            await OosPostCommitNotification.SendAsync(_oosNotifier.OpenedAsync, excursionId, _logger, ct);
         return Ok(ApiResponse<object>.Ok(new { }));
     }
 

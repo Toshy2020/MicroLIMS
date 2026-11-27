@@ -71,6 +71,7 @@ export function TestWorkflowDialogRouter({ open, test, sample, onClose }: Props)
     <FloatingDialog open={open} title={title} onClose={onClose}>
       <Suspense fallback={<DialogBodySkeleton blocks={3} blockHeight={48} />}>
       <TestWorkflowDialog
+        key={test.testOrderId}
         testOrderId={test.testOrderId}
         testCode={test.testCode}
         category={sample.category}
@@ -79,6 +80,10 @@ export function TestWorkflowDialogRouter({ open, test, sample, onClose }: Props)
         sampleId={sample.sampleId}
         status={test.status}
         outsourcedToLab={test.outsourcedToLab}
+        labTimeZoneId={sample.labTimeZoneId}
+        sopCapture={test.sopCapture}
+        newerSopRevision={test.newerSopRevision}
+        sopCaptureStartDateUtc={sample.sopCaptureStartDateUtc}
         onClose={onClose}
       />
       </Suspense>

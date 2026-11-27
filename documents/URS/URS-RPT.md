@@ -4,8 +4,8 @@
 |---|---|
 | Document number | URS-RPT |
 | Title | Reporting, Certificate of Analysis and trending user requirements |
-| Version | 0.2 |
-| Status | Draft |
+| Version | 0.4 |
+| Status | Draft — pending approval |
 | Author | Claude (AI agent), draft from code |
 | Reviewer | To be assigned by QA |
 | Approver | To be assigned by QA |
@@ -17,6 +17,8 @@
 |---|---|---|---|
 | 0.1 | 2026-11-12 | Claude (AI agent), draft from code | First draft, written from the code as built. |
 | 0.2 | 2026-11-17 | AI coding agent, draft from code | Added the audited CSV export of register rows requirement (URS-RPT-010). |
+| 0.3 | 2026-11-25 | AI coding agent, draft from code | Added Certificate of Analysis OOS gate and invalidated-result reporting requirement (URS-RPT-011; Draft — pending approval). |
+| 0.4 | 2026-11-25 | AI coding agent, draft from code | Added captured method SOP revision display on sample reports and Certificates of Analysis (URS-RPT-012; Draft — pending approval). |
 
 ## Requirements
 
@@ -80,4 +82,19 @@ Each requirement below is a need that the code as built serves. Gaps found in th
 **Requirement:** The system shall let a user who holds the data export permission export the rows of a register table, or only the rows the user has selected, as a CSV file of at most 5,000 rows; shall write the file as UTF-8 with a byte-order mark; shall stop any cell that a spreadsheet could read as a formula from running as one; and shall not produce the file unless the export has first been logged.
 **GxP:** Yes
 **Serves:** 21 CFR 11.10(b) (to be confirmed by QA)
+**Status:** Active
+
+
+### URS-RPT-011
+*(Draft — pending approval)*
+**Requirement:** The system shall block Certificate of Analysis generation while any OOS investigation covering the sample is open or while the reporting rule for multiple signed-plan retest samples after invalidation is unresolved, shall display the OOS investigation number against affected tests on the report, and shall never display an invalidated result as the reported value.
+**GxP:** Yes
+**Serves:** 21 CFR 211.188, 211.192 (to be confirmed by QA)
+**Status:** Active
+
+### URS-RPT-012
+*(Draft — pending approval)*
+**Requirement:** The system shall display each test order's captured SOP revision (or the reason it was not recorded) on the sample report, and shall list each distinct captured method document revision on the sample report header and Certificate of Analysis along with any newer-revision notice on the certificate screen.
+**GxP:** Yes
+**Serves:** 21 CFR 211.188; EU GMP Annex 11 clause 4 (to be confirmed by QA)
 **Status:** Active

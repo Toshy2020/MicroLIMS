@@ -14,7 +14,7 @@ public sealed class AcceptingSignatureService : IElectronicSignatureService
 
     public AcceptingSignatureService(IMicroLimsDbContext db) => _db = db;
 
-    public Task<ElectronicSignature> SignAsync(int userId, string password, SignatureMeaning meaning, string entityType, int entityId, string? comment, string? ipAddress)
+    public Task<ElectronicSignature> SignAsync(int userId, string password, SignatureMeaning meaning, string entityType, int entityId, string? comment, string? ipAddress, CancellationToken ct = default)
     {
         var signature = new ElectronicSignature
         {

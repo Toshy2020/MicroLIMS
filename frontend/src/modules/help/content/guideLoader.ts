@@ -63,7 +63,8 @@ const TITLES: Record<string, string> = {
   "42": "Troubleshooting",
   "43": "Frequently Asked Questions",
   "44": "Glossary",
-  "45": "My Work"
+  "45": "My Work",
+  "46": "Quality Events"
 };
 
 // Chapters carry HTML comments for authors (traceability markers such as

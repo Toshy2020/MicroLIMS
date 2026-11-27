@@ -5,6 +5,7 @@ import { PinnedLightTheme } from "../../theme/PinnedLightTheme";
 import { AuthProvider } from "../../contexts/AuthContext";
 import { PERMISSIONS } from "../../routes/routes";
 import { sectionSelfAssignmentService } from "../../services/sectionSelfAssignmentService";
+import { qualityDashboardService } from "../../services/qualityDashboardService";
 import { DashboardService } from "./services/DashboardService";
 import { DashboardLabProvider, makeDashboardLab } from "./DashboardLabContext";
 import { SectionHeadDashboardPage } from "./SectionHeadDashboardPage";
@@ -22,6 +23,12 @@ vi.mock("../../services/sectionSelfAssignmentService", () => ({
   sectionSelfAssignmentService: {
     getAll: vi.fn(),
     update: vi.fn()
+  }
+}));
+
+vi.mock("../../services/qualityDashboardService", () => ({
+  qualityDashboardService: {
+    getDashboard: vi.fn()
   }
 }));
 
@@ -93,6 +100,24 @@ describe("SectionHeadDashboardPage", () => {
         version: 0
       }
     ]);
+    vi.mocked(qualityDashboardService.getDashboard).mockResolvedValue({
+      waitingForMyDecision: [],
+      myOpenRecords: [],
+      myOpenActions: [],
+      overdueRecords: [],
+      overdueActions: [],
+      effectivenessChecksDue: [],
+      waitingForMyDecisionTotalCount: 0,
+      myOpenRecordsTotalCount: 2,
+      myOpenActionsTotalCount: 1,
+      overdueRecordsTotalCount: 1,
+      overdueActionsTotalCount: 0,
+      effectivenessChecksDueTotalCount: 0,
+      laboratoryOpenRecords: [],
+      laboratoryOpenRecordsTotalCount: 4,
+      laboratoryOpenActions: [],
+      laboratoryOpenActionsTotalCount: 3
+    });
   });
 
   afterEach(() => {
@@ -116,5 +141,29 @@ describe("SectionHeadDashboardPage", () => {
     expect(await screen.findByText("Laboratory Analyst Workload Allocation")).toBeTruthy();
     expect(screen.queryByRole("heading", { name: "Taking tests from My Work" })).toBeNull();
     expect(sectionSelfAssignmentService.getAll).not.toHaveBeenCalled();
+  });
+
+  it("shows Section Head quality tiles with laboratory open count and partial outage when quality fails", async () => {
+    seedAuth([PERMISSIONS.DASHBOARDS_LAB_OVERVIEW, PERMISSIONS.QUALITY_VIEW]);
+    renderSectionHeadDashboard();
+
+    const labOpenLink = await screen.findByRole("link", { name: /Lab open records & actions/i });
+    expect(labOpenLink.textContent).toContain("7");
+    expect(labOpenLink.getAttribute("href")).toBe("/quality");
+
+    const myOpenLink = screen.getByRole("link", { name: /My open records & actions/i });
+    expect(myOpenLink.textContent).toContain("3");
+    expect(myOpenLink.getAttribute("href")).toBe("/quality?owner=me");
+    const overdueLink = screen.getByRole("link", { name: /Overdue quality items/i });
+    expect(overdueLink.textContent).toContain("1");
+    expect(overdueLink.getAttribute("href")).toBe("/quality?overdue=true");
+
+    cleanup();
+    vi.mocked(qualityDashboardService.getDashboard).mockRejectedValueOnce(new Error("Down"));
+    renderSectionHeadDashboard();
+
+    const alert = await screen.findByRole("alert");
+    expect(alert.textContent).toContain("Quality events");
+    expect(screen.getByRole("link", { name: /Lab open records & actions/i }).textContent).toContain("—");
   });
 });

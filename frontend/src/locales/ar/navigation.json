@@ -22,6 +22,8 @@
     "complianceDashboard": "لوحة الامتثال",
     "documentLibrary": "مكتبة المستندات",
     "needsReassignment": "بحاجة إلى إعادة إسناد",
+    "qualificationMatrix": "مصفوفة التأهيل",
+    "myQualifications": "تأهيلاتي",
     "configuration": "التهيئة",
     "microbiologyLaboratory": "مختبر الأحياء الدقيقة",
     "workspace": "مساحة العمل",
@@ -59,13 +61,16 @@
     "afterCleaning": "ما بعد التنظيف",
     "workingHours": "ساعات العمل",
     "escalationRules": "قواعد التصعيد",
+    "oosTemplates": "قوالب خارج المواصفات",
     "myProfile": "ملفي الشخصي",
     "changePassword": "تغيير كلمة المرور",
     "chooseSigningPassword": "اختيار كلمة مرور التوقيع",
     "messages": "الرسائل",
     "discussions": "النقاشات",
     "notifications": "الإشعارات",
-    "receivingTestingWorkspace": "مساحة عمل الاستلام والاختبار"
+    "receivingTestingWorkspace": "مساحة عمل الاستلام والاختبار",
+    "qualityEvents": "أحداث الجودة",
+    "qualityConfiguration": "إعدادات الجودة"
   },
   "group": {
     "overview": "نظرة عامة",

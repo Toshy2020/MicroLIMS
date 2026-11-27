@@ -1,3 +1,5 @@
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using MicroLIMS.Application.Services.Oos;
 using MicroLIMS.Application.Services.MasterData;
 using MicroLIMS.Persistence.DbContext;
 using Microsoft.EntityFrameworkCore;
@@ -37,6 +39,16 @@ namespace MicroLIMS.API.Extensions;
 // just calls builder.Services.AddApplicationServices(config).
 public static class ServiceCollectionExtensions
 {
+    /// <summary>
+    /// Services the middleware registered by <c>UseMicroLimsAuditPipeline</c> resolves per request. Registered in one
+    /// place so the application host and any host that mounts the pipeline stay in step.
+    /// </summary>
+    public static IServiceCollection AddMicroLimsAuditPipelineServices(this IServiceCollection services)
+    {
+        services.TryAddScoped<IChangeControlContext, ChangeControlContext>();
+        return services;
+    }
+
     // The DbContext, and the interface the Application layer asks for. Both
     // resolve to the same request-scoped instance, which AuditMiddleware
     // stamps with the current user.
@@ -107,11 +119,24 @@ public static class ServiceCollectionExtensions
         services.AddScoped<CryovialSummaryService>();
         services.AddScoped<SampleReviewService>();
         services.AddScoped<SampleMoistureResolver>();
+        services.AddScoped<ITestOrderOutcomeService, TestOrderOutcomeService>();
+        services.AddScoped<OosOpeningRule>();
+        services.AddScoped<OosInvestigationService>();
+        services.AddScoped<OosTrendService>();
+        services.AddScoped<OosInvestigationReportBuilder>();
+        services.AddScoped<OosRecipientResolver>();
+        services.AddScoped<MicroLIMS.Application.Services.Notifications.IPermissionRecipientResolver>(sp => sp.GetRequiredService<OosRecipientResolver>());
+        services.AddScoped<IOosNotifier, OosNotifier>();
+        services.AddScoped<OosRetestPlanService>();
+        services.AddScoped<RetestSampleFactory>();
+        services.AddScoped<OosTemplateService>();
+        services.AddScoped<OosGate>();
         services.AddScoped<SampleApprovalService>();
         services.AddScoped<SectionClosureService>();
         services.AddScoped<AddLaboratoryService>();
         services.AddScoped<SampleTestSelectionService>();
         services.AddScoped<SampleSummaryService>();
+        services.AddScoped<ISopCaptureStartDateReader, SopCaptureStartDateReader>();
         services.AddScoped<SampleTrackingService>();
         services.AddScoped<OosTrackingService>();
         services.AddScoped<DashboardService>();
@@ -168,6 +193,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<MediaEvaluationService>();
         services.AddScoped<ItemService>();
         services.AddScoped<ItemStmService>();
+        services.AddScoped<ItemSopResolver>();
         services.AddScoped<SpecificationService>();
         services.AddScoped<AdministrationContinuityGuard>();
         services.AddScoped<UserService>();
@@ -218,6 +244,8 @@ public static class ServiceCollectionExtensions
         services.AddHostedService(sp => sp.GetRequiredService<MicroLIMS.API.BackgroundServices.EquipmentOverdueWorker>());
         services.AddSingleton<MicroLIMS.API.BackgroundServices.NotificationWorker>();
         services.AddHostedService(sp => sp.GetRequiredService<MicroLIMS.API.BackgroundServices.NotificationWorker>());
+        services.AddSingleton<MicroLIMS.API.BackgroundServices.QualityOverdueWorker>();
+        services.AddHostedService(sp => sp.GetRequiredService<MicroLIMS.API.BackgroundServices.QualityOverdueWorker>());
         // Background job run log and the admin Jobs screen. Singleton recorder: it owns the per-job run gate.
         services.AddSingleton<MicroLIMS.Application.Services.BackgroundJobs.IBackgroundJobRunRecorder, MicroLIMS.Application.Services.BackgroundJobs.BackgroundJobRunRecorder>();
         services.AddScoped<MicroLIMS.Application.Services.BackgroundJobs.IBackgroundJobAdminService, MicroLIMS.Application.Services.BackgroundJobs.BackgroundJobAdminService>();
@@ -266,6 +294,23 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ItemDocumentService>();
         services.AddScoped<OosInvestigationDocumentService>();
         services.AddScoped<ResultProjectionService>();
+        services.AddScoped<MicroLIMS.Application.Services.Quality.QualityRecordCore>();
+        services.AddScoped<MicroLIMS.Application.Services.Quality.DeviationService>();
+        services.AddScoped<MicroLIMS.Application.Services.Quality.CapaService>();
+        services.AddScoped<MicroLIMS.Application.Services.Quality.ChangeControlService>();
+        services.AddMicroLimsAuditPipelineServices();
+        services.AddScoped<MicroLIMS.Application.Services.Quality.ChangeControlGate>();
+        services.AddScoped<MicroLIMS.Application.Services.Quality.ComplaintService>();
+        services.AddScoped<MicroLIMS.Application.Services.Quality.QualityDueDateService>();
+        services.AddScoped<MicroLIMS.Application.Services.Quality.QualityConfigService>();
+        services.AddScoped<MicroLIMS.Application.Services.Quality.QualityLinkService>();
+        services.AddScoped<MicroLIMS.Application.Services.Quality.QualityAttachmentService>();
+        services.AddScoped<MicroLIMS.Application.Services.Quality.QualityCommentService>();
+        services.AddScoped<MicroLIMS.Application.Services.Quality.QualityQueryService>();
+        services.AddScoped<MicroLIMS.Application.Services.Quality.QualityReportBuilder>();
+        services.AddScoped<MicroLIMS.Application.Services.Quality.QualityNotifier>();
+        services.AddScoped<MicroLIMS.Application.Services.Quality.IQualityNotifier>(sp =>
+            sp.GetRequiredService<MicroLIMS.Application.Services.Quality.QualityNotifier>());
         services.AddScoped<DiscussionService>();
         services.AddScoped<MessageService>();
         services.AddScoped<IncubatorEligibilityService>();
@@ -396,11 +441,21 @@ public static class ServiceCollectionExtensions
         services.AddScoped<MicroLIMS.Application.Services.MyWork.IMyWorkSource, MicroLIMS.Application.Services.MyWork.Sources.UnassignedTestsSource>();
         services.AddScoped<MicroLIMS.Application.Services.MyWork.IMyWorkSource, MicroLIMS.Application.Services.MyWork.Sources.DocumentsSource>();
         services.AddScoped<MicroLIMS.Application.Services.MyWork.IMyWorkSource, MicroLIMS.Application.Services.MyWork.Sources.EquipmentSource>();
+        services.AddScoped<MicroLIMS.Application.Services.MyWork.IMyWorkSource, MicroLIMS.Application.Services.MyWork.Sources.CompetencyMyWorkSource>();
         services.AddScoped<MicroLIMS.Application.Services.SectionSelfAssignmentService>();
         services.AddScoped<MicroLIMS.Application.Services.TestSelfAssignmentService>();
         services.AddScoped<MicroLIMS.Application.Services.ActionAvailabilityService>();
         services.AddScoped<MicroLIMS.Application.Services.EntryDefaults.EntryDefaultsService>();
         services.AddScoped<IMfaAdminService, MicroLIMS.Application.Services.Mfa.MfaAdminService>();
+        services.AddScoped<MicroLIMS.Application.Services.Competency.CompetencyOverrideService>();
+        services.AddScoped<MicroLIMS.Application.Services.Competency.QualificationService>();
+        services.AddScoped<MicroLIMS.Application.Services.Competency.ICompetencyGuard,
+            MicroLIMS.Application.Services.Competency.CompetencyGuard>();
+        services.AddScoped<MicroLIMS.Application.Services.ISopRevisionCapture,
+            MicroLIMS.Application.Services.SopRevisionCapture>();
+        services.AddScoped<MicroLIMS.Application.Services.Competency.CompetencySettingsService>();
+        services.AddScoped<MicroLIMS.Application.Services.Competency.CompetencyMatrixService>();
+        services.AddScoped<MicroLIMS.Application.Services.Competency.CompetencyReminderService>();
         services.AddScoped<IAuditTrailReviewService, MicroLIMS.Application.Services.AuditTrailReviewService>();
         services.AddScoped<IDatabaseStatsQuery, DatabaseStatsQuery>();
         services.AddScoped<IDatabaseOverviewService, DatabaseOverviewService>();

@@ -4,7 +4,7 @@
 |---|---|
 | Document number | URS-MIC |
 | Title | Microbiology enumeration and incubation user requirements |
-| Version | 0.2 |
+| Version | 0.3 |
 | Status | Draft |
 | Author | Claude (AI agent), draft from code |
 | Reviewer | To be assigned by QA |
@@ -17,6 +17,7 @@
 |---|---|---|---|
 | 0.1 | 2026-11-12 | Claude (AI agent), draft from code | First draft, written from the code as built. |
 | 0.2 | 2026-11-14 | AI coding agent, draft from code | Added server count preview, last-choice defaults with lot confirmation, grid navigation rules, and location count paste preview (URS-MIC-013 to URS-MIC-015). |
+| 0.3 | 2026-11-25 | AI coding agent, draft from code | Added competency gate enforcement at microbiology assignment and recording points (URS-MIC-016). Draft — pending approval. |
 
 ## Requirements
 
@@ -110,4 +111,11 @@ Each requirement below is a need that the code as built serves. Gaps found in th
 **Requirement:** The system shall provide keyboard navigation on count, pathogen location, primary observation, and HPLC replicate entry grids, shall permit `Ctrl+D` copy-down on plate-count unit grids while excluding copy-down on pathogen location, primary observation, and HPLC replicate tables, and shall support two-column (`Name`, `Count`) spreadsheet paste with preview matched by location name on Environmental Monitoring, After Cleaning, and Water location count grids without saving until explicit submission.
 **GxP:** Yes
 **Serves:** Operational usability with deliberate manual entry for observation/replicate readings (to be confirmed by QA)
+**Status:** Active
+
+### URS-MIC-016
+*(Draft — pending approval)*
+**Requirement:** When the laboratory's competency gate is enabled, the system shall refuse microbiology test assignment (manual, bulk, self-assignment, automatic workflow-start assignment, and planned OOS retests) and microbiology result recording (counts, incubations, pathogen steps, location results, and batch actions) for any analyst who lacks a current, non-withdrawn qualification for the test, an active per-order override, or acknowledgement (or open grace-period assignment) of the item's effective SOP revision, and shall record an unresolvable or ambiguous SOP status in the audit reason when recording proceeds.
+**GxP:** Yes
+**Serves:** 21 CFR 211.25; EU GMP Chapter 2 (personnel qualification and SOP training enforcement, to be confirmed by QA)
 **Status:** Active

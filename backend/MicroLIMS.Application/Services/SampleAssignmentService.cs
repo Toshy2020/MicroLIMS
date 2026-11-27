@@ -1,3 +1,4 @@
+using MicroLIMS.Application.Services.Competency;
 using MicroLIMS.Shared.Exceptions;
 using MicroLIMS.Shared.Messages;
 using Microsoft.EntityFrameworkCore;
@@ -22,11 +23,13 @@ public class SampleAssignmentService
     private readonly IUserSectionScopeService _scope;
     private readonly TimeProvider _time;
     private readonly INotificationPublisher _publisher;
+    private readonly ICompetencyGuard? _competency;
 
-    public SampleAssignmentService(IMicroLimsDbContext db, ITestWorkspaceService workspaceService, IUserSectionScopeService scope, TimeProvider? timeProvider = null, INotificationPublisher? publisher = null)
+    public SampleAssignmentService(IMicroLimsDbContext db, ITestWorkspaceService workspaceService, IUserSectionScopeService scope, TimeProvider? timeProvider = null, INotificationPublisher? publisher = null, ICompetencyGuard? competency = null)
     {
         _time = timeProvider ?? TimeProvider.System;
         _db = db;
+        _competency = competency;
         _workspaceService = workspaceService;
         _scope = scope;
         _publisher = publisher ?? new NotificationPublisher(db, _time);
@@ -115,7 +118,8 @@ public class SampleAssignmentService
             // With no test in the assignee's sections, checking against all
             // of them throws the "not a member" reason.
             await AnalystAssignmentRules.EnsureAssignableAsync(_db, _scope, assigneeId, actingUserId,
-                (targets.Count > 0 ? targets : open).Select(t => t.SectionId), _time.GetUtcNow().UtcDateTime);
+                (targets.Count > 0 ? targets : open).Select(t => t.SectionId), _time.GetUtcNow().UtcDateTime,
+                testOrderIds: targets.Select(t => t.Id).ToArray(), competency: _competency, ct: ct, allowOrderOverride: true);
         }
 
         return targets.Select(t => (t, analystUserId)).ToList();
@@ -139,6 +143,7 @@ public class SampleAssignmentService
         var now = _time.GetUtcNow().UtcDateTime;
 
         var changes = new List<(TestOrder Order, int? AnalystId)>();
+        var refused = new List<BusinessRuleException>();
         foreach (var assignment in assignments)
         {
             var order = sample.TestOrders.FirstOrDefault(t => t.Id == assignment.TestOrderId)
@@ -162,10 +167,22 @@ public class SampleAssignmentService
                 throw new BusinessRuleException(MessageCodes.SampleCannotReassignWithResult, CannotReassignWithResultMessage);
 
             if (assignment.AnalystUserId is int assigneeId)
-                await AnalystAssignmentRules.EnsureAssignableAsync(_db, _scope, assigneeId, actingUserId, new[] { order.SectionId }, now);
-
+            {
+                try
+                {
+                    await AnalystAssignmentRules.EnsureAssignableAsync(_db, _scope, assigneeId, actingUserId,
+                        [order.SectionId], now, testOrderIds: [order.Id], competency: _competency, ct: ct, allowOrderOverride: true);
+                }
+                catch (BusinessRuleException error) when (error.Code == MessageCodes.CompetencyAssignmentRefused)
+                {
+                    refused.Add(error);
+                }
+            }
             changes.Add((order, assignment.AnalystUserId));
         }
+
+        CompetencyBatch.ThrowIfRefused(MessageCodes.CompetencyAssignmentRefused,
+            refused.SelectMany(error => error.ErrorDetails ?? []).ToList(), string.Join(" ", refused.Select(error => error.Message)));
 
         await ApplyAsync(sample, changes, actingUserId, reason, ct);
         return await LoadDtoAsync(sample);
@@ -199,22 +216,38 @@ public class SampleAssignmentService
         var assignedIds = orders.Where(t => t.AssignedAnalystId.HasValue).Select(t => t.AssignedAnalystId!.Value).Distinct().ToList();
         var names = await _db.Users.Where(u => assignedIds.Contains(u.Id)).ToDictionaryAsync(u => u.Id, u => u.FullName, ct);
 
+        var openOrders = orders.Where(order => IsOpen(order) && InScope(actingScope, order.SectionId)).ToArray();
+        var candidateIds = candidates.Where(candidate => openOrders.Any(order => InScope(sectionsByUser[candidate.Id], order.SectionId)))
+            .Select(candidate => candidate.Id).ToArray();
+        var decisions = _competency is null
+            ? null
+            : await _competency.EvaluateCandidatesAsync(candidateIds, openOrders.Select(order => order.Id).ToArray(), ct);
+
         var tests = orders.Select(t =>
         {
             var canAssign = IsOpen(t) && InScope(actingScope, t.SectionId);
             var eligible = canAssign
                 ? candidates.Where(c => InScope(sectionsByUser[c.Id], t.SectionId)).Select(c => c.Id).ToList()
                 : new List<int>();
+            var refusals = new List<AssignmentCompetencyRefusalDto>();
+            foreach (var userId in eligible)
+            {
+                if (decisions?.GetValueOrDefault((userId, t.Id)) is { Allowed: false } refusal)
+                    refusals.AddRange(refusal.Reasons.Select(reason => new AssignmentCompetencyRefusalDto(userId, reason.Code, reason.Params, reason.Text)));
+            }
+            var refusedUsers = refusals.Select(refusal => refusal.UserId).ToHashSet();
             return new AssignableTestDto(
                 t.Id, t.TestCode, t.SectionId, t.Section?.Name ?? string.Empty, t.Status.ToString(),
                 t.AssignedAnalystId,
                 t.AssignedAnalystId is int id ? names.GetValueOrDefault(id, $"User #{id}") : null,
-                canAssign, eligible);
+                canAssign, eligible.OrderBy(refusedUsers.Contains).ToList(), refusals);
         }).ToList();
 
         var eligibleAnywhere = tests.SelectMany(t => t.EligibleUserIds).ToHashSet();
+        var refusedAnywhere = tests.SelectMany(t => t.CompetencyRefusals).Select(r => r.UserId).ToHashSet();
         var users = candidates
             .Where(c => eligibleAnywhere.Contains(c.Id))
+            .OrderBy(c => refusedAnywhere.Contains(c.Id))
             .Select(c => new AssignableUserDto(c.Id, c.FullName, c.Username, c.Role!.Name, c.Role.Type.ToString()))
             .ToList();
 
@@ -311,7 +344,20 @@ public class SampleAssignmentService
         }
 
         if (changed.Count > 0)
-            await _db.SaveChangesAsync(ct);
+        {
+            var priorActor = _db.CurrentUserId;
+            _db.CurrentUserId = actingUserId;
+            try
+            {
+                await CompetencyOverrideLifecycle.EndAsync(_db, changed.Select(c => c.Order), timestamp,
+                    CompetencyOverrideEndReason.Reassigned, ct);
+                await _db.SaveChangesAsync(ct);
+            }
+            finally
+            {
+                _db.CurrentUserId = priorActor;
+            }
+        }
     }
 
     private async Task<SampleDto> LoadDtoAsync(Sample sample)

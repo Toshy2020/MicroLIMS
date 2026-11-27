@@ -231,6 +231,21 @@ export function withChangeReason(
   return Object.keys(headers).length === 0 ? {} : { headers };
 }
 
+// The header an approved change control travels in (CONF-227). The backend accepts one value of
+// letters, digits and hyphens, at most 20 characters, and ignores it when the laboratory's gate is off.
+export const CHANGE_CONTROL_HEADER = "X-Change-Control";
+
+// Adds the change-control header to a request config for ONE request. Other headers (If-Match, the
+// change reason) are kept; the config passed in is never changed. No number leaves the config as it was.
+export function withChangeControl(
+  config: { headers?: Record<string, string> } | undefined,
+  changeControlNumber: string | null | undefined
+): { headers?: Record<string, string> } {
+  const number = changeControlNumber?.trim();
+  if (!number) return config ?? {};
+  return { ...config, headers: { ...config?.headers, [CHANGE_CONTROL_HEADER]: number } };
+}
+
 export function isReasonRequiredError(err: unknown): boolean {
   const axiosError = err as {
     response?: { data?: { fieldErrors?: Array<{ field?: string; message?: string }> } };

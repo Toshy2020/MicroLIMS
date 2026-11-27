@@ -16,6 +16,8 @@ public static partial class MessageCodes
     public const string SampleCannotApproveTested = "Sample.CannotApproveTested";
     public const string SampleCannotChangeItemOrCauseWhileAwaitingTests = "Sample.CannotChangeItemOrCauseWhileAwaitingTests";
     public const string SampleCannotReassignWithResult = "Sample.CannotReassignWithResult";
+    public const string SampleCannotReviewOverrode = "Sample.CannotReviewOverrode";
+    public const string SampleCannotApproveOverrode = "Sample.CannotApproveOverrode";
     public const string SampleCannotReviewTested = "Sample.CannotReviewTested";
     public const string SampleCauseNotFound = "Sample.CauseNotFound";
     public const string SampleChooseAtLeastOneTest = "Sample.ChooseAtLeastOneTest";
@@ -95,6 +97,8 @@ public static partial class MessageCodes
         [SampleCannotApproveTested] = [],
         [SampleCannotChangeItemOrCauseWhileAwaitingTests] = [],
         [SampleCannotReassignWithResult] = [],
+        [SampleCannotReviewOverrode] = [],
+        [SampleCannotApproveOverrode] = [],
         [SampleCannotReviewTested] = [],
         [SampleCauseNotFound] = [],
         [SampleChooseAtLeastOneTest] = [],

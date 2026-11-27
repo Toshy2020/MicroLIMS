@@ -1,4 +1,20 @@
 {
+  "sopCapture": {
+    "method": "الطريقة: {{code}} المراجعة {{revision}}",
+    "effective": "سارية من {{date}}",
+    "notRecorded": "إجراء التشغيل القياسي غير مسجل",
+    "notRecordedBefore": "غير مسجل (قبل {{date}})",
+    "unresolved": "إجراء التشغيل القياسي غير مسجل: {{reason}}",
+    "newer": "أصبحت مراجعة أحدث (المراجعة {{revision}}) سارية في {{date}} أثناء إجراء هذا الاختبار.",
+    "newerForTests": "أصبحت مراجعة أحدث (المراجعة {{revision}}) سارية في {{date}} أثناء إجراء هذا الاختبار. تنطبق على: {{tests}}.",
+    "reportableRetestLine": "إعادة الاختبار القابلة للإبلاغ {{referenceNumber}} (إعادة الاختبار {{retestNumber}}، مراجعة الخطة {{planRevision}}) · {{meaningText}} بواسطة {{signerFullName}} · {{signedAt}}",
+    "reasons": {
+      "NoSopNumber": "لا يوجد رقم لإجراء التشغيل القياسي لهذا الصنف",
+      "NotFound": "إجراء التشغيل القياسي غير موجود في نظام ضبط المستندات",
+      "NoEffectiveRevision": "لا توجد مراجعة سارية",
+      "Ambiguous": "توجد عدة مستندات تطابق رقم إجراء التشغيل القياسي"
+    }
+  },
   "qualitative": {
     "chooseEveryRow": "اختر «مطابق» أو «غير مطابق» لكل صف.",
     "noSpecsConfigured": "لا توجد مواصفات مضبوطة للاختبار {{testCode}}.",
@@ -132,6 +148,10 @@
       "worstStatus": "أسوأ حالة:"
     },
     "testResults": {
+      "competencyOverride": "تجاوز متطلبات الكفاءة",
+      "overrideAnalyst": "المحلل: {{analyst}}",
+      "overrideSignedBy": "وقّع {{signer}}",
+      "overrideEnded": "انتهى",
       "title": "نتائج الاختبار",
       "overallStatus": "الحالة العامة:",
       "returnToAnalyst": "إعادة إلى المحلل",
@@ -548,6 +568,7 @@
     }
   },
   "testWorkflow": {
+    "competencyOverrideHint": "يمكن لرئيس القسم منح تجاوز لمتطلبات الكفاءة لهذا الاختبار.",
     "countStepHelp": "ازرع العينة على وسط زرعي مسموح به وابدأ الحضانة. بعد انقضاء الحد الأدنى للحضانة، عُدّ المستعمرات على كل طبق؛ النتيجة هي متوسط العدد مضروبًا في معامل التخفيف.",
     "invalidReading": "أدخل عددًا صحيحًا باستخدام الأرقام فقط، أو TNTC أو Uncountable.",
     "bothFlagsError": "لا يمكن أن تحتوي مجموعة القراءات على TNTC وUncountable معًا. اختر أحدهما.",
@@ -755,6 +776,8 @@
     "countHelper": "{{count}}/500 حرف (الحد الأدنى 10)"
   },
   "assignedCard": {
+    "grantOverride": "منح تجاوز",
+    "grantOverrideAria": "منح تجاوز متطلبات الكفاءة لاختبار {{testCode}}",
     "readyToRead": "جاهز للقراءة",
     "remainingHours": "متبقٍ {{hours}} ساعة و{{minutes}} دقيقة",
     "remainingMinutes": "متبقٍ {{minutes}} دقيقة و{{seconds}} ثانية",
@@ -913,6 +936,7 @@
     "tryAgain": "إعادة محاولة الحفظ"
   },
   "measurement": {
+    "competencyOverrideHint": "يمكن لرئيس القسم منح تجاوز لمتطلبات الكفاءة لهذا الاختبار.",
     "noSpecsConfigured": "لم تُضبط مواصفات لاختبار {{testCode}}.",
     "loadConfigFailed": "تعذّر تحميل إعدادات اختبار القياس أو المواصفات.",
     "parameterFallback": "المعامل",
@@ -1771,5 +1795,8 @@
     "startPlatingIncubation": "بدء حضانة الأطباق",
     "selectMediaAndIncubator": "يرجى اختيار تشغيلة أوساط زرعية وحاضنة.",
     "startFailed": "تعذّر بدء الحضانة."
+  },
+  "coa": {
+    "loadFailed": "تعذّر تحميل شهادة التحليل."
   }
 }

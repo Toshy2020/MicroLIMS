@@ -47,6 +47,7 @@ public sealed class ActiveAnalysisRow
 public sealed class SampleSummaryData
 {
     public required Sample Sample { get; init; }
+    public ILookup<int, CompetencyOverrideDto> CompetencyOverrides { get; init; } = Array.Empty<CompetencyOverrideDto>().ToLookup(_ => 0);
     public required List<TestOrder> EffectiveTestOrders { get; init; }
     public required Dictionary<int, string> SourceRefByOrderId { get; init; }
     public required Dictionary<int, SampleSectionRow> SectionRows { get; init; }

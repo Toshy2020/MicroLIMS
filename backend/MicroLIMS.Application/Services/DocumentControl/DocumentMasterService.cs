@@ -118,14 +118,13 @@ public class DocumentMasterService : IDocumentMasterService
                 $"Owner user '{ownerUser.FullName}' is inactive.",
                 new Dictionary<string, string> { ["fullName"] = ownerUser.FullName });
 
-        // 3. Uniqueness of CompanyDocumentCode among Active documents
+        // 3. Uniqueness of CompanyDocumentCode across ALL document masters (any RecordStatus), case-insensitive (CONF-212)
         var codeExists = await _db.DocumentMasters
-            .AnyAsync(d => d.RecordStatus == DocumentRecordStatus.Active &&
-                           d.CompanyDocumentCode.ToLower() == trimmedCode.ToLower());
+            .AnyAsync(d => d.CompanyDocumentCode.ToLower() == trimmedCode.ToLower());
         if (codeExists)
             throw new BusinessRuleException(
                 MessageCodes.DocumentCompanyCodeAlreadyExists,
-                $"A document with Company Document Code '{trimmedCode}' already exists and is active.",
+                $"Document code '{trimmedCode}' is already used by another document, ignoring upper and lower case.",
                 new Dictionary<string, string> { ["companyDocumentCode"] = trimmedCode });
 
         // 4. Generate MicroLimsDocumentId
@@ -477,12 +476,11 @@ public class DocumentMasterService : IDocumentMasterService
         {
             var codeExists = await _db.DocumentMasters
                 .AnyAsync(d => d.Id != id &&
-                               d.RecordStatus == DocumentRecordStatus.Active &&
                                d.CompanyDocumentCode.ToLower() == trimmedCode.ToLower());
             if (codeExists)
                 throw new BusinessRuleException(
                     MessageCodes.DocumentCompanyCodeInUse,
-                    $"Company Document Code '{trimmedCode}' is already in use by another active document.",
+                    $"Document code '{trimmedCode}' is already used by another document, ignoring upper and lower case.",
                     new Dictionary<string, string> { ["companyDocumentCode"] = trimmedCode });
         }
 

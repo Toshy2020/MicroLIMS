@@ -48,7 +48,14 @@ import { OfflineDraftNotice, classifySaveFailure, draftHeaderArgs, serverMessage
 import type { IncubatorEquipmentItem, ReleasedMediaItem } from "../../services/lookupCache";
 import type { CountPreviewResult, CurrentStepResponse, PreviousStepDetail, TestWorkflowStepDto } from "./types/testWorkflowTypes";
 import { resolveWorkflowPanelKind } from "./utils/workflowPanelMapping";
+import { SopMethodDetails } from "./components/SopMethodDetails";
+import type { TestOrderSop } from "./types/sopCaptureTypes";
 import { formatDateTimeWithTimeZone } from "../../utils/formatDate";
+import { hasServerErrorCodePrefix } from "../../i18n/serverMessages";
+
+function isCompetencyRefusalError(e: unknown): boolean {
+  return hasServerErrorCodePrefix(e, "Competency.");
+}
 
 type StepMediaRow = TestWorkflowStepDto["stepMedia"][number];
 type StepStage = NonNullable<TestWorkflowStepDto["incubationStages"]>[number];
@@ -173,7 +180,8 @@ function isAbortError(err: unknown): boolean {
   return typeof err === "object" && err !== null && (err as { name?: unknown }).name === "AbortError";
 }
 
-interface Props {
+interface Props extends TestOrderSop {
+  labTimeZoneId?: string;
   testOrderId: number;
   testCode: string;
   category: string;
@@ -202,21 +210,36 @@ type Phase = "loading" | "select-media" | "awaiting-result" | "transfer-stage-2"
 // only hand off to LocationResultGridDialog/PathogenLocationResultGrid-
 // Dialog for their per-location batch result entry, exactly as today.
 export function TestWorkflowDialog(props: Props) {
+  const [loadedSop, setLoadedSop] = useState<(TestOrderSop & { testOrderId: number }) | null>(null);
   const [reloadCount, setReloadCount] = useState(0);
+  const sop = loadedSop?.testOrderId === props.testOrderId ? loadedSop : props;
   // Samples with no item (water, environmental monitoring, after cleaning) get no Open SOP action.
   return (
     <>
-      {props.itemId != null && <OpenSopAction itemId={props.itemId} />}
+      {props.itemId != null && (
+        <>
+          <OpenSopAction itemId={props.itemId} />
+          <SopMethodDetails
+            sopCapture={sop.sopCapture}
+            newerSopRevision={sop.newerSopRevision}
+            sopCaptureStartDateUtc={sop.sopCaptureStartDateUtc ?? props.sopCaptureStartDateUtc}
+            timeZone={props.labTimeZoneId}
+          />
+        </>
+      )}
       <TestWorkflowDialogBody
         key={`${props.testOrderId}:${reloadCount}`}
         {...props}
+        onSopLoaded={setLoadedSop}
         onReload={() => setReloadCount((count) => count + 1)}
       />
     </>
   );
 }
 
-function TestWorkflowDialogBody({ testOrderId, testCode, category, displayName, itemId, sampleId, status, outsourcedToLab, onClose, onReload }: Props & { onReload: () => void }) {
+function TestWorkflowDialogBody({
+  testOrderId, testCode, category, displayName, itemId, sampleId, status, outsourcedToLab, onClose, onSopLoaded, onReload
+}: Props & { onSopLoaded: (sop: TestOrderSop & { testOrderId: number }) => void; onReload: () => void }) {
   const recordChange = useRecordChanged("testOrder", testOrderId);
   const { t } = useTranslation("testingWorkspace");
   const theme = useTheme();
@@ -224,6 +247,7 @@ function TestWorkflowDialogBody({ testOrderId, testCode, category, displayName, 
   const [phase, setPhase] = useState<Phase>("loading");
   const [current, setCurrent] = useState<WorkflowStepState | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isCompetencyRefusal, setIsCompetencyRefusal] = useState(false);
   const [showLocationGrid, setShowLocationGrid] = useState(false);
   const [newOutsourcedLab, setNewOutsourcedLab] = useState<string | null>(null);
   const outsourcedLab = newOutsourcedLab ?? (current?.outsourcedToLab === undefined ? outsourcedToLab : current.outsourcedToLab);
@@ -258,6 +282,8 @@ function TestWorkflowDialogBody({ testOrderId, testCode, category, displayName, 
       const data = await TestWorkflowService.getCurrentStep(testOrderId, signal);
       if (signal?.aborted) return;
       setCurrent(data);
+      if (data.sopCapture !== undefined || data.sopCaptureStartDateUtc !== undefined)
+        onSopLoaded({ testOrderId, sopCapture: data.sopCapture, newerSopRevision: data.newerSopRevision, sopCaptureStartDateUtc: data.sopCaptureStartDateUtc });
       setMediaId(""); setIncubatorId(""); setStage2IncubatorId("");
       resetLot();
       resetIncubator();
@@ -460,33 +486,39 @@ function TestWorkflowDialogBody({ testOrderId, testCode, category, displayName, 
 
   const startIncubation = async () => {
     setError(null);
+    setIsCompetencyRefusal(false);
     if (!mediaId || !incubatorId || !step) return;
     try {
       await TestWorkflowService.selectMedia(testOrderId, step.stepName, Number(mediaId), Number(incubatorId));
       await reloadAfterSave();
     } catch (e: unknown) {
+      setIsCompetencyRefusal(isCompetencyRefusalError(e));
       setError(serverMessage(e) ?? t("testWorkflow.startIncubationFailed"));
     }
   };
 
   const startStage2Incubation = async () => {
     setError(null);
+    setIsCompetencyRefusal(false);
     if (!stage2IncubatorId || !step) return;
     try {
       await TestWorkflowService.startStage2Incubation(testOrderId, step.stepName, Number(stage2IncubatorId));
       setStage2IncubatorId("");
       await reloadAfterSave();
     } catch (e: unknown) {
+      setIsCompetencyRefusal(isCompetencyRefusalError(e));
       setError(serverMessage(e) ?? t("testWorkflow.startStage2Failed"));
     }
   };
 
   const advanceIncubationWindow = async () => {
     setError(null);
+    setIsCompetencyRefusal(false);
     try {
       await TestWorkflowService.closeIncubationWindow(testOrderId);
       await reloadAfterSave();
     } catch (e: unknown) {
+      setIsCompetencyRefusal(isCompetencyRefusalError(e));
       setError(serverMessage(e) ?? t("testWorkflow.closeWindowFailed"));
     }
   };
@@ -728,6 +760,7 @@ function TestWorkflowDialogBody({ testOrderId, testCode, category, displayName, 
         setPhase("step-complete");
       }
     } catch (e) {
+      setIsCompetencyRefusal(isCompetencyRefusalError(e));
       if (!benchCount) {
         setError(serverMessage(e) ?? t("testWorkflow.recordResultFailed"));
         return;
@@ -1181,7 +1214,16 @@ function TestWorkflowDialogBody({ testOrderId, testCode, category, displayName, 
             : t("testWorkflow.returnedDefault")}
         </Alert>
       )}
-      {error && !(benchCount && phase === "enter-result") && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+      {error && !(benchCount && phase === "enter-result") && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          <Box>{error}</Box>
+          {isCompetencyRefusal && (
+            <Typography variant="caption" component="div" sx={{ mt: 0.5 }}>
+              {t("testWorkflow.competencyOverrideHint")}
+            </Typography>
+          )}
+        </Alert>
+      )}
 
       <StepHeading
         title={step.stepName}
@@ -1231,11 +1273,13 @@ function TestWorkflowDialogBody({ testOrderId, testCode, category, displayName, 
 
           <StepActionBar
             note={
-              lotLastChoice.saveBlockedReason
-                ? lotLastChoice.saveBlockedReason
-                : mediaId && incubatorId
-                  ? t("testWorkflow.noteAuditTrail")
-                  : t("testWorkflow.noteSelectLotIncubator")
+              error
+                ? error
+                : lotLastChoice.saveBlockedReason
+                  ? lotLastChoice.saveBlockedReason
+                  : mediaId && incubatorId
+                    ? t("testWorkflow.noteAuditTrail")
+                    : t("testWorkflow.noteSelectLotIncubator")
             }
           >
             <Button
@@ -1377,7 +1421,13 @@ function TestWorkflowDialogBody({ testOrderId, testCode, category, displayName, 
             </Alert>
           )}
           <StepActionBar
-            note={readings.every((r) => r.trim() === "") ? t("testWorkflow.noteEnterPlateCount") : t("testWorkflow.noteResultAuditTrail")}
+            note={
+              error
+                ? error
+                : readings.every((r) => r.trim() === "")
+                  ? t("testWorkflow.noteEnterPlateCount")
+                  : t("testWorkflow.noteResultAuditTrail")
+            }
           >
             <Button
               variant="contained"
@@ -1412,7 +1462,16 @@ function TestWorkflowDialogBody({ testOrderId, testCode, category, displayName, 
             })}
             <DraftRestoreNotice startedAt={draft.restoredStartedAt} onRestore={restoreDraft} onDiscard={() => void draft.discard()} />
             {keptOffline && <OfflineDraftNotice onTryAgain={() => setKeptOffline(false)} />}
-            {error && <Alert severity="error">{error}</Alert>}
+            {error && (
+              <Alert severity="error">
+                <Box>{error}</Box>
+                {isCompetencyRefusal && (
+                  <Typography variant="caption" component="div" sx={{ mt: 0.5 }}>
+                    {t("testWorkflow.competencyOverrideHint")}
+                  </Typography>
+                )}
+              </Alert>
+            )}
           {countEntryFields}
 
           {!isTimeReady && minReadyAt && (

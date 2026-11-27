@@ -89,6 +89,13 @@ const MonitoringPlanPage = lazy(() => import("../modules/monitoringPlan/Monitori
 const DatabaseOverviewPage = lazy(() => import("../modules/admin/DatabaseOverviewPage").then((m) => ({ default: m.DatabaseOverviewPage })));
 const ErrorMonitoringPage = lazy(() => import("../modules/errorMonitoring/ErrorMonitoringPage").then((m) => ({ default: m.ErrorMonitoringPage })));
 const OosTrackingPage = lazy(() => import("../modules/oosTracking/OosTrackingPage").then((m) => ({ default: m.OosTrackingPage })));
+const OosTrendsPage = lazy(() => import("../modules/oosTracking/OosTrendsPage").then((m) => ({ default: m.OosTrendsPage })));
+const InvestigationPage = lazy(() => import("../modules/oosTracking/InvestigationPage").then((m) => ({ default: m.InvestigationPage })));
+const QualityRegisterPage = lazy(() => import("../modules/quality/QualityRegisterPage").then((m) => ({ default: m.QualityRegisterPage })));
+const QualityTrendsPage = lazy(() => import("../modules/quality/QualityTrendsPage").then((m) => ({ default: m.QualityTrendsPage })));
+const QualityRecordPage = lazy(() => import("../modules/quality/QualityRecordRoute").then((m) => ({ default: m.QualityRecordPage })));
+const QualityConfigPage = lazy(() => import("../modules/quality/QualityConfigPage").then((m) => ({ default: m.QualityConfigPage })));
+const OosTemplatesPage = lazy(() => import("../modules/oosTracking/OosTemplatesPage").then((m) => ({ default: m.OosTemplatesPage })));
 const MaterialsPage = lazy(() => import("../modules/inventory/materials/MaterialsPage").then((m) => ({ default: m.MaterialsPage })));
 const EquipmentInventoryPage = lazy(() => import("../modules/inventory/equipment/EquipmentInventoryPage").then((m) => ({ default: m.EquipmentInventoryPage })));
 const DocumentControlDashboardPage = lazy(() => import("../modules/documentControl/pages/DocumentControlDashboardPage").then((m) => ({ default: m.DocumentControlDashboardPage })));
@@ -98,6 +105,8 @@ const TrainingMatrixPage = lazy(() => import("../modules/documentControl/pages/T
 const ComplianceDashboardPage = lazy(() => import("../modules/documentControl/pages/ComplianceDashboardPage").then((m) => ({ default: m.ComplianceDashboardPage })));
 const DocumentDetailPage = lazy(() => import("../modules/documentControl/pages/DocumentDetailPage").then((m) => ({ default: m.DocumentDetailPage })));
 const DocumentConfigurationPage = lazy(() => import("../modules/documentControl/pages/DocumentConfigurationPage").then((m) => ({ default: m.DocumentConfigurationPage })));
+const QualificationMatrixPage = lazy(() => import("../modules/competency/QualificationMatrixPage").then((m) => ({ default: m.QualificationMatrixPage })));
+const MyQualificationsPage = lazy(() => import("../modules/competency/MyQualificationsPage").then((m) => ({ default: m.MyQualificationsPage })));
 const AccessReviewPage = lazy(() => import("../modules/admin/AccessReviewPage").then((m) => ({ default: m.AccessReviewPage })));
 const SettingsPage = lazy(() => import("../modules/admin/SettingsPage").then((m) => ({ default: m.SettingsPage })));
 const IntegrationsPage = lazy(() => import("../modules/admin/IntegrationsPage").then((m) => ({ default: m.IntegrationsPage })));
@@ -262,8 +271,18 @@ export function AppRoutes() {
 
             <Route path="/working-standards" element={<WorkingStandardsPage />} />
 
-            <Route element={<PermissionRoute code={PERMISSIONS.OOS_MANAGE} />}>
+            <Route element={<PermissionRoute code={PERMISSIONS.OOS_VIEW} />}>
               <Route path="/oos-tracking" element={<OosTrackingPage />} />
+              <Route path="/oos-tracking/trends" element={<OosTrendsPage />} />
+              <Route path="/oos-tracking/:id" element={<InvestigationPage />} />
+            </Route>
+            <Route element={<PermissionRoute code={PERMISSIONS.QUALITY_VIEW} />}>
+              <Route path="/quality" element={<QualityRegisterPage />} />
+              <Route path="/quality/trends" element={<QualityTrendsPage />} />
+              <Route path="/quality/:id" element={<QualityRecordPage />} />
+            </Route>
+            <Route element={<PermissionRoute code={[PERMISSIONS.QUALITY_APPROVE, PERMISSIONS.QUALITY_INVESTIGATE]} />}>
+              <Route path="/quality/config" element={<QualityConfigPage />} />
             </Route>
             <Route element={<PermissionRoute code={PERMISSIONS.AUDIT_VIEW} />}>
               <Route path="/audit-trail-reviews" element={<AuditTrailReviewsPage />} />
@@ -302,6 +321,9 @@ export function AppRoutes() {
               <Route path="/laboratory-configuration/working-hours" element={<WorkingHoursPage />} />
               <Route path="/laboratory-configuration/escalation-rules" element={<EscalationRulesPage />} />
             </Route>
+            <Route element={<PermissionRoute code={PERMISSIONS.OOS_MANAGE} />}>
+              <Route path="/laboratory-configuration/oos-templates" element={<OosTemplatesPage />} />
+            </Route>
 
             {/* Document Control Module (Release 1a) */}
             <Route path="/document-control" element={<DocumentControlDashboardPage />} />
@@ -328,6 +350,10 @@ export function AppRoutes() {
 
             <Route element={<PermissionRoute code={PERMISSIONS.DOCUMENTS_CONFIG_MANAGE} />}>
               <Route path="/document-control/configuration" element={<DocumentConfigurationPage />} />
+            </Route>
+            <Route element={<PermissionRoute code={PERMISSIONS.COMPETENCY_VIEW} />}>
+              <Route path="/competency/matrix" element={<QualificationMatrixPage />} />
+              <Route path="/competency/my" element={<MyQualificationsPage />} />
             </Route>
             {/* Hand over a deactivated user's document responsibilities: ConfigManage anywhere, Reassign within one's departments (the server decides per item). */}
             <Route element={<PermissionRoute code={[PERMISSIONS.DOCUMENTS_CONFIG_MANAGE, PERMISSIONS.DOCUMENTS_REASSIGN]} />}>

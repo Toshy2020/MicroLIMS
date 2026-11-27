@@ -23,6 +23,8 @@ public class TestDefinition : IVersionedEntity
     public string Code { get; set; } = string.Empty; // e.g. "TAMC", "PATHOGEN_SALMONELLA"
     public string DisplayName { get; set; } = string.Empty; // e.g. "Total Aerobic Microbial Count", "Pathogen - Salmonella"
 
+    public int? RequalificationMonths { get; set; }
+
     public int SectionId { get; set; }
     public DocumentSection? Section { get; set; }
 

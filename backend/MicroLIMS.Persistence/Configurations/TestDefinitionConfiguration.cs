@@ -9,6 +9,8 @@ public class TestDefinitionConfiguration : IEntityTypeConfiguration<TestDefiniti
     public void Configure(EntityTypeBuilder<TestDefinition> builder)
     {
         builder.HasKey(t => t.Id);
+        builder.ToTable(t => t.HasCheckConstraint("CK_TestDefinitions_RequalificationMonths",
+            """ "RequalificationMonths" BETWEEN 1 AND 120 """));
         builder.Property(t => t.Code).IsRequired().HasMaxLength(100);
         builder.Property(t => t.DisplayName).IsRequired().HasMaxLength(200);
         builder.HasIndex(t => t.Code).IsUnique(); // one canonical row per code - the whole point of a master list

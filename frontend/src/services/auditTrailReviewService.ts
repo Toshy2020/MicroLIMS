@@ -44,6 +44,8 @@ export interface AuditTrailReviewFindingDto {
   recordedByUserId: number;
   recordedByName: string | null;
   recordedAtUtc: string;
+  // The status as a number (0 Open, 1 Closed): the token a deviation raised from this finding must send.
+  version: number;
 }
 
 export interface AuditTrailReviewListItemDto {

@@ -44,6 +44,6 @@ public class AfterCleaningController : ControllerBase
     // in this batch generates the batch TestOrders + SampleLocations.
     [HttpPost("prepare")]
     [Authorize(Policy = PermissionConstants.SamplesReceiveOwnLab)]
-    public async Task<IActionResult> Prepare(PrepareAfterCleaningRequest request) =>
-        Ok(ApiResponse<object>.Ok(await _afterCleaningService.PrepareAsync(request.SampleId, request.MachinePartConfigurationIds, CurrentUserId, request.MonitoringOccurrenceIds)));
+    public async Task<IActionResult> Prepare(PrepareAfterCleaningRequest request, CancellationToken ct = default) =>
+        Ok(ApiResponse<object>.Ok(await _afterCleaningService.PrepareAsync(request.SampleId, request.MachinePartConfigurationIds, CurrentUserId, request.MonitoringOccurrenceIds, ct)));
 }

@@ -1,3 +1,5 @@
+using MicroLIMS.Application.Services.Competency;
+using MicroLIMS.Application.Services.Oos;
 using MicroLIMS.Application.Services.InstrumentImport;
 using Microsoft.Extensions.Logging;
 using MicroLIMS.Persistence.Helpers;
@@ -109,7 +111,7 @@ public static class TestServiceFactory
         new(db, scope ?? new UserSectionScopeService(db), time);
 
     public static SamplePreparationService SamplePreparation(MicroLimsDbContext db, TimeProvider? time = null) =>
-        new(db, new PreparationParameterValidator(), new ElectronicSignatureService(db), new UserSectionScopeService(db), PreparationMaterial(db, time));
+        new(db, new PreparationParameterValidator(), new ElectronicSignatureService(db), new UserSectionScopeService(db), PreparationMaterial(db, time), Competency(db), SopCapture(db, time), time);
 
     public static ItemPreparationConfigurationService ItemPreparationConfiguration(MicroLimsDbContext db) =>
         new(db, new PreparationParameterValidator(), PreparationMaterial(db));
@@ -121,8 +123,8 @@ public static class TestServiceFactory
     public static RecordArchiveService Archive(MicroLimsDbContext db, IFileStorageService? storage = null) =>
         new(db, new PdfGenerator(), storage ?? new InMemoryFileStorageService(), NullLogger<RecordArchiveService>.Instance);
 
-    public static SampleSummaryService SampleSummary(MicroLimsDbContext db) =>
-        new(db, new PdfGenerator(), new MicroLIMS.Infrastructure.Word.WordGenerator(), ReviewGate(db));
+    public static SampleSummaryService SampleSummary(MicroLimsDbContext db, TimeProvider? time = null) =>
+        new(db, new PdfGenerator(), new MicroLIMS.Infrastructure.Word.WordGenerator(), ReviewGate(db), new OosGate(db, new OosOpeningRule(db)), time);
 
     public static SampleTrackingService SampleTracking(MicroLimsDbContext db) => new(db);
 
@@ -132,17 +134,37 @@ public static class TestServiceFactory
     public static CryovialSummaryService CryovialSummary(MicroLimsDbContext db) =>
         new(db, new PdfGenerator(), new MicroLIMS.Infrastructure.Word.WordGenerator(), ReviewGate(db));
 
-    public static SampleReviewService SampleReview(MicroLimsDbContext db) =>
+    public static SampleReviewService SampleReview(MicroLimsDbContext db, TimeProvider? time = null) =>
         new(db, new SegregationOfDutiesGuard(db), ReviewGate(db), new UserSectionScopeService(db),
-            new AuditEventService(db, new MicroLIMS.Persistence.Helpers.DatabaseSequenceHelper(db)));
+            new AuditEventService(db, new MicroLIMS.Persistence.Helpers.DatabaseSequenceHelper(db)),
+            OosInvestigation(db, time),
+            time);
+
+    public static OosInvestigationService OosInvestigation(MicroLimsDbContext db, TimeProvider? time = null, int? actor = null)
+    {
+        if (actor.HasValue)
+            db.CurrentUserId = actor;
+        return new(db, new OosOpeningRule(db), new ReferenceNumberGenerator(db, time),
+            time ?? TimeProvider.System, time is null ? LabClock.Default : new LabClock(time, LabClock.Default.LabTimeZone),
+            new UserSectionScopeService(db), new PermissionService(db), new SegregationOfDutiesGuard(db), new ElectronicSignatureService(db, time));
+    }
 
     public static ResultProjectionService ResultProjection(MicroLimsDbContext db) =>
         new(db, NullLogger<ResultProjectionService>.Instance);
 
-    public static TestWorkflowEngine TestWorkflow(MicroLimsDbContext db, IElectronicSignatureService? signatures = null, IUserSectionScopeService? scope = null, ILabClock? clock = null)
+    public static ICompetencyGuard Competency(MicroLimsDbContext db, ILabClock? clock = null) =>
+        new CompetencyGuard(db, clock ?? LabClock.Default, new ItemSopResolver(db));
+
+    public static ISopRevisionCapture SopCapture(MicroLimsDbContext db, TimeProvider? time = null) =>
+        new SopRevisionCapture(db, new ItemSopResolver(db), time ?? TimeProvider.System);
+
+    public static PathogenSessionService PathogenSession(MicroLimsDbContext db, TimeProvider? timeProvider = null) =>
+        new(db, Competency(db), SopCapture(db, timeProvider), timeProvider: timeProvider);
+
+    public static TestWorkflowEngine TestWorkflow(MicroLimsDbContext db, IElectronicSignatureService? signatures = null, IUserSectionScopeService? scope = null, ILabClock? clock = null, ICompetencyGuard? competency = null, ISopRevisionCapture? sopCapture = null)
     {
         var engine = new TestWorkflowEngine(db, SampleReview(db), ResultProjection(db), IncubatorEligibility(db), AppearanceSnapshot(db),
-            new SegregationOfDutiesGuard(db), ReviewGate(db),
+            new SegregationOfDutiesGuard(db), ReviewGate(db), competency ?? Competency(db, clock), sopCapture ?? SopCapture(db),
             signatures ?? new ElectronicSignatureService(db), scope ?? new UserSectionScopeService(db),
             clock ?? LabClock.Default);
         EngineDatabases.AddOrUpdate(engine, db);
@@ -165,7 +187,7 @@ public static class TestServiceFactory
             audit ?? new AuditEventService(db, new MicroLIMS.Persistence.Helpers.DatabaseSequenceHelper(db)));
 
     public static SampleApprovalService SampleApproval(MicroLimsDbContext db, IFileStorageService? storage = null) =>
-        new(db, ReviewGate(db), SampleSummary(db), Archive(db, storage), ResultProjection(db), new ReferenceNumberGenerator(db), new UserSectionScopeService(db), new SegregationOfDutiesGuard(db));
+        new(db, ReviewGate(db), SampleSummary(db), Archive(db, storage), ResultProjection(db), new ReferenceNumberGenerator(db), new UserSectionScopeService(db), new SegregationOfDutiesGuard(db), new TestOrderOutcomeService(db), new OosGate(db, new OosOpeningRule(db)));
 
     public static SectionClosureService SectionClosure(MicroLimsDbContext db) =>
         new(db, ReviewGate(db), new UserSectionScopeService(db), SampleApproval(db));

@@ -15,9 +15,10 @@ using Xunit.Abstractions;
 namespace MicroLIMS.Tests.IntegrationTests;
 
 [Collection("PostgresDatabaseCollection")]
-public class TestingWorkspacePerformancePostgresIntegrationTests
+public class TestingWorkspacePerformancePostgresIntegrationTests : IAsyncLifetime
 {
-    private readonly PostgresTestFixture _fixture;
+    // Isolate each measured dataset from samples and protected records in the shared database.
+    private readonly PostgresTestFixture _fixture = new();
     private readonly ITestOutputHelper _output;
 
     /// <summary>
@@ -89,11 +90,14 @@ public class TestingWorkspacePerformancePostgresIntegrationTests
     /// </summary>
     public const double MaxPageTimeGrowthRatio = 2.0;
 
-    public TestingWorkspacePerformancePostgresIntegrationTests(PostgresTestFixture fixture, ITestOutputHelper output)
+    public TestingWorkspacePerformancePostgresIntegrationTests(ITestOutputHelper output)
     {
-        _fixture = fixture;
         _output = output;
     }
+
+    public Task InitializeAsync() => _fixture.InitializeAsync();
+
+    public Task DisposeAsync() => _fixture.DisposeAsync();
 
     [PostgresFact]
     public async Task GetActiveSamples_SqlCommandCount_IsBounded_AndDoesNotGrowWithData()
@@ -101,7 +105,6 @@ public class TestingWorkspacePerformancePostgresIntegrationTests
         var interceptor = new SqlCommandCountingInterceptor();
         await using var db = _fixture.CreateDbContext(interceptor);
 
-        await CleanUpSamplesAsync(db);
         var (causeId, itemId) = await EnsureBaselineDataAsync(db);
 
         // --- Phase 1: Seed N samples and measure SQL command count ---
@@ -150,7 +153,6 @@ public class TestingWorkspacePerformancePostgresIntegrationTests
     {
         await using var db = _fixture.CreateDbContext();
 
-        await CleanUpSamplesAsync(db);
         var (causeId, itemId) = await EnsureBaselineDataAsync(db);
 
         // Seed 250 samples (enough to exceed default 50 and clamp threshold 200)
@@ -190,7 +192,6 @@ public class TestingWorkspacePerformancePostgresIntegrationTests
     {
         await using var db = _fixture.CreateDbContext();
 
-        await CleanUpSamplesAsync(db);
         var (causeId, itemId) = await EnsureBaselineDataAsync(db);
 
         // 1. Seed N samples
@@ -239,11 +240,6 @@ public class TestingWorkspacePerformancePostgresIntegrationTests
             best = Math.Min(best, sw.Elapsed.TotalMilliseconds);
         }
         return Math.Max(best, 0.1);
-    }
-
-    private static async Task CleanUpSamplesAsync(MicroLimsDbContext db)
-    {
-        await db.Database.ExecuteSqlRawAsync("TRUNCATE TABLE \"Samples\" CASCADE;");
     }
 
     private async Task<(int CauseId, int ItemId)> EnsureBaselineDataAsync(MicroLimsDbContext db)

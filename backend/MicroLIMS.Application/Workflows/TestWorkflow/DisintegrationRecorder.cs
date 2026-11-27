@@ -19,11 +19,11 @@ public sealed class DisintegrationRecorder : TestWorkflowSupport
     public DisintegrationRecorder(TestWorkflowDependencies deps) : base(deps) { }
 
     public Task<TestWorkflowResult> RecordDisintegrationResultAsync(
-        int testOrderId, DisintegrationPayload payload, int userId, string? ipAddress = null) =>
-        UnitOfWork.RunAsync(_db, () => RecordDisintegrationResultCoreAsync(testOrderId, payload, userId, ipAddress));
+        int testOrderId, DisintegrationPayload payload, int userId, string? ipAddress = null, CancellationToken cancellationToken = default) =>
+        UnitOfWork.RunAsync(_db, () => RecordDisintegrationResultCoreAsync(testOrderId, payload, userId, ipAddress, cancellationToken));
 
     private async Task<TestWorkflowResult> RecordDisintegrationResultCoreAsync(
-        int testOrderId, DisintegrationPayload payload, int userId, string? ipAddress = null)
+        int testOrderId, DisintegrationPayload payload, int userId, string? ipAddress, CancellationToken cancellationToken)
     {
         if (payload.UnitMinutes == null)
             throw new BusinessRuleException(MessageCodes.DisintegrationUnitMinutesRequired, "Unit minutes are required.");
@@ -32,6 +32,8 @@ public sealed class DisintegrationRecorder : TestWorkflowSupport
 
         var (order, definition, specById, analysedAtUtc) = await ValidateTestAnalysisOrderAsync(
             testOrderId, payload.AnalysedAt, payload.EquipmentId, null, payload.Password, WorkflowType.Disintegration, userId);
+        using var recording = await RequireCompetentAsync(userId, order.Id, cancellationToken);
+        await CaptureSopRevisionAsync(order, cancellationToken);
 
         int s1Units = definition.DisintegrationStage1Units ?? 6;
         int s2Units = definition.DisintegrationStage2Units ?? 12;
@@ -239,11 +241,11 @@ public sealed class DisintegrationRecorder : TestWorkflowSupport
     }
 
     public Task<TestWorkflowResult> RecordDisintegrationStageAsync(
-        int testOrderId, DisintegrationStagePayload payload, int userId, string? ipAddress = null) =>
-        UnitOfWork.RunAsync(_db, () => RecordDisintegrationStageCoreAsync(testOrderId, payload, userId, ipAddress));
+        int testOrderId, DisintegrationStagePayload payload, int userId, string? ipAddress = null, CancellationToken cancellationToken = default) =>
+        UnitOfWork.RunAsync(_db, () => RecordDisintegrationStageCoreAsync(testOrderId, payload, userId, ipAddress, cancellationToken));
 
     private async Task<TestWorkflowResult> RecordDisintegrationStageCoreAsync(
-        int testOrderId, DisintegrationStagePayload payload, int userId, string? ipAddress = null)
+        int testOrderId, DisintegrationStagePayload payload, int userId, string? ipAddress, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(payload.Password))
             throw new BusinessRuleException(MessageCodes.DissolutionPasswordRequired, "Password is required to sign the result.");
@@ -260,6 +262,9 @@ public sealed class DisintegrationRecorder : TestWorkflowSupport
                 MessageCodes.TestOrderNotFound,
                 $"Test order {testOrderId} not found.",
                 new Dictionary<string, string> { ["testOrderId"] = testOrderId.ToString(CultureInfo.InvariantCulture) });
+        await _sectionScope.EnsureTestOrderAccessAsync(userId, testOrderId);
+        using var recording = await RequireCompetentAsync(userId, order.Id, cancellationToken);
+        await CaptureSopRevisionAsync(order, cancellationToken);
 
         RequireOrderNotFinalized(order);
 
@@ -278,8 +283,6 @@ public sealed class DisintegrationRecorder : TestWorkflowSupport
                 MessageCodes.DisintegrationWrongWorkflow,
                 $"Test order {testOrderId} is not a Disintegration workflow.",
                 new Dictionary<string, string> { ["testOrderId"] = testOrderId.ToString(CultureInfo.InvariantCulture) });
-
-        await _sectionScope.EnsureTestOrderAccessAsync(userId, testOrderId);
 
         var entry = await _db.TestAnalyses
             .Include(e => e.ParameterResults)

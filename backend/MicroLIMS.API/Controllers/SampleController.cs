@@ -119,9 +119,9 @@ public class SampleController : ControllerBase
     // for a Reviewer, Section Head or System Administrator.
     [HttpPut("{id}/correct")]
     [Authorize(Policy = PermissionConstants.SamplesCorrect)]
-    public async Task<IActionResult> Correct(int id, CorrectSampleRequest request)
+    public async Task<IActionResult> Correct(int id, CorrectSampleRequest request, CancellationToken ct = default)
     {
-        await _scopeService.EnsureSampleAccessAsync(CurrentUserId, id);
+        await _scopeService.EnsureSampleAccessAsync(CurrentUserId, id, ct: ct);
         var sample = await _correctionService.CorrectAsync(
             id,
             new SampleCorrectionRequest(
@@ -133,16 +133,16 @@ public class SampleController : ControllerBase
             request.Reason,
             request.Password,
             CurrentUserId,
-            HttpContext.Connection.RemoteIpAddress?.ToString());
+            HttpContext.Connection.RemoteIpAddress?.ToString(), ct);
         return Ok(ApiResponse<object>.Ok(sample));
     }
 
     [HttpPut("{id}/assign-analyst")]
     [Authorize(Policy = PermissionConstants.SamplesAssignAnalyst)]
-    public async Task<IActionResult> AssignAnalyst(int id, AssignAnalystRequest request)
+    public async Task<IActionResult> AssignAnalyst(int id, AssignAnalystRequest request, CancellationToken ct = default)
     {
-        await _scopeService.EnsureSampleAccessAsync(CurrentUserId, id);
-        var sample = await _assignmentService.AssignAnalystAsync(id, request.AnalystUserId, CurrentUserId, request.Reason);
+        await _scopeService.EnsureSampleAccessAsync(CurrentUserId, id, ct);
+        var sample = await _assignmentService.AssignAnalystAsync(id, request.AnalystUserId, CurrentUserId, request.Reason, ct);
         return Ok(ApiResponse<object>.Ok(sample));
     }
 
@@ -157,29 +157,29 @@ public class SampleController : ControllerBase
     // Each test on the sample, who is on it, and who the caller may put on it.
     [HttpGet("{id}/assignment-options")]
     [Authorize(Policy = PermissionConstants.SamplesAssignAnalyst)]
-    public async Task<IActionResult> AssignmentOptions(int id)
+    public async Task<IActionResult> AssignmentOptions(int id, CancellationToken ct = default)
     {
-        await _scopeService.EnsureSampleAccessAsync(CurrentUserId, id);
-        return Ok(ApiResponse<object>.Ok(await _assignmentService.GetAssignmentOptionsAsync(id, CurrentUserId)));
+        await _scopeService.EnsureSampleAccessAsync(CurrentUserId, id, ct);
+        return Ok(ApiResponse<object>.Ok(await _assignmentService.GetAssignmentOptionsAsync(id, CurrentUserId, ct)));
     }
 
     // A different analyst per test, saved together.
     [HttpPut("{id}/test-assignments")]
     [Authorize(Policy = PermissionConstants.SamplesAssignAnalyst)]
-    public async Task<IActionResult> AssignTestAnalysts(int id, AssignTestAnalystsRequest request)
+    public async Task<IActionResult> AssignTestAnalysts(int id, AssignTestAnalystsRequest request, CancellationToken ct = default)
     {
-        await _scopeService.EnsureSampleAccessAsync(CurrentUserId, id);
-        var sample = await _assignmentService.AssignTestsAsync(id, request.Assignments ?? new(), CurrentUserId, request.Reason);
+        await _scopeService.EnsureSampleAccessAsync(CurrentUserId, id, ct);
+        var sample = await _assignmentService.AssignTestsAsync(id, request.Assignments ?? new(), CurrentUserId, request.Reason, ct);
         return Ok(ApiResponse<object>.Ok(sample));
     }
 
     [HttpPost("{id}/void")]
     [Authorize(Policy = PermissionConstants.SamplesCorrect)]
-    public async Task<IActionResult> Void(int id, [FromBody] VoidSampleRequest request)
+    public async Task<IActionResult> Void(int id, [FromBody] VoidSampleRequest request, CancellationToken ct = default)
     {
-        await _scopeService.EnsureSampleAccessAsync(CurrentUserId, id);
+        await _scopeService.EnsureSampleAccessAsync(CurrentUserId, id, ct);
         var sample = await _correctionService.VoidAsync(
-            id, request.Reason, request.Password, CurrentUserId, HttpContext.Connection.RemoteIpAddress?.ToString());
+            id, request.Reason, request.Password, CurrentUserId, HttpContext.Connection.RemoteIpAddress?.ToString(), ct);
         return Ok(ApiResponse<object>.Ok(sample));
     }
 

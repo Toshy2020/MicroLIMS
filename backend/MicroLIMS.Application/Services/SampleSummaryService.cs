@@ -6,6 +6,7 @@ using MicroLIMS.Domain.Enums;
 using MicroLIMS.Application.Abstractions.Pdf;
 using MicroLIMS.Application.Abstractions.Word;
 using MicroLIMS.Application.Abstractions.Persistence;
+using MicroLIMS.Application.Services.Oos;
 
 namespace MicroLIMS.Application.Services;
 
@@ -20,14 +21,20 @@ public class SampleSummaryService
     private readonly IWordGenerator _wordGenerator;
     private readonly ReviewGateService _reviewGate;
     private readonly TimeProvider _time;
+    private readonly OosGate _oosGate;
+    private readonly TimeZoneInfo? _labZone;
+    private readonly Interfaces.ISopCaptureStartDateReader? _sopCaptureStartDateReader;
 
-    public SampleSummaryService(IMicroLimsDbContext db, IPdfGenerator pdfGenerator, IWordGenerator wordGenerator, ReviewGateService reviewGate, TimeProvider? timeProvider = null)
+    public SampleSummaryService(IMicroLimsDbContext db, IPdfGenerator pdfGenerator, IWordGenerator wordGenerator, ReviewGateService reviewGate, OosGate oosGate, TimeProvider? timeProvider = null, Interfaces.ILabClock? labClock = null, Interfaces.ISopCaptureStartDateReader? sopCaptureStartDateReader = null)
     {
         _time = timeProvider ?? TimeProvider.System;
         _db = db;
         _pdfGenerator = pdfGenerator;
         _wordGenerator = wordGenerator;
         _reviewGate = reviewGate;
+        _oosGate = oosGate;
+        _labZone = labClock?.LabTimeZone;
+        _sopCaptureStartDateReader = sopCaptureStartDateReader;
     }
 
     // A retest can be partial - only the TestCode(s) actually selected for
@@ -43,22 +50,41 @@ public class SampleSummaryService
     // actually carried that retest to its conclusion - recursing through
     // NewSampleRequest's two siblings and multi-level escalation the same
     // way SampleApprovalService.PropagateOosOutcomeAsync does.
-    private async Task<(List<TestOrder> Orders, Dictionary<int, string> SourceReferenceByOrderId)> ResolveEffectiveTestOrdersAsync(Sample sample, int depth = 0)
+    private async Task<(List<TestOrder> Orders, Dictionary<int, string> SourceReferenceByOrderId, Dictionary<int, ResolvedPlanRetest> ReportableByOrderId)> ResolveEffectiveTestOrdersAsync(Sample sample, int depth = 0, CancellationToken ct = default)
     {
         var orders = new List<TestOrder>(sample.TestOrders);
         var sourceRef = new Dictionary<int, string>();
+        var reportableByOrder = new Dictionary<int, ResolvedPlanRetest>();
 
         var supersededTestCodes = sample.TestOrders.Where(o => o.IsSuperseded).Select(o => o.TestCode).ToHashSet();
         if (supersededTestCodes.Count == 0 || sample.OosGroupCode is null || depth > 10)
-            return (orders, sourceRef);
+            return (orders, sourceRef, reportableByOrder);
+
+        HashSet<int>? excludedChildIds = null;
+        Dictionary<int, ResolvedPlanRetest>? reportableBySample = null;
+        if (depth == 0)
+        {
+            var resolution = await OosReportableRetest.ResolveAsync(_db, sample.Id, ct);
+            if (resolution.ByInvestigationId.Count > 0)
+            {
+                reportableBySample = resolution.ByInvestigationId.Values.ToDictionary(r => r.ReportableSampleId);
+                excludedChildIds = resolution.SignedPlanSampleToInvestigationId
+                    .Where(kv => resolution.ByInvestigationId.TryGetValue(kv.Value, out var resolved) && kv.Key != resolved.ReportableSampleId)
+                    .Select(kv => kv.Key)
+                    .ToHashSet();
+            }
+        }
 
         var children = await _db.Samples.Include(c => c.TestOrders)
             .Where(c => c.OriginSampleId == sample.Id)
-            .ToListAsync();
+            .ToListAsync(ct);
 
         foreach (var child in children)
         {
-            var (childOrders, childSourceRef) = await ResolveEffectiveTestOrdersAsync(child, depth + 1);
+            if (excludedChildIds is not null && excludedChildIds.Contains(child.Id))
+                continue;
+
+            var (childOrders, childSourceRef, childReportable) = await ResolveEffectiveTestOrdersAsync(child, depth + 1, ct);
             foreach (var order in childOrders)
             {
                 // Only pull in TestCodes this sample actually superseded -
@@ -67,10 +93,14 @@ public class SampleSummaryService
                 if (!supersededTestCodes.Contains(order.TestCode)) continue;
                 orders.Add(order);
                 sourceRef[order.Id] = childSourceRef.TryGetValue(order.Id, out var deeper) ? deeper : child.ReferenceNumber;
+                if (childReportable.TryGetValue(order.Id, out var deeperRep))
+                    reportableByOrder[order.Id] = deeperRep;
+                else if (reportableBySample is not null && reportableBySample.TryGetValue(child.Id, out var directRep))
+                    reportableByOrder[order.Id] = directRep;
             }
         }
 
-        return (orders, sourceRef);
+        return (orders, sourceRef, reportableByOrder);
     }
 
     // sectionIds: the viewer's laboratory sections (null = unrestricted). Only
@@ -81,15 +111,16 @@ public class SampleSummaryService
     // CombinedCoaAvailable), a member of any of its labs may view and print
     // the combined certificate, other labs' results included (user decision,
     // lab separation stage 4). Before that it is as lab-scoped as the summary.
-    public async Task<SampleSummaryDto?> GetCertificateSummaryAsync(int sampleId, IReadOnlyCollection<int>? sectionIds)
+    public async Task<SampleSummaryDto?> GetCertificateSummaryAsync(int sampleId, IReadOnlyCollection<int>? sectionIds, CancellationToken ct = default)
     {
-        var status = await _db.Samples.Where(s => s.Id == sampleId).Select(s => (SampleStatus?)s.Status).FirstOrDefaultAsync();
+        var status = await _db.Samples.Where(s => s.Id == sampleId).Select(s => (SampleStatus?)s.Status).FirstOrDefaultAsync(ct);
         if (status is null) return null;
+        await _oosGate.EnsureCertificateAllowedAsync(sampleId, ct);
         var final = status is SampleStatus.Approved or SampleStatus.Rejected;
-        return await GetSummaryAsync(sampleId, final ? null : sectionIds);
+        return await GetSummaryAsync(sampleId, final ? null : sectionIds, ct);
     }
 
-    public async Task<SampleSummaryDto?> GetSummaryAsync(int sampleId, IReadOnlyCollection<int>? sectionIds = null)
+    public async Task<SampleSummaryDto?> GetSummaryAsync(int sampleId, IReadOnlyCollection<int>? sectionIds = null, CancellationToken ct = default)
     {
         var sample = await _db.Samples
             .Include(s => s.SectionSignoffs)
@@ -99,26 +130,37 @@ public class SampleSummaryService
             .Include(s => s.Machine)
             .Include(s => s.CauseOfTesting)
             .Include(s => s.TestOrders)
-            .FirstOrDefaultAsync(s => s.Id == sampleId);
+            .FirstOrDefaultAsync(s => s.Id == sampleId, ct);
         if (sample is null) return null;
 
-        var timeline = await _reviewGate.GetTimelineAsync(ReviewEntityTypes.Sample, sampleId);
+        var timeline = await _reviewGate.GetTimelineAsync(ReviewEntityTypes.Sample, sampleId, ct);
 
-        var (effectiveTestOrders, sourceRefByOrderId) = await ResolveEffectiveTestOrdersAsync(sample);
+        var (effectiveTestOrders, sourceRefByOrderId, reportableByOrderId) = await ResolveEffectiveTestOrdersAsync(sample, ct: ct);
         if (sectionIds is not null)
             effectiveTestOrders = effectiveTestOrders.Where(t => sectionIds.Contains(t.SectionId)).ToList();
         var sectionRows = await _db.DocumentSections.AsNoTracking()
-            .ToDictionaryAsync(s => s.Id, s => new SampleSectionRow(s.Code, s.Name));
+            .ToDictionaryAsync(s => s.Id, s => new SampleSectionRow(s.Code, s.Name), ct);
 
         var testOrderIds = effectiveTestOrders.Select(t => t.Id).ToList();
+
+        var overrideMeaning = ReportVocabulary.SignatureMeaning(nameof(SignatureMeaning.CompetencyOverride));
+        var competencyOverrides = await _db.CompetencyOverrides.AsNoTracking()
+            .Where(row => testOrderIds.Contains(row.TestOrderId))
+            .OrderBy(row => row.GrantedAtUtc).ThenBy(row => row.Id)
+            .Select(row => new
+            {
+                row.TestOrderId,
+                Manifestation = new CompetencyOverrideDto(row.AnalystUser.FullName, row.Signature.UserFullNameSnapshot,
+                    row.GrantedAtUtc, overrideMeaning, row.Reason, row.EndedAtUtc)
+            }).ToListAsync(ct);
 
         var incubations = await _db.Incubations
             .Where(i => i.TestOrderId != null && testOrderIds.Contains(i.TestOrderId.Value))
             .Include(i => i.Media).ThenInclude(m => m!.Material)
             .Include(i => i.IncubatorEquipment)
-            .ToListAsync();
-        var results = await _db.Results.Where(r => testOrderIds.Contains(r.TestOrderId)).ToListAsync();
-        var countTestReadings = await _db.CountTestReadings.Where(r => testOrderIds.Contains(r.TestOrderId)).ToListAsync();
+            .ToListAsync(ct);
+        var results = await _db.Results.Where(r => testOrderIds.Contains(r.TestOrderId)).ToListAsync(ct);
+        var countTestReadings = await _db.CountTestReadings.Where(r => testOrderIds.Contains(r.TestOrderId)).ToListAsync(ct);
         var activeAnalyses = await _db.TestAnalyses.AsNoTracking()
             .Where(e => testOrderIds.Contains(e.TestOrderId) && e.IsActive)
             .Include(e => e.Equipment)
@@ -169,19 +211,19 @@ public class SampleSummaryService
                     }).ToList()
                 }).ToList()
             })
-            .ToListAsync();
-        var pathogenObservations = await _db.PathogenObservations.Where(p => testOrderIds.Contains(p.TestOrderId)).ToListAsync();
+            .ToListAsync(ct);
+        var pathogenObservations = await _db.PathogenObservations.Where(p => testOrderIds.Contains(p.TestOrderId)).ToListAsync(ct);
         var biochemicalResults = await _db.WorkflowStepResults
             .Where(r => testOrderIds.Contains(r.TestOrderId) && r.BiochemicalResultText != null)
-            .ToListAsync();
-        var workflowHistory = await _db.WorkflowHistories.Where(w => testOrderIds.Contains(w.TestOrderId)).ToListAsync();
+            .ToListAsync(ct);
+        var workflowHistory = await _db.WorkflowHistories.Where(w => testOrderIds.Contains(w.TestOrderId)).ToListAsync(ct);
         var sampleLocations = await _db.SampleLocations
             .Where(l => testOrderIds.Contains(l.TestOrderId))
             .Include(l => l.RoomTestConfiguration!).ThenInclude(c => c.Room)
             .Include(l => l.MachinePartConfiguration!).ThenInclude(c => c.MachinePart)
             .Include(l => l.WaterSamplingPoint)
             .Include(l => l.SamplingConfiguration!).ThenInclude(c => c.WaterSamplingPoint)
-            .ToListAsync();
+            .ToListAsync(ct);
         var locationPathogenObservations = await _db.LocationPathogenObservations
             .Where(o => testOrderIds.Contains(o.TestOrderId))
             .Include(o => o.SampleLocation!).ThenInclude(l => l.RoomTestConfiguration!).ThenInclude(c => c.Room)
@@ -190,7 +232,7 @@ public class SampleSummaryService
             .Include(o => o.SampleLocation!).ThenInclude(l => l.SamplingConfiguration!).ThenInclude(c => c.WaterSamplingPoint)
             .Include(o => o.ConfirmatoryPlateObservations)
             .OrderBy(o => o.ObservedAt)
-            .ToListAsync();
+            .ToListAsync(ct);
         var testDefinitions = await _db.TestDefinitions
             .Include(t => t.Steps)
                 .ThenInclude(s => s.StepMedia)
@@ -201,7 +243,7 @@ public class SampleSummaryService
             .Include(t => t.Steps)
                 .ThenInclude(s => s.IncubationStages)
             .Where(t => effectiveTestOrders.Select(o => o.TestCode).Contains(t.Code))
-            .ToDictionaryAsync(t => t.Code);
+            .ToDictionaryAsync(t => t.Code, ct);
 
         var mediaLookup = incubations
             .Where(i => i.MediaId.HasValue && i.Media != null)
@@ -211,7 +253,7 @@ public class SampleSummaryService
                 g => (MaterialId: g.First().Media!.MaterialId, MediaProductId: g.First().Media!.Material?.MediaProductId));
 
         var preparation = await _db.SamplePreparations
-            .FirstOrDefaultAsync(p => p.SampleId == sampleId);
+            .FirstOrDefaultAsync(p => p.SampleId == sampleId, ct);
 
         // Specification text per (Item, TestCode) - already resolved onto
         // CountTestReadingDetailDto.SpecLimit for quantitative tests at
@@ -224,14 +266,14 @@ public class SampleSummaryService
         // A test can carry several specification parameters (e.g. Impurity
         // A / B / Total); they are listed in display order. Only the rows
         // for the sample's production stage are shown (SpecificationLookup).
-        var sampleStageRole = await SpecificationLookup.SampleStageRoleAsync(_db, sample.Id);
+        var sampleStageRole = await SpecificationLookup.SampleStageRoleAsync(_db, sample.Id, ct);
         var specificationsByTestCode = sample.ItemId is null
             ? new Dictionary<string, List<Specification>>()
             : (await _db.Specifications
                 .Include(sp => sp.Stages)
                 .Where(sp => sp.ItemId == sample.ItemId.Value)
                 .OrderBy(sp => sp.DisplayOrder).ThenBy(sp => sp.Id)
-                .ToListAsync())
+                .ToListAsync(ct))
                 .GroupBy(sp => sp.TestCode)
                 .ToDictionary(g => g.Key, g => SpecificationLookup.SelectForStage(g, sampleStageRole, sample.Grade));
 
@@ -239,12 +281,13 @@ public class SampleSummaryService
             .Where(s => s.EntityType == "Sample" && s.EntityId == sampleId)
             .OrderBy(s => s.SignedAt)
             .Select(s => new SignatureDto(s.UserFullNameSnapshot, s.UsernameSnapshot, s.RoleNameSnapshot ?? s.RoleSnapshot, s.MeaningOfSignature.ToString(), s.SignedAt, s.Comment))
-            .ToListAsync();
+            .ToListAsync(ct);
 
         var data = new SampleSummaryData
         {
             Sample = sample,
             EffectiveTestOrders = effectiveTestOrders,
+            CompetencyOverrides = competencyOverrides.ToLookup(row => row.TestOrderId, row => row.Manifestation),
             SourceRefByOrderId = sourceRefByOrderId,
             SectionRows = sectionRows,
             Incubations = incubations,
@@ -266,7 +309,7 @@ public class SampleSummaryService
         // this summary, instead of a query per row.
         var userIds = SampleSummaryUserIds.Collect(data, preparation);
 
-        var names = await _db.Users.Where(u => userIds.Contains(u.Id)).ToDictionaryAsync(u => u.Id, u => u.FullName);
+        var names = await _db.Users.Where(u => userIds.Contains(u.Id)).ToDictionaryAsync(u => u.Id, u => u.FullName, ct);
         string NameOf(int userId) => names.TryGetValue(userId, out var n) ? n : "Unknown";
 
         var assignedOrder = effectiveTestOrders.FirstOrDefault(o => o.AssignedAnalystId.HasValue);
@@ -292,6 +335,11 @@ public class SampleSummaryService
             SampleId = sample.Id,
             ReferenceNumber = sample.ReferenceNumber,
             Category = sample.Category.ToString(),
+            ItemId = sample.ItemId,
+            LabTimeZoneId = TestOrderSopDisplay.LabTimeZoneId(_labZone),
+            SopCaptureStartDateUtc = _sopCaptureStartDateReader is null
+                ? null
+                : await _sopCaptureStartDateReader.GetStartDateUtcAsync(ct),
             DisplayName = summaryDisplayName,
             ProductionStage = sample.ProductionStage,
             CauseOfTesting = sample.CauseOfTesting?.Name ?? string.Empty,
@@ -350,23 +398,82 @@ public class SampleSummaryService
             TestOrders = effectiveTestOrders.Select(order => SampleSummaryTestOrderBuilder.Build(order, data, NameOf)).ToList()
         };
 
+        var sopNotices = await TestOrderSopDisplay.ReadNoticesAsync(_db, effectiveTestOrders, data.Now, ct);
+        foreach (var orderDto in dto.TestOrders)
+            orderDto.NewerSopRevision = sopNotices.GetValueOrDefault(orderDto.TestOrderId);
+
+        var oosByOrderId = (await (from r in _db.OosInvestigationResults.AsNoTracking()
+                                   join i in _db.OosInvestigations.AsNoTracking() on r.InvestigationId equals i.Id
+                                   where testOrderIds.Contains(r.TestOrderId) && i.Kind == OosInvestigationKind.Oos
+                                   select new { r.TestOrderId, i.Number, r.IsInvalidated })
+                                  .ToListAsync(ct))
+            .GroupBy(x => x.TestOrderId)
+            .ToDictionary(g => g.Key, g => (Number: g.First().Number, IsInvalidated: g.Any(x => x.IsInvalidated)));
+
+        var oosByTestCode = effectiveTestOrders
+            .Where(o => o.SampleId == sampleId && oosByOrderId.ContainsKey(o.Id))
+            .GroupBy(o => o.TestCode)
+            .ToDictionary(g => g.Key, g => oosByOrderId[g.First().Id].Number);
+
+        var signatureIds = reportableByOrderId.Values
+            .Select(r => r.SignatureId)
+            .Where(id => id.HasValue)
+            .Select(id => id!.Value)
+            .Distinct()
+            .ToArray();
+        var planSignatures = signatureIds.Length == 0
+            ? new Dictionary<int, (string FullName, DateTime SignedAt, string Meaning)>()
+            : await _db.ElectronicSignatures.AsNoTracking()
+                .Where(s => signatureIds.Contains(s.Id))
+                .ToDictionaryAsync(
+                    s => s.Id,
+                    s => (FullName: s.UserFullNameSnapshot, SignedAt: s.SignedAt, Meaning: ReportVocabulary.SignatureMeaning(s.MeaningOfSignature.ToString())),
+                    ct);
+
+        foreach (var orderDto in dto.TestOrders)
+        {
+            if (oosByOrderId.TryGetValue(orderDto.TestOrderId, out var info))
+            {
+                orderDto.OosInvestigationNumber = info.Number;
+                orderDto.IsOosInvalidated = info.IsInvalidated;
+            }
+            else if (orderDto.SourceSampleReferenceNumber is not null &&
+                     oosByTestCode.TryGetValue(orderDto.TestCode, out var originNumber))
+            {
+                orderDto.OosInvestigationNumber = originNumber;
+            }
+
+            if (reportableByOrderId.TryGetValue(orderDto.TestOrderId, out var rep) &&
+                rep.SignatureId is int sigId &&
+                planSignatures.TryGetValue(sigId, out var sigInfo))
+            {
+                orderDto.ReportableRetest = new ReportableRetestDto(
+                    orderDto.SourceSampleReferenceNumber ?? string.Empty,
+                    rep.PlanRevision,
+                    rep.ReportableRetestNumber ?? 1,
+                    sigInfo.FullName,
+                    sigInfo.SignedAt,
+                    sigInfo.Meaning);
+            }
+        }
+
         dto.Sections = SampleSummarySectionsBuilder.Build(sample, sectionIds, sectionRows, NameOf);
         dto.AllSectionsVisible = dto.Sections.All(x => x.CanView);
         dto.OverallStatus = SampleSectionRollup.Overall(sample).ToString();
         dto.CombinedCoaAvailable = sample.Status is SampleStatus.Approved or SampleStatus.Rejected;
-        dto.Certificate = CertificateOfAnalysisBuilder.Build(dto, await SupportingRowsAsync(sample.ItemId, sample.Grade), sectionIds);
+        dto.Certificate = CertificateOfAnalysisBuilder.Build(dto, await SupportingRowsAsync(sample.ItemId, sample.Grade, ct), sectionIds);
 
         return dto;
     }
 
     // The sample item's approved not-applicable tests and supplier-stated
     // attributes for its grade, as the Certificate of Analysis prints them.
-    private async Task<List<CoaSimpleRowDto>> SupportingRowsAsync(int? itemId, string? grade)
+    private async Task<List<CoaSimpleRowDto>> SupportingRowsAsync(int? itemId, string? grade, CancellationToken ct = default)
     {
         if (itemId is not { } id) return new();
 
-        var notApplicable = await NotApplicableTestService.LoadApprovedAsync(_db, id);
-        var supplier = await SupplierStatedAttributeService.ForSampleAsync(_db, id, grade);
+        var notApplicable = await NotApplicableTestService.LoadApprovedAsync(_db, id, ct);
+        var supplier = await SupplierStatedAttributeService.ForSampleAsync(_db, id, grade, ct);
         if (notApplicable.Count == 0 && supplier.Count == 0) return new();
 
         var codes = notApplicable.Select(n => n.TestCode).Distinct().ToList();
@@ -375,10 +482,10 @@ public class SampleSummaryService
 
         var sectionByCode = await _db.TestDefinitions.AsNoTracking()
             .Where(td => codes.Contains(td.Code))
-            .ToDictionaryAsync(td => td.Code, td => (td.DisplayName, SectionId: (int?)td.SectionId));
+            .ToDictionaryAsync(td => td.Code, td => (td.DisplayName, SectionId: (int?)td.SectionId), ct);
         var itemNames = await _db.SampleTests.AsNoTracking()
             .Where(st => st.ItemId == id && codes.Contains(st.TestCode))
-            .ToDictionaryAsync(st => st.TestCode, st => st.DisplayName);
+            .ToDictionaryAsync(st => st.TestCode, st => st.DisplayName, ct);
 
         var tests = codes.ToDictionary(
             c => c,
@@ -391,29 +498,32 @@ public class SampleSummaryService
     // Uses the laid-out renderer (cards, stat boxes, signature blocks) -
     // the same document that gets archived on final decision, so what a
     // user downloads matches the frozen copy exactly.
-    public async Task<(string fileNameStem, byte[] bytes)?> GenerateSummaryPdfAsync(int sampleId, IReadOnlyCollection<int>? sectionIds = null)
+    public async Task<(string fileNameStem, byte[] bytes)?> GenerateSummaryPdfAsync(int sampleId, IReadOnlyCollection<int>? sectionIds = null, CancellationToken ct = default)
     {
-        var summary = await GetSummaryAsync(sampleId, sectionIds);
+        await _oosGate.EnsureCertificateAllowedAsync(sampleId, ct);
+        var summary = await GetSummaryAsync(sampleId, sectionIds, ct);
         if (summary is null) return null;
-        var pdf = await _pdfGenerator.GenerateReportAsync(ReportDocumentMapper.ForSample(summary));
+        var pdf = await _pdfGenerator.GenerateReportAsync(ReportDocumentMapper.ForSample(summary, _labZone));
         return (FileStemFor(summary), pdf);
     }
 
-    public async Task<(string fileNameStem, byte[] bytes)?> GenerateSummaryWordAsync(int sampleId, IReadOnlyCollection<int>? sectionIds = null)
+    public async Task<(string fileNameStem, byte[] bytes)?> GenerateSummaryWordAsync(int sampleId, IReadOnlyCollection<int>? sectionIds = null, CancellationToken ct = default)
     {
-        var summary = await GetSummaryAsync(sampleId, sectionIds);
+        await _oosGate.EnsureCertificateAllowedAsync(sampleId, ct);
+        var summary = await GetSummaryAsync(sampleId, sectionIds, ct);
         if (summary is null) return null;
-        var doc = await _wordGenerator.GenerateFromLinesAsync(TitleFor(summary), BuildReportLines(summary));
+        var doc = await _wordGenerator.GenerateFromLinesAsync(TitleFor(summary), BuildReportLines(summary, _labZone));
         return (FileStemFor(summary), doc);
     }
 
     // Builds the document that gets frozen at final decision. Separate
     // from the download path only so the archive service can hand the
     // same ReportDocument to storage.
-    public async Task<ReportDocument?> BuildReportDocumentAsync(int sampleId)
+    public async Task<ReportDocument?> BuildReportDocumentAsync(int sampleId, CancellationToken ct = default)
     {
-        var summary = await GetSummaryAsync(sampleId);
-        return summary is null ? null : ReportDocumentMapper.ForSample(summary);
+        await _oosGate.EnsureCertificateAllowedAsync(sampleId, ct);
+        var summary = await GetSummaryAsync(sampleId, ct: ct);
+        return summary is null ? null : ReportDocumentMapper.ForSample(summary, _labZone);
     }
 
     private static string TitleFor(SampleSummaryDto s) => $"Sample Summary - {s.ReferenceNumber}";
@@ -423,7 +533,7 @@ public class SampleSummaryService
     // SimpleDocxWriter expects - same shape as the 5
     // sections SampleSummaryDialog.tsx renders, so the export reads as
     // the same document, just on paper/in Word instead of a floating page.
-    public static List<string> BuildReportLines(SampleSummaryDto s)
+    public static List<string> BuildReportLines(SampleSummaryDto s, TimeZoneInfo? labZone = null)
     {
         var lines = new List<string>
         {
@@ -447,6 +557,10 @@ public class SampleSummaryService
         if (s.StorageCondition is not null)
             lines.Add($"Storage Condition: {s.StorageCondition}" + (s.StorageCondition == "Refrigerator" ? $" ({s.StorageTimeHours ?? 0}h)" : ""));
         lines.Add($"Status: {s.Status}");
+        foreach (var method in s.Certificate.Sample.MethodDocuments)
+            lines.Add($"Method: {(method.PreCaptureStartDateUtc is { } preCaptureUtc
+                ? ReportDocumentMapper.PreCaptureText(preCaptureUtc, labZone)
+                : ReportDocumentMapper.SopMethodText(method.DocumentCode, method.Title, method.RevisionNumber, method.EffectiveDateUtc, labZone))}");
         lines.Add("");
 
         if (s.Preparation is not null)
@@ -471,6 +585,18 @@ public class SampleSummaryService
         foreach (var order in s.TestOrders)
         {
             lines.Add($"{order.TestCode} - {order.TestDisplayName} [{order.Status}]{(order.IsSuperseded ? " (superseded)" : "")}");
+
+            if (order.SopCapture is not null || s.ItemId.HasValue)
+                lines.Add($"  {ReportDocumentMapper.SopCaptureText(order.SopCapture, labZone, s.SopCaptureStartDateUtc)}");
+
+            foreach (var competencyOverride in order.CompetencyOverrides)
+            {
+                lines.Add($"  {competencyOverride.Meaning} for {competencyOverride.AnalystName}");
+                lines.Add($"  Signed by {competencyOverride.GrantedByFullName} at {competencyOverride.GrantedAtUtc:dd-MMM-yyyy HH:mm:ss} UTC");
+                lines.Add($"  Reason: {competencyOverride.Reason}");
+                if (competencyOverride.EndedAtUtc is { } endedAt)
+                    lines.Add($"  Ended at {endedAt:dd-MMM-yyyy HH:mm:ss} UTC");
+            }
 
             foreach (var inc in order.Incubations)
             {

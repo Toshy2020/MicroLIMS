@@ -11,6 +11,7 @@ import { useRecordChanged } from "./useRecordChanged";
 export interface ActionAvailabilityEntry {
   allowed: boolean;
   reason?: string;
+  reasonCode?: string;
 }
 
 export interface ActionAvailability {
@@ -102,9 +103,11 @@ export function useActionAvailability(
       if (!found) return null;
       if (found.allowed) return { allowed: true };
       const english = found.reason ?? undefined;
-      if (!translate || !found.reasonCode) return { allowed: false, reason: english };
+      const reasonCode = found.reasonCode ?? undefined;
+      if (!translate || !found.reasonCode) return { allowed: false, reason: english, reasonCode };
       return {
         allowed: false,
+        reasonCode,
         reason: translateServerDetail({
           code: found.reasonCode,
           params: found.reasonParams ?? undefined,

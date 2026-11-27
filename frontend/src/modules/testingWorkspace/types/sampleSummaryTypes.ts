@@ -1,6 +1,7 @@
 // Mirrors backend MicroLIMS.Application.DTOs.SampleSummaryDto and friends.
 
 import type { CertificateOfAnalysis } from "../coaAggregation";
+import type { TestOrderSop } from "./sopCaptureTypes";
 
 export interface IncubationDetail {
   stepName: string;
@@ -96,7 +97,27 @@ export interface SampleLocationDetail {
   enteredAt: string | null;
 }
 
-export interface TestOrderSummaryDetail {
+export interface CompetencyOverrideManifestation {
+  analystName: string;
+  grantedByFullName: string;
+  grantedAtUtc: string;
+  meaning: string;
+  reason: string;
+  endedAtUtc: string | null;
+}
+
+export interface ReportableRetest {
+  referenceNumber: string;
+  planRevision: number;
+  retestNumber: number;
+  signerFullName: string;
+  signedAtUtc: string;
+  meaningText: string;
+}
+
+export interface TestOrderSummaryDetail extends TestOrderSop {
+  isOosInvalidated?: boolean;
+  competencyOverrides?: CompetencyOverrideManifestation[];
   testOrderId: number;
   testCode: string;
   testDisplayName: string;
@@ -117,6 +138,8 @@ export interface TestOrderSummaryDetail {
   isResultEntryAllowed?: boolean;
   resultLockReason?: string | null;
   isSuperseded: boolean;
+  oosInvestigationNumber?: string | null;
+  reportableRetest?: ReportableRetest | null;
   // Set when an outside laboratory ran this test; the result comes from its report.
   outsourcedToLab?: string | null;
   sectionId?: number;
@@ -225,6 +248,8 @@ export type OverallSampleStatus =
   | "Cancelled";
 
 export interface SampleSummary {
+  labTimeZoneId?: string;
+  sopCaptureStartDateUtc?: string | null;
   sampleId: number;
   referenceNumber: string;
   category: string;
@@ -265,6 +290,7 @@ export interface SampleSummary {
   certificateRemarks: string | null;
   previousProductName?: string | null;
   previousProductBatchNumber?: string | null;
+  itemId?: number | null;
   previousProductItemId?: number | null;
   cleaningTechniques?: string[] | null;
   preparation: SamplePreparationSummary | null;

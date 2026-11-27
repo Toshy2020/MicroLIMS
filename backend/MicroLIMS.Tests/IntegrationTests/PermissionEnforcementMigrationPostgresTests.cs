@@ -27,6 +27,8 @@ public class PermissionEnforcementMigrationPostgresTests
     // this migration never sees them.
     private static readonly string[] AddedByLaterMigrations =
     {
+        PermissionConstants.CompetencyManage, PermissionConstants.CompetencyView, PermissionConstants.CompetencyOverride, // View: IsEnforced is set by the seeder
+        PermissionConstants.OosView, PermissionConstants.OosContribute, PermissionConstants.OosRequestDeviation,
         PermissionConstants.MaterialCategoriesManage,
         PermissionConstants.MaterialsRelease,
         PermissionConstants.SolutionsPrepare,
@@ -66,7 +68,12 @@ public class PermissionEnforcementMigrationPostgresTests
         PermissionConstants.LabelsConfigure,
         PermissionConstants.TableViewsShare,
         PermissionConstants.DataExport,
-        PermissionConstants.NotificationsConfigure
+        PermissionConstants.NotificationsConfigure,
+        PermissionConstants.QualityView,
+        PermissionConstants.QualityRaise,
+        PermissionConstants.QualityInvestigate,
+        PermissionConstants.QualityLabConclude,
+        PermissionConstants.QualityApprove
     };
 
     private readonly PostgresTestFixture _fixture;

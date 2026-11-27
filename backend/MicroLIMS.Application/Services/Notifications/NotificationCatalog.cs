@@ -23,8 +23,16 @@ public static class NotificationCatalog
         new("DirectMessage", "info", false, "New direct message"),
         new("Discussion", "info", false, "Discussion activity"),
         new("ConfigurationApprovalWaiting", "info", false, "Configuration awaiting approval"),
+        new("CompetencyExpiry", "warning", false, "Analyst qualification expiring"),
 
-        // Existing types written by Application services
+        // Existing and domain-specific types written by Application services
+        new("OosOpened", "info", false, "OOS investigation opened"),
+        new("OosPhaseTwoStarted", "info", false, "OOS investigation entered Phase II"),
+        new("OosConcluded", "info", false, "OOS investigation concluded"),
+        new("OosDeviationRequested", "info", false, "OOS deviation requested"),
+        new("ExcursionOpened", "info", false, "Excursion review opened"),
+        new("ExcursionConcluded", "info", false, "Excursion review closed"),
+
         new("PendingPreparationConfigApproval", "info", false, "Preparation configuration awaiting approval"),
         new("TestReturnedForRevision", "warning", false, "Test returned for revision"),
         new("TestReturnedForBiochemical", "warning", false, "Test returned for biochemical confirmation"),
@@ -37,6 +45,17 @@ public static class NotificationCatalog
         new("MonitoringDueThisMonth", "warning", false, "Monitoring due this month"),
         new("EquipmentCalibrationOverdue", "warning", false, "Equipment calibration task overdue"),
         new("EquipmentPmOverdue", "warning", false, "Equipment preventive maintenance overdue"),
+
+        new("QualityRecordRaised", "info", false, "Quality record raised"),
+        new("QualityRecordAssigned", "info", false, "Quality record assigned"),
+        new("QualityRecordReturned", "warning", false, "Quality record returned"),
+        new("QualityAwaitingQa", "info", false, "Quality record awaiting QA"),
+        new("QualityActionAssigned", "info", false, "Quality action assigned"),
+        new("QualityRecordClosed", "info", false, "Quality record closed"),
+        new("QualityRecordRejected", "warning", false, "Quality record rejected"),
+        new("QualityRecordCancelled", "warning", false, "Quality record cancelled"),
+        new("QualityRecordOverdue", "warning", false, "Quality record overdue"),
+        new("QualityActionOverdue", "warning", false, "Quality action overdue"),
     ];
 
     public static IReadOnlyDictionary<string, NotificationTypeInfo> Types { get; } =

@@ -13,6 +13,20 @@ namespace MicroLIMS.API.Authorization;
 // standard DefaultAuthorizationPolicyProvider.
 public class PermissionPolicyProvider : IAuthorizationPolicyProvider
 {
+    public const string OosContributeOrManage = "Oos.ContributeOrManage";
+
+    public const string QualityApproveOrInvestigate = "Quality.ApproveOrInvestigate";
+
+    public const string QualityApproveOrMasterDataManage = "Quality.ApproveOrMasterDataManage";
+
+    public static IReadOnlyList<string> PermissionsFor(string policyName) => policyName switch
+    {
+        OosContributeOrManage => [PermissionConstants.OosContribute, PermissionConstants.OosManage],
+        QualityApproveOrInvestigate => [PermissionConstants.QualityApprove, PermissionConstants.QualityInvestigate],
+        QualityApproveOrMasterDataManage => [PermissionConstants.QualityApprove, PermissionConstants.MasterDataManage],
+        _ => [policyName]
+    };
+
     private readonly DefaultAuthorizationPolicyProvider _fallback;
 
     public PermissionPolicyProvider(IOptions<AuthorizationOptions> options)
@@ -26,6 +40,15 @@ public class PermissionPolicyProvider : IAuthorizationPolicyProvider
 
     public Task<AuthorizationPolicy?> GetPolicyAsync(string policyName)
     {
+        if (policyName is OosContributeOrManage or QualityApproveOrInvestigate or QualityApproveOrMasterDataManage)
+        {
+            var permissions = PermissionsFor(policyName);
+            return Task.FromResult<AuthorizationPolicy?>(new AuthorizationPolicyBuilder()
+                .RequireAuthenticatedUser()
+                .RequireAssertion(context => permissions.Any(code => context.User.HasClaim("permission", code)))
+                .Build());
+        }
+
         if (PermissionConstants.All.Contains(policyName))
         {
             var policy = new AuthorizationPolicyBuilder()

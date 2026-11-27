@@ -73,7 +73,7 @@ public class ExceptionMiddleware
         {
             context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
             await CaptureAsync(context, ex, ErrorSource.Backend, ErrorSeverity.Warning);
-            await WriteResponse(context, ApiResponse<object>.Fail(ex.Message, null, null, DetailsOf(ex)));
+            await WriteResponse(context, ApiResponse<object>.Fail(ex.Message, null, null, ex.ErrorDetails ?? DetailsOf(ex)));
         }
         catch (DbUpdateConcurrencyException ex)
         {
@@ -84,7 +84,9 @@ public class ExceptionMiddleware
             // which would otherwise report it as a 500 outage.
             context.Response.StatusCode = (int)HttpStatusCode.Conflict;
             await CaptureAsync(context, ex, ErrorSource.Backend, ErrorSeverity.Warning);
-            await WriteResponse(context, ApiResponse<object>.Fail(ConcurrencyConflictMessage));
+            var details = DetailsOf(ex);
+            await WriteResponse(context, ApiResponse<object>.Fail(
+                details is null ? ConcurrencyConflictMessage : ex.Message, null, null, details));
         }
         catch (Exception ex) when (DatabaseErrorClassifier.IsDatabaseFailure(ex))
         {

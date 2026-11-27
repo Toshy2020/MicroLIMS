@@ -137,12 +137,14 @@ public sealed class PathogenConfirmationRecorder : TestWorkflowSupport
     // called; the analyst cannot override it. This method just records
     // that the window has completed and optionally saves an observation.
     public Task<StepResultDto> SubmitBrothAsync(
-        int testOrderId, string stepName, string? observation, int userId) =>
-        UnitOfWork.RunAsync(_db, () => SubmitBrothCoreAsync(testOrderId, stepName, observation, userId));
+        int testOrderId, string stepName, string? observation, int userId, CancellationToken cancellationToken = default) =>
+        UnitOfWork.RunAsync(_db, () => SubmitBrothCoreAsync(testOrderId, stepName, observation, userId, cancellationToken));
 
     private async Task<StepResultDto> SubmitBrothCoreAsync(
-        int testOrderId, string stepName, string? observation, int userId)
+        int testOrderId, string stepName, string? observation, int userId, CancellationToken cancellationToken)
     {
+        using var recording = await RequireCompetentAsync(userId, testOrderId, cancellationToken);
+        await CaptureSopRevisionAsync(testOrderId, cancellationToken);
         var step = await LoadStepAsync(testOrderId, stepName);
         if (step.StepType is not (StepType.BrothEnrichment or StepType.SelectiveBroth))
             throw new BusinessRuleException(
@@ -242,7 +244,9 @@ public sealed class PathogenConfirmationRecorder : TestWorkflowSupport
 
         if (step.StepType == StepType.BrothEnrichment || step.StepName.Contains("TSB", StringComparison.OrdinalIgnoreCase))
         {
-            await PropagateSharedTsbToSiblingOrdersAsync(testOrderId, incubation.Id, userId);
+            // Sibling writes carry the result of their own competency evaluation.
+            recording.Dispose();
+            await PropagateSharedTsbToSiblingOrdersAsync(testOrderId, incubation.Id, userId, cancellationToken);
         }
 
         return new StepResultDto(incubation.Id, step.StepType.ToString(), "Complete",
@@ -252,13 +256,16 @@ public sealed class PathogenConfirmationRecorder : TestWorkflowSupport
     // Growth that is absent or does not match the expected appearance
     // means the organism being sought is not there - the workflow ends
     public Task<Incubation> StartSelectivePlatingIncubationAsync(
-        int testOrderId, string stepName, int mediaLotId, int equipmentId, DateTime? incubationStartUtc, int userId) =>
-        UnitOfWork.RunAsync(_db, () => StartSelectivePlatingIncubationCoreAsync(testOrderId, stepName, mediaLotId, equipmentId, incubationStartUtc, userId));
+        int testOrderId, string stepName, int mediaLotId, int equipmentId, DateTime? incubationStartUtc, int userId, CancellationToken cancellationToken = default) =>
+        UnitOfWork.RunAsync(_db, () => StartSelectivePlatingIncubationCoreAsync(testOrderId, stepName, mediaLotId, equipmentId, incubationStartUtc, userId, cancellationToken));
 
     private async Task<Incubation> StartSelectivePlatingIncubationCoreAsync(
-        int testOrderId, string stepName, int mediaLotId, int equipmentId, DateTime? incubationStartUtc, int userId)
+        int testOrderId, string stepName, int mediaLotId, int equipmentId, DateTime? incubationStartUtc, int userId, CancellationToken cancellationToken)
     {
-        var (order, definition) = await LoadWithTemplateAsync(testOrderId);
+        var order = await WorkflowStateMachine.LoadOrThrowAsync(_db, testOrderId);
+        using var recording = await RequireCompetentAsync(userId, order.Id, cancellationToken);
+        await CaptureSopRevisionAsync(order, cancellationToken);
+        var definition = await LoadTemplateAsync(order, cancellationToken);
         RequireOrderNotFinalized(order);
         var step = definition.Steps.FirstOrDefault(s => s.StepName == stepName)
             ?? throw new BusinessRuleException(
@@ -334,12 +341,14 @@ public sealed class PathogenConfirmationRecorder : TestWorkflowSupport
     }
 
     public Task<StepResultDto> SubmitSelectivePlatingObservationAsync(
-        int testOrderId, string stepName, GrowthObservation observation, string? observedAppearanceNote, int userId) =>
-        UnitOfWork.RunAsync(_db, () => SubmitSelectivePlatingObservationCoreAsync(testOrderId, stepName, observation, observedAppearanceNote, userId));
+        int testOrderId, string stepName, GrowthObservation observation, string? observedAppearanceNote, int userId, CancellationToken cancellationToken = default) =>
+        UnitOfWork.RunAsync(_db, () => SubmitSelectivePlatingObservationCoreAsync(testOrderId, stepName, observation, observedAppearanceNote, userId, cancellationToken));
 
     private async Task<StepResultDto> SubmitSelectivePlatingObservationCoreAsync(
-        int testOrderId, string stepName, GrowthObservation observation, string? observedAppearanceNote, int userId)
+        int testOrderId, string stepName, GrowthObservation observation, string? observedAppearanceNote, int userId, CancellationToken cancellationToken)
     {
+        using var recording = await RequireCompetentAsync(userId, testOrderId, cancellationToken);
+        await CaptureSopRevisionAsync(testOrderId, cancellationToken);
         var step = await LoadStepAsync(testOrderId, stepName);
         if (step.StepType != StepType.SelectivePlating)
             throw new BusinessRuleException(
@@ -422,13 +431,15 @@ public sealed class PathogenConfirmationRecorder : TestWorkflowSupport
     // incubator, before any plate goes into an incubator.
     public Task<StepResultDto> SubmitConfirmatorySetupAsync(
         int testOrderId, string stepName, IReadOnlyList<ConfirmatorySelectionInput> selections,
-        DateTime incubationStartUtc, DateTime incubationEndUtc, int userId) =>
-        UnitOfWork.RunAsync(_db, () => SubmitConfirmatorySetupCoreAsync(testOrderId, stepName, selections, incubationStartUtc, incubationEndUtc, userId));
+        DateTime incubationStartUtc, DateTime incubationEndUtc, int userId, CancellationToken cancellationToken = default) =>
+        UnitOfWork.RunAsync(_db, () => SubmitConfirmatorySetupCoreAsync(testOrderId, stepName, selections, incubationStartUtc, incubationEndUtc, userId, cancellationToken));
 
     private async Task<StepResultDto> SubmitConfirmatorySetupCoreAsync(
         int testOrderId, string stepName, IReadOnlyList<ConfirmatorySelectionInput> selections,
-        DateTime incubationStartUtc, DateTime incubationEndUtc, int userId)
+        DateTime incubationStartUtc, DateTime incubationEndUtc, int userId, CancellationToken cancellationToken)
     {
+        using var recording = await RequireCompetentAsync(userId, testOrderId, cancellationToken);
+        await CaptureSopRevisionAsync(testOrderId, cancellationToken);
         // A second setup for a step that already has a result row mints a
         // fresh Incubation and WorkflowStepResult, and every downstream
         // reader takes the newest row - so the earlier run is silently
@@ -561,9 +572,15 @@ public sealed class PathogenConfirmationRecorder : TestWorkflowSupport
     // conforming, before the analyst is offered a decision. Anything
     // else is Inconclusive and is flagged for investigation - there is
     // no path from here to Detected.
-    public async Task<ConfirmatoryOutcomeDto> SubmitConfirmatoryObservationsAsync(
-        int testOrderId, string stepName, IReadOnlyList<ConfirmatoryObservationInput> observations, int userId)
+    public Task<ConfirmatoryOutcomeDto> SubmitConfirmatoryObservationsAsync(
+        int testOrderId, string stepName, IReadOnlyList<ConfirmatoryObservationInput> observations, int userId, CancellationToken cancellationToken = default) =>
+        UnitOfWork.RunAsync(_db, () => SubmitConfirmatoryObservationsCoreAsync(testOrderId, stepName, observations, userId, cancellationToken));
+
+    private async Task<ConfirmatoryOutcomeDto> SubmitConfirmatoryObservationsCoreAsync(
+        int testOrderId, string stepName, IReadOnlyList<ConfirmatoryObservationInput> observations, int userId, CancellationToken cancellationToken)
     {
+        using var recording = await RequireCompetentAsync(userId, testOrderId, cancellationToken);
+        await CaptureSopRevisionAsync(testOrderId, cancellationToken);
         var step = await LoadStepAsync(testOrderId, stepName);
         if (step.StepType != StepType.ConfirmatoryPlating)
             throw new BusinessRuleException(
@@ -645,16 +662,18 @@ public sealed class PathogenConfirmationRecorder : TestWorkflowSupport
     // Offered only once confirmatory plating came back AllConforming.
     // Submitting as Detected is allowed but is permanently flagged so a
     // reviewer sees that no biochemical confirmation was performed.
-    public Task<StepResultDto> RecordAnalystDecisionAsync(int testOrderId, AnalystDecision decision, int userId) =>
-        UnitOfWork.RunAsync(_db, () => RecordAnalystDecisionCoreAsync(testOrderId, decision, userId));
+    public Task<StepResultDto> RecordAnalystDecisionAsync(int testOrderId, AnalystDecision decision, int userId, CancellationToken cancellationToken = default) =>
+        UnitOfWork.RunAsync(_db, () => RecordAnalystDecisionCoreAsync(testOrderId, decision, userId, cancellationToken));
 
-    private async Task<StepResultDto> RecordAnalystDecisionCoreAsync(int testOrderId, AnalystDecision decision, int userId)
+    private async Task<StepResultDto> RecordAnalystDecisionCoreAsync(int testOrderId, AnalystDecision decision, int userId, CancellationToken cancellationToken)
     {
         var order = await _db.TestOrders.FirstOrDefaultAsync(t => t.Id == testOrderId)
             ?? throw new NotFoundException(
                 MessageCodes.TestOrderNotFound,
                 $"Test order {testOrderId} not found.",
                 new Dictionary<string, string> { ["testOrderId"] = testOrderId.ToString(CultureInfo.InvariantCulture) });
+        using var recording = await RequireCompetentAsync(userId, order.Id, cancellationToken);
+        await CaptureSopRevisionAsync(order, cancellationToken);
         RequireOrderNotFinalized(order);
 
         var confirmatory = await _db.WorkflowStepResults
@@ -719,12 +738,14 @@ public sealed class PathogenConfirmationRecorder : TestWorkflowSupport
     // Free-text confirmation with an optional attachment. There is no
     // incubation lock and no media on this step.
     public Task<StepResultDto> SubmitBiochemicalAsync(
-        int testOrderId, string stepName, string biochemicalResultText, int? attachmentId, bool organismDetected, int userId) =>
-        UnitOfWork.RunAsync(_db, () => SubmitBiochemicalCoreAsync(testOrderId, stepName, biochemicalResultText, attachmentId, organismDetected, userId));
+        int testOrderId, string stepName, string biochemicalResultText, int? attachmentId, bool organismDetected, int userId, CancellationToken cancellationToken = default) =>
+        UnitOfWork.RunAsync(_db, () => SubmitBiochemicalCoreAsync(testOrderId, stepName, biochemicalResultText, attachmentId, organismDetected, userId, cancellationToken));
 
     private async Task<StepResultDto> SubmitBiochemicalCoreAsync(
-        int testOrderId, string stepName, string biochemicalResultText, int? attachmentId, bool organismDetected, int userId)
+        int testOrderId, string stepName, string biochemicalResultText, int? attachmentId, bool organismDetected, int userId, CancellationToken cancellationToken)
     {
+        using var recording = await RequireCompetentAsync(userId, testOrderId, cancellationToken);
+        await CaptureSopRevisionAsync(testOrderId, cancellationToken);
         var step = await LoadStepAsync(testOrderId, stepName);
         if (step.StepType != StepType.BiochemicalTest)
             throw new BusinessRuleException(
